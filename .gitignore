@@ -1,0 +1,64 @@
+# Python: entornos virtuales, cachés y empaquetado
+.venv/
+venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.eggs/
+
+# Dependencias y archivos generados
+node_modules/
+.angular/
+dist/
+build/
+out-tsc/
+coverage/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.tsbuildinfo
+.cache/
+tmp/
+temp/
+*.log
+
+# Configuración privada y secretos (las plantillas deben tener valores ficticios)
+.env
+.env.*
+!.env.example
+!.env.template
+.envrc
+.npmrc
+.pypirc
+secrets/
+credentials/
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+credentials.json
+service-account*.json
+
+# Datos locales
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.sqlite3-wal
+*.sqlite3-shm
+
+# Archivos locales del sistema y del editor
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.history/
+*.swp
+*.swo
