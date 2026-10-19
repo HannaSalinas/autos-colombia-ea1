@@ -11,11 +11,23 @@ instalar y ejecutar los proyectos en Windows está en `README.md`.
 - `backend/app/config.py`: carga `backend/.env` por ruta absoluta; el entorno tiene prioridad.
 - `backend/app/database.py`: motor SQLAlchemy y sesiones bajo demanda con psycopg.
 - `backend/check_db.py`: comprobación explícita mediante `SELECT 1`, sin DDL.
+- `backend/app/models.py`: Base, Vehiculo, Celda y Operador; tablas en singular y minúsculas.
+- `backend/app/schemas/vehiculo.py`: validación Pydantic y contratos de respuesta.
+- `backend/app/routers/vehiculos.py`: rutas CRUD con APIRouter.
+- `backend/app/services/vehiculo.py`: lógica de vehículos, transacciones y errores públicos.
+- `backend/app/schemas/celda.py`, `app/routers/celdas.py` y `app/services/celda.py`:
+  CRUD de celdas con código normalizado y tipo libre obligatorio.
+- `backend/migrations/`: revisiones Alembic; `backend/alembic.ini` reutiliza la configuración privada.
 - `backend/.env.example`: plantilla pública; conservar cualquier `.env` existente y privado.
 - `backend/requirements.txt`: dependencias de ejecución y pruebas con versiones
   exactas, incluidas las transitivas.
 - `backend/.venv/`: entorno virtual local, excluido de Git.
 - `frontend/src/app/`: componentes standalone, configuración y rutas Angular.
+- `frontend/src/app/home/`: bienvenida y estado de salud de la API.
+- `frontend/src/app/vehiculos/`: formulario reactivo y listado paginado de vehículos.
+- `frontend/src/app/celdas/`: gestión de celdas; `CeldasService` reutiliza la base de API.
+- `frontend/src/app/services/api.service.ts`: llamadas HTTP y base de API centralizadas.
+- `frontend/src/app/models/vehiculo.ts`: contratos de solicitudes, respuestas y tipos.
 - `frontend/src/styles.css`: estilos globales; estilos de componentes en CSS.
 - `frontend/public/`: recursos estáticos que sí se versionan.
 - `frontend/package.json` y `frontend/package-lock.json`: scripts, dependencias
@@ -51,12 +63,17 @@ instalar y ejecutar los proyectos en Windows está en `README.md`.
 - Añadir o ajustar pruebas cuando cambie el comportamiento. Los endpoints nuevos
   deben probar su estado HTTP y su respuesta esperada.
 - Conservar el contrato de `/health` salvo que se solicite cambiarlo.
+- Mantener restricciones de integridad en modelos y migraciones. Nunca aplicar
+  migraciones a la base del usuario sin autorización; para revisión usar
+  `python -m alembic -c alembic.ini upgrade head --sql` con el intérprete de `.venv`.
 - Mantener `/health` independiente de PostgreSQL. No conectar ni crear tablas al
   importar módulos. No registrar credenciales, URL de conexión ni errores crudos
   del controlador. Verificar PostgreSQL con `backend/check_db.py`; las pruebas
   simuladas no prueban que exista una conexión local real.
 - La pantalla consulta `/health` mediante `HttpClient` al cargarse. El proxy de
-  desarrollo en `frontend/proxy.conf.json` dirige esa ruta a `127.0.0.1:8000`.
+  desarrollo en `frontend/proxy.conf.json` dirige `/health`, `/vehiculos` y
+  `/vehiculos/**` a `127.0.0.1:8000`. La pantalla de gestión usa `/gestion/vehiculos`
+  para no colisionar con las rutas API. Las llamadas pasan por `ApiService`.
   Mantener rutas relativas y documentar cualquier integración que se añada.
 
 ## Secretos y archivos excluidos
@@ -100,6 +117,11 @@ try {
 
 La prueba actual comprueba `/health` sin iniciar un servidor externo. Starlette
 puede emitir un aviso de deprecación sobre `httpx`; distinguirlo de un fallo.
+
+Las pruebas de integración de vehículos se habilitan con `RUN_POSTGRES_TESTS=1`
+y requieren `autos_colombia` con la revisión `0001`. Usan rollback exterior y
+savepoints: no crear tablas ni alterar migraciones para probar. Los valores de
+las secuencias pueden avanzar. Ver `backend/README.md` para comandos completos.
 
 ### Frontend
 

@@ -1,0 +1,87 @@
+<section class="welcome" aria-labelledby="welcome-title">
+  <div class="welcome-copy">
+    <span class="eyebrow">ORDEN EN CADA MOVIMIENTO</span>
+    <h1 id="welcome-title">Autos Colombia</h1>
+    <p class="description">Control de entradas y salidas de vehículos</p>
+    <p class="supporting-copy">
+      Un espacio para organizar el movimiento de vehículos y mantener la información a mano.
+    </p>
+    <div class="welcome-note">
+      <span class="note-line" aria-hidden="true"></span>
+      <span>Bienvenido a tu espacio de gestión.</span>
+    </div>
+    <p
+      class="connection-status"
+      [class.available]="connectionState() === 'available'"
+      [class.unavailable]="connectionState() === 'unavailable'"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      <span class="status-dot" aria-hidden="true"></span>
+      {{ connectionMessage() }}
+    </p>
+  </div>
+
+  <div class="illustration" aria-hidden="true">
+    <div class="illustration-grid"></div>
+    <span class="parking-label">AUTOS COLOMBIA</span>
+    <svg viewBox="0 0 400 250" fill="none">
+      <path d="M40 205H360" stroke="currentColor" stroke-opacity=".15" stroke-width="2" />
+      <path
+        d="M87 154L110 103C114 94 122 89 133 89H259C270 89 278 94 282 103L305 154"
+        fill="#d8e5e2"
+        stroke="#214c43"
+        stroke-width="4"
+      />
+      <path d="M127 104H265L282 144H110L127 104Z" fill="#214c43" />
+      <path d="M197 105V143" stroke="#d8e5e2" stroke-width="4" />
+      <rect
+        x="78"
+        y="145"
+        width="236"
+        height="53"
+        rx="16"
+        fill="#f9fbfa"
+        stroke="#214c43"
+        stroke-width="4"
+      />
+      <rect x="96" y="193" width="31" height="17" rx="6" fill="#214c43" />
+      <rect x="265" y="193" width="31" height="17" rx="6" fill="#214c43" />
+      <rect x="95" y="159" width="37" height="12" rx="4" fill="#e9b85c" />
+      <rect x="260" y="159" width="37" height="12" rx="4" fill="#e9b85c" />
+      <rect x="171" y="174" width="50" height="12" rx="3" fill="#d8e5e2" />
+      <path
+        d="M49 87V58H78M322 58H351V87"
+        stroke="#77968e"
+        stroke-width="3"
+        stroke-linecap="round"
+      />
+    </svg>
+    <span class="illustration-caption">Cada entrada. Cada salida.</span>
+  </div>
+</section>
+
+<section class="overview" aria-labelledby="overview-title">
+  <div class="section-heading">
+    <h2 id="overview-title">Una gestión más organizada</h2>
+    <p>Lo esencial, en un solo lugar.</p>
+  </div>
+  <div class="feature-grid">
+    <article class="feature">
+      <span class="feature-number" aria-hidden="true">01</span>
+      <h3>Entradas</h3>
+      <p>El punto de partida para el control de cada vehículo.</p>
+    </article>
+    <article class="feature">
+      <span class="feature-number" aria-hidden="true">02</span>
+      <h3>Salidas</h3>
+      <p>El cierre de cada recorrido, con orden y claridad.</p>
+    </article>
+    <article class="feature">
+      <span class="feature-number" aria-hidden="true">03</span>
+      <h3>Información</h3>
+      <p>Una visión clara para acompañar la operación diaria.</p>
+    </article>
+  </div>
+</section>
