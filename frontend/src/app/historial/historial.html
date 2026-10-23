@@ -1,0 +1,151 @@
+<section class="management" aria-labelledby="history-title">
+  <header class="heading">
+    <div>
+      <span class="eyebrow">REPORTES</span>
+      <h1 id="history-title">Historial de estancias</h1>
+      <p>
+        Todas las entradas y salidas, de la más reciente a la más antigua. El historial no se borra.
+      </p>
+    </div>
+  </header>
+
+  <section class="panel" aria-labelledby="filters-title">
+    <h2 id="filters-title">Filtros</h2>
+    <form [formGroup]="filtros" (ngSubmit)="buscar()">
+      <fieldset [disabled]="loading()">
+        <legend class="sr-only">Filtros del historial</legend>
+        <div class="form-grid tres">
+          <div class="field">
+            <label for="history-plate">Placa</label
+            ><input id="history-plate" type="text" formControlName="placa" placeholder="ABC123" />
+          </div>
+          <div class="field">
+            <label for="history-from">Desde (fecha de entrada)</label
+            ><input id="history-from" type="date" formControlName="desde" />
+          </div>
+          <div class="field">
+            <label for="history-to">Hasta (fecha de entrada)</label
+            ><input id="history-to" type="date" formControlName="hasta" />
+          </div>
+        </div>
+        @if (filtros.errors?.['rango']) {
+          <p class="field-error" role="alert">La fecha "desde" no puede ser posterior a "hasta".</p>
+        }
+        <div class="actions">
+          <button type="submit" class="primary" [disabled]="filtros.invalid">Buscar</button
+          ><button type="button" (click)="limpiar()">Limpiar filtros</button>
+        </div>
+        <p class="hint">Las fechas son días de Bogotá y se comparan con la hora de entrada.</p>
+      </fieldset>
+    </form>
+  </section>
+
+  @if (error()) {
+    <p class="notice error" role="alert">{{ error() }}</p>
+  }
+
+  <section class="panel list" aria-labelledby="results-title" [attr.aria-busy]="loading()">
+    <div class="list-heading">
+      <h2 id="results-title">
+        Estancias <span class="count">{{ total() }}</span>
+      </h2>
+    </div>
+    @if (loading()) {
+      <p class="empty" role="status">Cargando historial…</p>
+    } @else if (items().length === 0) {
+      <p class="empty">No hay estancias con esos filtros.</p>
+    } @else {
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Placa</th>
+              <th scope="col">Celda</th>
+              <th scope="col">Entrada</th>
+              <th scope="col">Salida</th>
+              <th scope="col">Permanencia</th>
+              <th scope="col">Operadores</th>
+              <th scope="col">Registro</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (e of items(); track e.id) {
+              <tr>
+                <th scope="row">
+                  {{ e.placa }} <span class="type-tag">{{ e.tipo_vehiculo }}</span>
+                </th>
+                <td>{{ e.celda }}</td>
+                <td>{{ fecha(e.entrada) }}</td>
+                <td>
+                  @if (e.salida) {
+                    {{ fecha(e.salida) }}
+                  } @else {
+                    <span class="status-tag ok">Dentro</span>
+                  }
+                </td>
+                <td>{{ e.permanencia ?? '—' }}</td>
+                <td>{{ e.operador_entrada }} / {{ e.operador_salida ?? '—' }}</td>
+                <td class="row-actions">
+                  <button
+                    type="button"
+                    (click)="verDetalle(e)"
+                    [attr.aria-expanded]="detalleId() === e.id"
+                    [attr.aria-label]="'Detalle de la estancia de ' + e.placa"
+                  >
+                    {{ e.novedades }} nov. · {{ e.correcciones }} corr.
+                  </button>
+                </td>
+              </tr>
+              @if (detalleId() === e.id) {
+                <tr class="detalle">
+                  <td colspan="7">
+                    @if (detalleError()) {
+                      <p class="notice error" role="alert">{{ detalleError() }}</p>
+                    } @else if (detalle(); as d) {
+                      @if (!d.correcciones.length && !d.novedades.length) {
+                        <p>Sin correcciones ni novedades.</p>
+                      }
+                      @for (c of d.correcciones; track c.id) {
+                        <p>
+                          <strong>Corrección</strong> {{ fecha(c.fecha) }} ·
+                          {{ c.celda_anterior.codigo }} → {{ c.celda_nueva.codigo }} ·
+                          {{ c.motivo }}
+                        </p>
+                      }
+                      @for (n of d.novedades; track n.id) {
+                        <p>
+                          <strong>{{ etiqueta(n.tipo) }}</strong> {{ fecha(n.fecha) }} ·
+                          {{ n.descripcion }}
+                        </p>
+                      }
+                    } @else {
+                      <p role="status">Cargando detalle…</p>
+                    }
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+    <nav class="pagination" aria-label="Paginación del historial">
+      <span>Página {{ page() }} de {{ pages() }} · {{ limit }} por página</span>
+      <div class="actions">
+        <button
+          type="button"
+          (click)="cargar(offset() - limit)"
+          [disabled]="loading() || offset() === 0"
+        >
+          Anterior</button
+        ><button
+          type="button"
+          (click)="cargar(offset() + limit)"
+          [disabled]="loading() || offset() + limit >= total()"
+        >
+          Siguiente
+        </button>
+      </div>
+    </nav>
+  </section>
+</section>
