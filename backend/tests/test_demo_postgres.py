@@ -33,6 +33,21 @@ def test_datos_de_demostracion(api_y_sesion):
                    for m in mensualidades if m.vehiculo_id == vehiculo.id), vehiculo.placa
         assert session.get(Celda, e.celda_id).tipo == tipo_celda_para(vehiculo.tipo)
         assert e.salida is None or e.salida > e.entrada
+    # Nunca dos vehículos en la misma celda al mismo tiempo (teniendo en cuenta las correcciones).
+    tramos: dict[int, list[tuple[datetime, datetime]]] = {}
+    for e in estancias:
+        fin = e.salida or ahora
+        cambios = sorted(session.scalars(select(CorreccionCelda).where(CorreccionCelda.estancia_id == e.id)),
+                         key=lambda c: c.fecha)
+        inicio = e.entrada
+        for c in cambios:
+            tramos.setdefault(c.celda_anterior_id, []).append((inicio, c.fecha))
+            inicio = c.fecha
+        tramos.setdefault(e.celda_id, []).append((inicio, fin))
+    for celda_id, lista in tramos.items():
+        lista.sort()
+        for (_, fin_a), (inicio_b, _) in zip(lista, lista[1:]):
+            assert fin_a <= inicio_b, f"Celda {celda_id} ocupada por dos estancias a la vez"
     assert session.scalar(select(func.count()).select_from(CorreccionCelda)) == creados["correcciones"]
     assert session.scalar(select(func.count()).select_from(Novedad)) == creados["novedades"]
     session.commit()   # cierra la lectura antes de llamar a la API

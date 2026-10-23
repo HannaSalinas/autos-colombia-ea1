@@ -55,7 +55,11 @@ def generar(session: Session, ahora: datetime, semilla: int = 20261025) -> dict[
     rnd = random.Random(semilla)
     hoy = ahora.astimezone(ZONA_BOGOTA).date()
     creados = {"estancias_cerradas": 0, "estancias_abiertas": 0, "correcciones": 0, "novedades": 0}
-    libre_desde: dict[int, datetime] = {}   # celda -> último momento en que quedó libre
+
+    def liberar(celda: Celda, momento: datetime) -> None:
+        """La celda queda libre desde 'momento' (se guarda el más reciente)."""
+        if celda.disponible_desde is None or momento > celda.disponible_desde:
+            celda.disponible_desde = momento
 
     def novedad(estancia: Estancia, desde: datetime, hasta: datetime) -> None:
         tipo = rnd.choice(list(NOVEDADES))
@@ -68,7 +72,7 @@ def generar(session: Session, ahora: datetime, semilla: int = 20261025) -> dict[
         session.add(CorreccionCelda(estancia_id=estancia.id, celda_anterior_id=anterior.id, celda_nueva_id=nueva.id,
                                     operador_id=rnd.choice(operadores).id, fecha=momento, motivo=rnd.choice(MOTIVOS)))
         estancia.celda_id = nueva.id
-        libre_desde[anterior.id] = max(libre_desde.get(anterior.id, momento), momento)
+        liberar(anterior, momento)
         creados["correcciones"] += 1
 
     # 1) Historial: estancias cerradas de los últimos días. Cada vehículo, como máximo una por día,
@@ -98,23 +102,21 @@ def generar(session: Session, ahora: datetime, semilla: int = 20261025) -> dict[
                 corregir(estancia, celda, final, entrada + timedelta(minutes=rnd.randint(5, 20)))
             if rnd.random() < 0.3:
                 novedad(estancia, entrada, salida)
-            libre_desde[final.id] = max(libre_desde.get(final.id, salida), salida)
-
-    for celda_id, momento in libre_desde.items():
-        session.get(Celda, celda_id).disponible_desde = momento
+            liberar(final, salida)
     session.flush()
 
     # 2) Vehículos dentro ahora: la celda se elige con el mismo orden del sistema
-    #    (libre, del tipo correcto y la que lleva más tiempo libre).
+    #    (libre, del tipo correcto y la que lleva más tiempo libre). Las entradas se
+    #    generan en orden cronológico, como ocurrirían en las porterías.
     ocupadas: set[int] = set()
     por_placa = {v.placa: v for v in vehiculos}
-    for n, placa in enumerate(ABIERTAS):
+    entradas = sorted(ahora - timedelta(minutes=rnd.randint(20, 300)) for _ in ABIERTAS)
+    for n, (placa, entrada) in enumerate(zip(ABIERTAS, entradas)):
         vehiculo = por_placa[placa]
         tipo = tipo_celda_para(vehiculo.tipo)
         libres = [c for c in celdas[tipo] if c.id not in ocupadas]
         celda = min(libres, key=lambda c: orden_de_asignacion(c.disponible_desde, c.codigo))
         ocupadas.add(celda.id)
-        entrada = ahora - timedelta(minutes=rnd.randint(20, 300))
         estancia = Estancia(vehiculo_id=vehiculo.id, celda_id=celda.id, entrada=entrada,
                             operador_entrada_id=operadores[n % 2].id)
         session.add(estancia)
@@ -123,9 +125,10 @@ def generar(session: Session, ahora: datetime, semilla: int = 20261025) -> dict[
         if n == 1:   # una novedad y una corrección también en estancias abiertas
             novedad(estancia, entrada, ahora)
         if n == 3:
-            nueva = next(c for c in celdas[tipo] if c.id not in ocupadas and c.disponible_desde is None
-                         and c.id != celda.id)
-            corregir(estancia, celda, nueva, entrada + timedelta(minutes=10))
+            nueva = next(c for c in celdas[tipo] if c.id not in ocupadas and c.disponible_desde is None)
+            # La corrección ocurre antes de la siguiente entrada, que ya puede usar la celda liberada.
+            momento = min(entrada + timedelta(minutes=10), entradas[n + 1] - timedelta(minutes=1))
+            corregir(estancia, celda, nueva, momento)
             ocupadas.add(nueva.id)
             ocupadas.discard(celda.id)
     session.flush()
