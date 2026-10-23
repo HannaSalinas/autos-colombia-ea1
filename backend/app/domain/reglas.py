@@ -65,3 +65,42 @@ def fin_de_mensualidad(inicio: date) -> date:
 def mensualidad_vigente(inicio: date, fin: date, hoy: date) -> bool:
     """Vigente si inicio <= hoy <= fin (ambos días incluidos)."""
     return inicio <= hoy <= fin
+
+
+# --- Celdas y estancias (Fase 2) ---
+
+TOTAL_CELDAS = {"CARRO": 70, "MOTO": 10}
+# Automóvil y camioneta usan celda de carro; no se reciben camiones.
+TIPO_CELDA_POR_VEHICULO = {"MOTO": "MOTO", "AUTOMOVIL": "CARRO", "CAMIONETA": "CARRO"}
+
+
+def tipo_celda_para(tipo_vehiculo: str) -> str:
+    try:
+        return TIPO_CELDA_POR_VEHICULO[tipo_vehiculo]
+    except KeyError:
+        raise ValueError(f"Tipo de vehículo no admitido: {tipo_vehiculo}.") from None
+
+
+def orden_de_asignacion(disponible_desde: datetime | None, codigo: str) -> tuple:
+    """Clave para elegir celda libre: primero las nunca usadas (None), luego la que lleva
+    más tiempo libre y, si empatan, el código. Así el uso se reparte entre todas.
+
+    El servicio usa este mismo orden en SQL: ORDER BY disponible_desde NULLS FIRST, codigo.
+    """
+    return (disponible_desde is not None, disponible_desde or datetime.min, codigo)
+
+
+def permanencia_segundos(entrada: datetime, salida: datetime) -> int:
+    return max(0, int((salida - entrada).total_seconds()))
+
+
+def formatear_permanencia(segundos: int) -> str:
+    """3 h 05 min; 2 d 4 h 10 min; menos de un minuto: 0 min."""
+    minutos_totales = segundos // 60
+    dias, resto = divmod(minutos_totales, 24 * 60)
+    horas, minutos = divmod(resto, 60)
+    if dias:
+        return f"{dias} d {horas} h {minutos:02d} min"
+    if horas:
+        return f"{horas} h {minutos:02d} min"
+    return f"{minutos} min"

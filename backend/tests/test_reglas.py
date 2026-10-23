@@ -88,3 +88,44 @@ def test_restar_meses():
 ])
 def test_vigencia_en_limites(hoy, vigente):
     assert mensualidad_vigente(date(2026, 10, 20), date(2026, 11, 20), hoy) is vigente
+
+
+# --- Fase 2: celdas y permanencia ---
+from datetime import datetime, timedelta, timezone  # noqa: E402
+
+from app.domain.reglas import (  # noqa: E402
+    formatear_permanencia, orden_de_asignacion, permanencia_segundos, tipo_celda_para,
+)
+
+
+@pytest.mark.parametrize("vehiculo,celda", [("MOTO", "MOTO"), ("AUTOMOVIL", "CARRO"), ("CAMIONETA", "CARRO")])
+def test_tipo_de_celda_por_vehiculo(vehiculo, celda):
+    assert tipo_celda_para(vehiculo) == celda
+
+
+def test_no_se_reciben_camiones():
+    with pytest.raises(ValueError):
+        tipo_celda_para("CAMION")
+
+
+def test_asigna_primero_la_nunca_usada_y_luego_la_que_lleva_mas_tiempo_libre():
+    hace_2h = datetime(2026, 10, 23, 10, tzinfo=timezone.utc)
+    hace_1h = hace_2h + timedelta(hours=1)
+    celdas = [("C03", hace_1h), ("C01", hace_1h), ("C02", hace_2h), ("C09", None), ("C05", None)]
+    ordenadas = sorted(celdas, key=lambda c: orden_de_asignacion(c[1], c[0]))
+    assert [codigo for codigo, _ in ordenadas] == ["C05", "C09", "C02", "C01", "C03"]
+
+
+@pytest.mark.parametrize("segundos,texto", [
+    (0, "0 min"), (59, "0 min"), (60, "1 min"), (3599, "59 min"), (3600, "1 h 00 min"),
+    (3 * 3600 + 5 * 60, "3 h 05 min"), (86399, "23 h 59 min"), (86400, "1 d 0 h 00 min"),
+    (2 * 86400 + 4 * 3600 + 600, "2 d 4 h 10 min"),
+])
+def test_formatear_permanencia(segundos, texto):
+    assert formatear_permanencia(segundos) == texto
+
+
+def test_permanencia_en_segundos():
+    entrada = datetime(2026, 10, 23, 8, tzinfo=timezone.utc)
+    assert permanencia_segundos(entrada, entrada + timedelta(hours=2, seconds=30)) == 7230
+    assert permanencia_segundos(entrada, entrada) == 0
