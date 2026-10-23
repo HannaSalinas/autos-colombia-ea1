@@ -3,7 +3,16 @@ import { inject, Injectable } from '@angular/core';
 import { EMPTY, Observable, expand, reduce, throwError, timeout } from 'rxjs';
 import { Celda } from '../models/celda';
 import { Operador } from '../models/operador';
-import { EntradaCrear, SalidaCrear, EstadoVehiculo, Movimiento } from '../models/estancia';
+import {
+  Correccion,
+  CorreccionCrear,
+  EntradaCrear,
+  EstadoVehiculo,
+  Movimiento,
+  Novedad,
+  NovedadCrear,
+  SalidaCrear,
+} from '../models/estancia';
 import { API_BASE_URL } from './api.service';
 import { CeldasService } from './celdas.service';
 import { OperadoresService } from './operadores.service';
@@ -31,6 +40,30 @@ export class EstanciasService {
   consultar(placa: string) {
     return this.http
       .get<EstadoVehiculo>(`${this.base}/vehiculo/${encodeURIComponent(placa)}`)
+      .pipe(timeout(15000));
+  }
+  // Fase 3: corrección de celda y novedades de una estancia.
+  celdasDisponibles(estanciaId: number) {
+    return this.http
+      .get<Celda[]>(`${this.base}/${estanciaId}/celdas-disponibles`)
+      .pipe(timeout(15000));
+  }
+  corregirCelda(estanciaId: number, data: CorreccionCrear) {
+    return this.http
+      .post<Correccion>(`${this.base}/${estanciaId}/correccion-celda`, data)
+      .pipe(timeout(15000));
+  }
+  correcciones(estanciaId: number) {
+    return this.http
+      .get<Correccion[]>(`${this.base}/${estanciaId}/correcciones`)
+      .pipe(timeout(15000));
+  }
+  novedades(estanciaId: number) {
+    return this.http.get<Novedad[]>(`${this.base}/${estanciaId}/novedades`).pipe(timeout(15000));
+  }
+  registrarNovedad(estanciaId: number, data: NovedadCrear) {
+    return this.http
+      .post<Novedad>(`${this.base}/${estanciaId}/novedades`, data)
       .pipe(timeout(15000));
   }
   celdas(): Observable<Celda[]> {
