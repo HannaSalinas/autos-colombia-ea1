@@ -6,7 +6,7 @@ import { ControlAcceso } from './control-acceso';
 describe('Control de acceso', () => {
   let http: HttpTestingController;
   let c: ControlAcceso;
-  const celda = { id: 2, codigo: 'TEST-C', tipo: 'Libre' };
+  const celda = { id: 2, codigo: 'M01', tipo: 'MOTO' };
   const stay = {
     id: 3,
     vehiculo_id: 1,
@@ -19,7 +19,7 @@ describe('Control de acceso', () => {
   const state = {
     vehiculo: {
       id: 1,
-      placa: 'TEST-A',
+      placa: 'KLM45D',
       marca: 'Prueba',
       color: 'Azul',
       modelo: 2026,
@@ -35,91 +35,95 @@ describe('Control de acceso', () => {
     });
     http = TestBed.inject(HttpTestingController);
     c = TestBed.createComponent(ControlAcceso).componentInstance;
-    http
-      .expectOne('/celdas?offset=0&limit=100')
-      .flush({ items: [celda], total: 2, offset: 0, limit: 100 });
-    http
-      .expectOne('/celdas?offset=1&limit=100')
-      .flush({ items: [{ ...celda, id: 5 }], total: 2, offset: 1, limit: 100 });
-    http
-      .expectOne('/operadores?offset=0&limit=100')
-      .flush({
-        items: [{ id: 4, nombre: 'Prueba', telefono: '001' }],
-        total: 1,
-        offset: 0,
-        limit: 100,
-      });
+    // Iteración 1: ya no se cargan celdas; solo operadores (la celda la asigna el sistema).
+    http.expectOne('/operadores?offset=0&limit=100').flush({
+      items: [{ id: 4, nombre: 'Prueba', telefono: '001' }],
+      total: 1,
+      offset: 0,
+      limit: 100,
+    });
   });
   afterEach(() => http.verify());
 
-  it('recorre todas las páginas y registra entrada normalizada sin fecha ni doble envío', () => {
-    expect(c.celdas().length).toBe(2);
-    c.entrada.setValue({ placa: ' test-a ', celda_id: 2, operador_id: 4 });
+  it('registra entrada con placa normalizada, sin celda ni fecha y sin doble envío', () => {
+    c.entrada.setValue({ placa: ' klm-45d ', operador_id: 4 });
     c.registrarEntrada();
     c.registrarEntrada();
     const req = http.expectOne('/estancias/entrada');
-    expect(req.request.body).toEqual({ placa: 'TEST-A', celda_id: 2, operador_id: 4 });
-    req.flush(stay);
-    expect(c.exitoEntrada()).toContain('TEST-C');
+    expect(req.request.body).toEqual({ placa: 'KLM45D', operador_id: 4 });
+    req.flush({ ...stay, placa: 'KLM45D', celda, duracion_segundos: null, permanencia: null });
+    expect(c.exitoEntrada()).toContain('M01');
     expect(c.exitoEntrada()).toContain('Bogotá');
+    expect(c.ultimaEntrada()?.celda.codigo).toBe('M01');
   });
   it('rechaza blancos y muestra los conflictos de ocupación y referencias', () => {
-    c.entrada.setValue({ placa: ' ', celda_id: 2, operador_id: 4 });
+    c.entrada.setValue({ placa: ' ', operador_id: 4 });
     c.registrarEntrada();
     http.expectNone('/estancias/entrada');
     for (const [status, detail] of [
       [409, 'El vehículo ya está dentro.'],
-      [409, 'La celda está ocupada.'],
+      [409, 'El vehículo no tiene mensualidad vigente. No puede ingresar.'],
+      [409, 'No hay celdas disponibles para motos.'],
       [404, 'Operador no encontrado.'],
     ] as const) {
-      c.entrada.controls.placa.setValue('TEST-A');
+      c.entrada.controls.placa.setValue('KLM45D');
       c.registrarEntrada();
       http.expectOne('/estancias/entrada').flush({ detail }, { status, statusText: 'Error' });
       expect(c.errorEntrada()).toBe(detail);
+      expect(c.ultimaEntrada()).toBeNull();
       expect(c.saving()).toBe(false);
     }
   });
   it('descarta respuestas antiguas y no permite salida al cambiar de placa', () => {
-    c.consulta.setValue({ placa: 'TEST-A', operador_id: 4 });
+    c.consulta.setValue({ placa: 'KLM45D', operador_id: 4 });
     c.buscar();
-    c.consulta.controls.placa.setValue('TEST-B');
-    http.expectOne('/estancias/vehiculo/TEST-A').flush(state);
+    c.consulta.controls.placa.setValue('XYZ12A');
+    http.expectOne('/estancias/vehiculo/KLM45D').flush(state);
     expect(c.estado()).toBeNull();
     c.registrarSalida();
     http.expectNone('/estancias/salida');
-    c.consulta.controls.placa.setValue('TEST-A');
+    c.consulta.controls.placa.setValue('KLM45D');
     c.buscar();
-    http.expectOne('/estancias/vehiculo/TEST-A').flush(state);
-    c.consulta.controls.placa.setValue('TEST-B');
+    http.expectOne('/estancias/vehiculo/KLM45D').flush(state);
+    c.consulta.controls.placa.setValue('XYZ12A');
     expect(c.estado()).toBeNull();
   });
   it('consulta antes de salir, envía solo placa y operador y consulta fuera tras cerrar', () => {
-    c.consulta.setValue({ placa: 'test-a', operador_id: 4 });
+    c.consulta.setValue({ placa: 'klm-45d', operador_id: 4 });
     c.buscar();
-    http.expectOne('/estancias/vehiculo/TEST-A').flush(state);
+    http.expectOne('/estancias/vehiculo/KLM45D').flush(state);
     c.registrarSalida();
     c.registrarSalida();
     const req = http.expectOne('/estancias/salida');
-    expect(req.request.body).toEqual({ placa: 'TEST-A', operador_id: 4 });
-    req.flush({ ...stay, salida: '2026-10-19T16:00:00Z', operador_salida_id: 4 });
+    expect(req.request.body).toEqual({ placa: 'KLM45D', operador_id: 4 });
+    req.flush({
+      ...stay,
+      salida: '2026-10-19T16:00:00Z',
+      operador_salida_id: 4,
+      placa: 'KLM45D',
+      celda,
+      duracion_segundos: 3600,
+      permanencia: '1 h 00 min',
+    });
     http
-      .expectOne('/estancias/vehiculo/TEST-A')
+      .expectOne('/estancias/vehiculo/KLM45D')
       .flush({ ...state, esta_dentro: false, estancia: null });
     expect(c.estado()?.esta_dentro).toBe(false);
     expect(c.exitoSalida()).toContain('Salida registrada');
+    expect(c.ultimaSalida()?.permanencia).toBe('1 h 00 min');
   });
   it('distingue no registrado y conexión fallida e invalida salida rechazada', () => {
-    c.consulta.setValue({ placa: 'TEST-A', operador_id: 4 });
+    c.consulta.setValue({ placa: 'KLM45D', operador_id: 4 });
     c.buscar();
     http
-      .expectOne('/estancias/vehiculo/TEST-A')
+      .expectOne('/estancias/vehiculo/KLM45D')
       .flush({}, { status: 404, statusText: 'Not Found' });
     expect(c.errorConsulta()).toBe('Vehículo no registrado.');
     c.buscar();
-    http.expectOne('/estancias/vehiculo/TEST-A').error(new ProgressEvent('error'));
+    http.expectOne('/estancias/vehiculo/KLM45D').error(new ProgressEvent('error'));
     expect(c.errorConsulta()).toContain('No se pudo conectar');
     c.buscar();
-    http.expectOne('/estancias/vehiculo/TEST-A').flush(state);
+    http.expectOne('/estancias/vehiculo/KLM45D').flush(state);
     c.registrarSalida();
     http
       .expectOne('/estancias/salida')

@@ -231,3 +231,22 @@ thead th {
     padding-top: 28px;
   }
 }
+
+/* Iteración 1: celda asignada y permanencia, visibles de un vistazo para el operador. */
+.asignada {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin-top: 12px;
+  padding: 14px 18px;
+  border-radius: 10px;
+  background: #eef3ee;
+  color: #365c4e;
+  font-size: 13px;
+}
+.asignada strong {
+  font-size: 32px;
+  line-height: 1.1;
+  color: #1f3d33;
+}
