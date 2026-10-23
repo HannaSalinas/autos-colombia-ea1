@@ -22,6 +22,7 @@ conserva tal cual.
 | **Nuestro** (Fase 0) | Adaptación a Linux, `Dockerfile` del backend y del frontend, `nginx` como proxy de la API, `docker-compose.yml` con base de pruebas desechable y este README. |
 | **Nuestro** (Fase 1) | Capa de dominio `app/domain/reglas.py` (placa, modelo, mensualidad de fecha a fecha), modelos `Cliente` y `Mensualidad` con la migración `0003`, cliente obligatorio en cada vehículo, API de consulta de clientes y de mensualidades, semillas de demostración (`app/seed.py`), selector de cliente y estado de mensualidad en la pantalla de Vehículos, y sus pruebas. |
 | **Nuestro** (Fase 2) | Celdas de tipo MOTO o CARRO con la fecha desde la que están libres (migración `0004`), asignación automática de celda al entrar, validación de mensualidad vigente, tiempo de permanencia al salir, 80 celdas y 2 operadores en las semillas, pantallas de Control de acceso y Celdas adaptadas, y pruebas de concurrencia de dos porterías. |
+| **Nuestro** (Fase 3) | Corrección de la celda de una estancia abierta (solo hacia una celda libre y compatible, con motivo obligatorio y registro) y novedades del vehículo (rayón, golpe, objeto olvidado, otro), tablas `correccion_celda` y `novedad` (migración `0005`), componente Angular `estancia-acciones` dentro de Control de acceso y sus pruebas, incluida la de dos correcciones simultáneas. |
 
 > La tabla se completa al cerrar cada fase de la iteración.
 
@@ -40,6 +41,9 @@ conserva tal cual.
 | El sistema asigna la celda: libre, del tipo correcto y la que lleva más tiempo libre (las nunca usadas primero) | `orden_de_asignacion` en el dominio y `ORDER BY disponible_desde NULLS FIRST, codigo` |
 | Dos porterías a la vez nunca reciben la misma celda ni abren dos entradas del mismo vehículo | `SELECT … FOR UPDATE SKIP LOCKED` + índices únicos parciales del profesor |
 | La celda queda ocupada hasta la salida; al salir se libera y se muestra la permanencia | Servicio de estancias (`disponible_desde`, `permanencia`) |
+| Corregir la celda de una estancia **abierta**, solo hacia una celda **libre y compatible**, con **motivo obligatorio** (máx. 200 caracteres); queda registro con operador y hora del servidor | Servicio de estancias (409/422), tabla `correccion_celda`, CHECK de celda distinta y motivo |
+| Novedades del vehículo asociadas a su estancia abierta (rayón, golpe, objeto olvidado, otro) | Tabla `novedad`; se consultan también después de la salida |
+| El historial no se borra | FK `ON DELETE RESTRICT` en todas las tablas de movimientos |
 
 ### API agregada
 
@@ -58,7 +62,20 @@ Las respuestas de `/vehiculos` ahora incluyen `cliente_id`, `cliente_nombre`,
 `operador_id`; ya no acepta `celda_id`. La entrada y la salida responden además con
 `placa`, `celda` (código y tipo asignados) y, al salir, `duracion_segundos` y
 `permanencia` (por ejemplo `"2 h 15 min"`). Errores nuevos de entrada (409): sin
-mensualidad vigente y sin celdas disponibles del tipo del vehículo. Crear y
+mensualidad vigente y sin celdas disponibles del tipo del vehículo.
+
+Fase 3:
+
+| Método y ruta | Respuesta |
+| --- | --- |
+| `GET /estancias/{id}/celdas-disponibles` | Celdas libres y compatibles con el vehículo (estancia abierta) |
+| `POST /estancias/{id}/correccion-celda` | `celda_id`, `operador_id`, `motivo` → 201 con celda anterior y nueva |
+| `GET /estancias/{id}/correcciones` | Registro de correcciones de la estancia |
+| `POST /estancias/{id}/novedades` | `tipo` (`RAYON`, `GOLPE`, `OBJETO_OLVIDADO`, `OTRO`), `descripcion`, `operador_id` → 201 |
+| `GET /estancias/{id}/novedades` | Novedades de la estancia (abierta o cerrada) |
+
+Errores: 404 (estancia, celda u operador inexistente), 409 (estancia cerrada, celda
+ocupada, incompatible o la misma) y 422 (motivo o descripción vacíos o muy largos). Crear y
 editar clientes es de la Iteración 2; registrar pagos, de la Iteración 3.
 
 ### Datos de demostración
@@ -233,6 +250,12 @@ Aquí declaramos cada archivo del profesor que modifiquemos y por qué.
   vehículo en dos porterías, dos vehículos con celdas distintas, una sola celda libre y dos
   salidas. `test_estancias_api.py`, `test_celdas_postgres.py` y `test_models.py` usan los
   tipos MOTO o CARRO y la entrada sin celda.
+- Fase 3, backend: `models.py` (`CorreccionCelda`, `Novedad`), `schemas/estancia.py`,
+  `services/estancia.py` y `routers/estancias.py` (rutas nuevas bajo `/estancias/{id}`).
+  `tests/conftest.py` (nuestro) usa `expire_on_commit=False` para preparar datos con rollback.
+- Fase 3, frontend: `control-acceso/*` muestra el componente nuevo `estancia-acciones` cuando el
+  vehículo está dentro; la etiqueta del operador de consulta pasó a "Operador (salida,
+  corrección o novedad)".
 - Fase 2, frontend: `control-acceso/*` (sin selector de celda, celda asignada y permanencia),
   `celdas/*` y `models/celda.ts` (tipo MOTO o CARRO), `models/estancia.ts` y
   `services/estancias.service.ts`.
