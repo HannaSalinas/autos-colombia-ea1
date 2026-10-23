@@ -26,6 +26,19 @@ def vencimientos(session: Session, vehiculo_ids: Iterable[int], hoy: date) -> di
     return {vehiculo_id: hasta for vehiculo_id, hasta in rows}
 
 
+def proximas(session: Session, vehiculo_ids: Iterable[int], hoy: date) -> dict[int, date]:
+    """Para cada vehículo, el inicio más cercano de una mensualidad que todavía no empieza."""
+    ids = list(vehiculo_ids)
+    if not ids:
+        return {}
+    rows = session.execute(
+        select(Mensualidad.vehiculo_id, func.min(Mensualidad.fecha_inicio))
+        .where(Mensualidad.vehiculo_id.in_(ids), Mensualidad.fecha_inicio > hoy)
+        .group_by(Mensualidad.vehiculo_id)
+    )
+    return {vehiculo_id: inicio for vehiculo_id, inicio in rows}
+
+
 def listar_de_vehiculo(session: Session, vehiculo_id: int) -> list[MensualidadRespuesta]:
     hoy = hoy_bogota()
     mensualidades = session.scalars(

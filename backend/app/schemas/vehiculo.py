@@ -74,6 +74,8 @@ class VehiculoDetalle(VehiculoRespuesta):
     mensualidad_vigente: bool
     # Vigente: fecha en que vence. Vencida: fecha en que venció. None: nunca ha pagado.
     mensualidad_hasta: date | None
+    # Inicio de una mensualidad pagada que todavía no empieza (ej. empieza mañana).
+    mensualidad_proxima: date | None
 
 
 class VehiculosPagina(BaseModel):

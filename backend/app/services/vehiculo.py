@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.domain.reglas import hoy_bogota, validar_placa
 from app.models import Cliente, Estancia, Vehiculo
 from app.schemas.vehiculo import VehiculoActualizar, VehiculoCrear, VehiculoDetalle, VehiculoRespuesta
-from app.services.mensualidad import vencimientos
+from app.services.mensualidad import proximas, vencimientos
 
 
 class VehiculoError(Exception):
@@ -54,13 +54,16 @@ def ensure_client(session: Session, cliente_id: int) -> None:
 def details(session: Session, vehicles: list[Vehiculo]) -> list[VehiculoDetalle]:
     """Agrega a cada vehículo el nombre del cliente y el estado de su mensualidad."""
     hoy = hoy_bogota()
-    hasta = vencimientos(session, (v.id for v in vehicles), hoy)
+    ids = [v.id for v in vehicles]
+    hasta = vencimientos(session, ids, hoy)
+    desde = proximas(session, ids, hoy)
     return [
         VehiculoDetalle(
             **VehiculoRespuesta.model_validate(v).model_dump(),
             cliente_nombre=v.cliente.nombre,
             mensualidad_vigente=hasta.get(v.id) is not None and hasta[v.id] >= hoy,
             mensualidad_hasta=hasta.get(v.id),
+            mensualidad_proxima=desde.get(v.id),
         )
         for v in vehicles
     ]
