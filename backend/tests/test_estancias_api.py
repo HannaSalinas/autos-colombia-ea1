@@ -13,15 +13,17 @@ def test_openapi_y_salud():
         assert client.get('/health').json() == {'status': 'ok'}
 
 
+# Iteración 1: la entrada recibe solo placa y operador; la celda la asigna el sistema.
 @pytest.mark.parametrize('payload', [
-    {}, {'placa': ' ', 'celda_id': 1, 'operador_id': 1},
-    {'placa': None, 'celda_id': 1, 'operador_id': 1},
-    {'placa': 'TEST', 'celda_id': 0, 'operador_id': 1},
-    {'placa': 'TEST', 'celda_id': True, 'operador_id': 1},
-    {'placa': 'TEST', 'celda_id': '1', 'operador_id': 1},
-    {'placa': 'TEST', 'celda_id': 1, 'operador_id': None},
-    {'placa': 'TEST', 'celda_id': 1, 'operador_id': 9223372036854775808},
-    {'placa': 'TEST', 'celda_id': 1, 'operador_id': 1, 'entrada': '2026-01-01'},
+    {}, {'placa': ' ', 'operador_id': 1}, {'placa': ' - ', 'operador_id': 1},
+    {'placa': None, 'operador_id': 1},
+    {'placa': 'TEST', 'operador_id': 0},
+    {'placa': 'TEST', 'operador_id': True},
+    {'placa': 'TEST', 'operador_id': '1'},
+    {'placa': 'TEST', 'operador_id': None},
+    {'placa': 'TEST', 'operador_id': 9223372036854775808},
+    {'placa': 'TEST', 'operador_id': 1, 'entrada': '2026-01-01'},
+    {'placa': 'TEST', 'operador_id': 1, 'celda_id': 1},
 ])
 def test_entrada_invalida(payload):
     with TestClient(app) as client:

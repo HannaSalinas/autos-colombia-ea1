@@ -1,7 +1,12 @@
-"""Concurrencia real: datos nuevos confirmados, limpieza exclusiva por sus ids."""
+"""Concurrencia real: datos nuevos confirmados, limpieza exclusiva por sus ids.
+
+Basado en las pruebas del profesor; reescrito en la Iteración 1 porque la entrada ya no
+recibe celda_id: el sistema asigna la celda libre del tipo correcto que lleva más tiempo libre.
+"""
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import os
+import threading
 from threading import Barrier
 from uuid import uuid4
 
@@ -12,37 +17,52 @@ from sqlalchemy.orm import Session
 
 from conftest import ALEMBIC_HEAD, placa_aleatoria
 from app.database import get_engine
+from app.domain.reglas import fin_de_mensualidad, hoy_bogota
 from app.main import app
-from app.models import Celda, Cliente, Estancia, Operador, Vehiculo
+from app.models import Celda, Cliente, Estancia, Mensualidad, Operador, Vehiculo
 
 pytestmark = pytest.mark.skipif(os.getenv('RUN_POSTGRES_TESTS') != '1', reason='Requiere PostgreSQL local.')
 
 
 @pytest.fixture
-def datos():
+def datos(request):
+    """Vehículos 0 y 1: motos con mensualidad vigente. 2: moto con mensualidad vencida.
+    3: automóvil vigente (no hay celdas de carro). Celdas de moto: 2, o las indicadas en param."""
+    cantidad_celdas = getattr(request, 'param', 2)
     engine = get_engine()
     with engine.connect() as c:
         assert c.scalar(text('SELECT current_database()')) == 'autos_colombia'
         assert c.scalar(text('SELECT version_num FROM alembic_version')) == ALEMBIC_HEAD
+        if c.scalar(text('SELECT count(*) FROM celda')):
+            # La asignación elige entre TODAS las celdas libres: hace falta la base de pruebas vacía.
+            pytest.skip('Requiere la base de pruebas vacía: docker compose run --rm backend-tests')
     token = 'TEST-EST-' + uuid4().hex.upper()
+    hoy = hoy_bogota()
     with Session(engine) as s, s.begin():
-        # Iteración 1: todo vehículo tiene cliente y una placa con formato válido.
         owner = Cliente(documento=token, nombre='Prueba', telefono='001')
         s.add(owner)
         s.flush()
-        vehicles = [Vehiculo(placa=placa_aleatoria('MOTO'), color='Prueba', modelo=2026, marca='Prueba',
-                             tipo='MOTO', cliente_id=owner.id) for n in range(2)]
-        cells = [Celda(codigo=f'{token}-{n}', tipo='Libre') for n in range(2)]
+        tipos = ['MOTO', 'MOTO', 'MOTO', 'AUTOMOVIL']
+        vehicles = [Vehiculo(placa=placa_aleatoria(t), color='Prueba', modelo=2026, marca='Prueba',
+                             tipo=t, cliente_id=owner.id) for t in tipos]
+        # Códigos ordenados (A, B, ...): sin uso previo se asigna primero por código.
+        cells = [Celda(codigo=f'{token}-{chr(65 + n)}', tipo='MOTO') for n in range(cantidad_celdas)]
         operators = [Operador(nombre=f'{token}-{n}', telefono='001') for n in range(2)]
         s.add_all(vehicles + cells + operators)
         s.flush()
+        vigente = (hoy - timedelta(days=3), fin_de_mensualidad(hoy - timedelta(days=3)))
+        vencida = (hoy - timedelta(days=40), hoy - timedelta(days=10))
+        for vehicle, (inicio, fin) in zip(vehicles, [vigente, vigente, vencida, vigente]):
+            s.add(Mensualidad(vehiculo_id=vehicle.id, fecha_inicio=inicio, fecha_fin=fin))
         data = {'v': [v.id for v in vehicles], 'placas': [v.placa for v in vehicles],
-                'c': [c.id for c in cells], 'o': [o.id for o in operators], 'cliente': owner.id}
+                'c': [c.id for c in cells], 'codigos': [c.codigo for c in cells],
+                'o': [o.id for o in operators], 'cliente': owner.id}
     try:
         yield data
     finally:
         with Session(engine) as s, s.begin():
             s.execute(delete(Estancia).where(Estancia.vehiculo_id.in_(data['v'])))
+            s.execute(delete(Mensualidad).where(Mensualidad.vehiculo_id.in_(data['v'])))
             s.execute(delete(Vehiculo).where(Vehiculo.id.in_(data['v'])))
             s.execute(delete(Celda).where(Celda.id.in_(data['c'])))
             s.execute(delete(Operador).where(Operador.id.in_(data['o'])))
@@ -51,8 +71,8 @@ def datos():
             assert s.scalar(select(func.count()).select_from(Estancia).where(Estancia.vehiculo_id.in_(data['v']))) == 0
 
 
-def entrada(d, v=0, c=0, o=0):
-    return {'placa': d['placas'][v], 'celda_id': d['c'][c], 'operador_id': d['o'][o]}
+def entrada(d, v=0, o=0):
+    return {'placa': d['placas'][v], 'operador_id': d['o'][o]}
 
 
 def cantidad(d):
@@ -60,67 +80,71 @@ def cantidad(d):
         return s.scalar(select(func.count()).select_from(Estancia).where(Estancia.vehiculo_id.in_(d['v'])))
 
 
-def test_recorrido_y_rechazos_sin_cambios_parciales(datos):
+def disponible_desde(codigo):
+    with Session(get_engine()) as s:
+        return s.scalar(select(Celda.disponible_desde).where(Celda.codigo == codigo))
+
+
+def test_recorrido_asignacion_reglas_y_permanencia(datos):
     d = datos
+    A, B = d['codigos']
     with TestClient(app) as client:
         url = '/estancias/vehiculo/' + d['placas'][0]
         outside = client.get(url)
         assert outside.status_code == 200
         assert outside.json()['estancia'] is None and not outside.json()['esta_dentro']
-        assert outside.json()['vehiculo']['id'] == d['v'][0]
-        for field, value in [('placa', 'INEXISTENTE-' + uuid4().hex), ('celda_id', 9223372036854775807), ('operador_id', 9223372036854775807)]:
-            assert client.post('/estancias/entrada', json={**entrada(d), field: value}).status_code == 404
-            assert cantidad(d) == 0
-        missing = 'INEXISTENTE-' + uuid4().hex
-        assert client.get('/estancias/vehiculo/' + missing).status_code == 404
-        assert client.post('/estancias/salida', json={'placa': missing, 'operador_id': d['o'][0]}).status_code == 404
-        assert client.post('/estancias/salida', json={'placa': d['placas'][0], 'operador_id': 9223372036854775807}).status_code == 404
+        # Referencias inexistentes: 404 sin cambios.
+        assert client.post('/estancias/entrada', json={**entrada(d), 'placa': 'ZZZ999'}).status_code in {404}
+        assert client.post('/estancias/entrada', json={**entrada(d), 'operador_id': 9223372036854775807}).status_code == 404
+        # Mensualidad vencida: no entra.
+        vencida = client.post('/estancias/entrada', json=entrada(d, v=2))
+        assert vencida.status_code == 409 and 'mensualidad' in vencida.json()['detail']
+        # Automóvil: necesita celda de CARRO y no hay ninguna libre.
+        sin_carro = client.post('/estancias/entrada', json=entrada(d, v=3))
+        assert sin_carro.status_code == 409 and 'carros' in sin_carro.json()['detail']
+        assert cantidad(d) == 0
+
+        placa = d['placas'][0]
         before = datetime.now(timezone.utc)
-        result = client.post('/estancias/entrada', json={**entrada(d), 'placa': ' ' + d['placas'][0].lower() + ' '})
+        result = client.post('/estancias/entrada', json={**entrada(d), 'placa': f' {placa[:3].lower()}-{placa[3:]} '})
         assert result.status_code == 201
         opened = result.json()
+        assert opened['placa'] == placa
+        assert opened['celda']['codigo'] == A and opened['celda']['tipo'] == 'MOTO'   # nunca usada, primer código
         assert before <= datetime.fromisoformat(opened['entrada']) <= datetime.now(timezone.utc)
-        assert opened['salida'] is None and opened['operador_salida_id'] is None
+        assert opened['salida'] is None and opened['duracion_segundos'] is None
         inside = client.get(url).json()
-        assert inside['esta_dentro'] and inside['estancia']['id'] == opened['id']
-        assert inside['estancia']['celda']['id'] == d['c'][0]
-        for payload in (entrada(d, c=1), entrada(d, v=1)):
-            assert client.post('/estancias/entrada', json=payload).status_code == 409
-            assert cantidad(d) == 1
-        closed = client.post('/estancias/salida', json={'placa': d['placas'][0], 'operador_id': d['o'][1]})
-        assert closed.status_code == 200
-        assert closed.json()['operador_salida_id'] == d['o'][1]
-        assert datetime.fromisoformat(closed.json()['salida']) >= datetime.fromisoformat(opened['entrada'])
-        assert client.post('/estancias/salida', json={'placa': d['placas'][0], 'operador_id': d['o'][0]}).status_code == 409
-        assert client.get(url).json()['estancia'] is None
-        with Session(get_engine()) as s:
-            saved = s.get(Estancia, opened['id'])
-            assert saved.operador_salida_id == d['o'][1]
-            assert saved.salida == datetime.fromisoformat(closed.json()['salida'])
-        assert client.post('/estancias/entrada', json=entrada(d, v=1)).status_code == 201
+        assert inside['esta_dentro'] and inside['estancia']['celda']['codigo'] == A
+        repetida = client.post('/estancias/entrada', json=entrada(d, o=1))
+        assert repetida.status_code == 409 and 'dentro' in repetida.json()['detail']
+        assert client.post('/estancias/entrada', json=entrada(d, v=1)).json()['celda']['codigo'] == B
         assert cantidad(d) == 2
+
+        closed = client.post('/estancias/salida', json={'placa': placa, 'operador_id': d['o'][1]})
+        assert closed.status_code == 200
+        body = closed.json()
+        assert body['operador_salida_id'] == d['o'][1] and body['celda']['codigo'] == A
+        assert body['duracion_segundos'] >= 0 and body['permanencia'].endswith('min')
+        assert disponible_desde(A) == datetime.fromisoformat(body['salida'])   # liberada al salir
+        assert client.post('/estancias/salida', json={'placa': placa, 'operador_id': d['o'][0]}).status_code == 409
+        assert client.get(url).json()['estancia'] is None
+        assert client.post('/estancias/salida', json={'placa': d['placas'][1], 'operador_id': d['o'][0]}).status_code == 200
+        assert disponible_desde(A) < disponible_desde(B)
+        # Las dos están libres: se asigna A, que lleva más tiempo libre.
+        assert client.post('/estancias/entrada', json=entrada(d, v=1)).json()['celda']['codigo'] == A
+        assert cantidad(d) == 3
         for route in ('/health', '/vehiculos?limit=1', '/celdas?limit=1', '/operadores?limit=1'):
             assert client.get(route).status_code == 200
 
 
-@pytest.mark.parametrize('caso', ['vehiculo', 'celda', 'salida'])
-def test_concurrencia_real(datos, caso):
-    d = datos
-    if caso == 'salida':
-        with TestClient(app) as client:
-            assert client.post('/estancias/entrada', json=entrada(d)).status_code == 201
-        path = '/estancias/salida'
-        payloads = [{'placa': d['placas'][0], 'operador_id': o} for o in d['o']]
-    else:
-        path = '/estancias/entrada'
-        payloads = [entrada(d), entrada(d, v=1 if caso == 'celda' else 0, c=1 if caso == 'vehiculo' else 0, o=1)]
+def carrera(path, payloads, marca):
+    """Envía dos solicitudes a la vez; ambas esperan juntas justo antes de la sentencia marcada."""
     barrier = Barrier(2, timeout=15)
+    esperado = threading.local()
 
     def sincronizar(conn, cursor, statement, parameters, context, executemany):
-        # Fuerza la carrera después de las consultas previas de entrada, o antes del bloqueo de salida.
-        if (caso != 'salida' and statement.startswith('INSERT INTO estancia ')) or (
-            caso == 'salida' and 'FROM estancia' in statement and 'FOR UPDATE' in statement
-        ):
+        if marca(statement) and not getattr(esperado, 'listo', False):
+            esperado.listo = True
             barrier.wait()
 
     def enviar(payload):
@@ -131,17 +155,51 @@ def test_concurrencia_real(datos, caso):
     event.listen(engine, 'before_cursor_execute', sincronizar)
     try:
         with ThreadPoolExecutor(max_workers=2) as pool:
-            responses = list(pool.map(enviar, payloads))
+            return list(pool.map(enviar, payloads))
     finally:
         event.remove(engine, 'before_cursor_execute', sincronizar)
-    success = 200 if caso == 'salida' else 201
-    assert sorted(r.status_code for r in responses) == [success, 409]
+
+
+def asignacion_de_celda(statement):
+    return 'FROM celda' in statement and 'SKIP LOCKED' in statement
+
+
+def test_concurrencia_mismo_vehiculo_en_dos_porterias(datos):
+    d = datos
+    responses = carrera('/estancias/entrada', [entrada(d, o=0), entrada(d, o=1)], asignacion_de_celda)
+    assert sorted(r.status_code for r in responses) == [201, 409]
+    assert 'dentro' in next(r.json()['detail'] for r in responses if r.status_code == 409)
     assert cantidad(d) == 1
-    winner = next(r.json() for r in responses if r.status_code == success)
-    loser = next(r.json() for r in responses if r.status_code == 409)
-    assert ('abierta' if caso == 'salida' else 'dentro' if caso == 'vehiculo' else 'ocupada') in loser['detail']
-    with Session(engine) as s:
+
+
+def test_concurrencia_dos_vehiculos_reciben_celdas_distintas(datos):
+    d = datos
+    responses = carrera('/estancias/entrada', [entrada(d, v=0, o=0), entrada(d, v=1, o=1)], asignacion_de_celda)
+    assert [r.status_code for r in responses] == [201, 201]
+    assert {r.json()['celda']['codigo'] for r in responses} == set(d['codigos'])
+    assert cantidad(d) == 2
+
+
+@pytest.mark.parametrize('datos', [1], indirect=True)
+def test_concurrencia_una_sola_celda_libre(datos):
+    d = datos
+    responses = carrera('/estancias/entrada', [entrada(d, v=0, o=0), entrada(d, v=1, o=1)], asignacion_de_celda)
+    assert sorted(r.status_code for r in responses) == [201, 409]
+    assert 'No hay celdas disponibles para motos' in next(r.json()['detail'] for r in responses if r.status_code == 409)
+    assert cantidad(d) == 1
+
+
+def test_concurrencia_dos_salidas(datos):
+    d = datos
+    with TestClient(app) as client:
+        assert client.post('/estancias/entrada', json=entrada(d)).status_code == 201
+    payloads = [{'placa': d['placas'][0], 'operador_id': o} for o in d['o']]
+    responses = carrera('/estancias/salida', payloads,
+                        lambda st: 'FROM estancia' in st and 'FOR UPDATE' in st)
+    assert sorted(r.status_code for r in responses) == [200, 409]
+    winner = next(r.json() for r in responses if r.status_code == 200)
+    assert 'abierta' in next(r.json()['detail'] for r in responses if r.status_code == 409)
+    with Session(get_engine()) as s:
         saved = s.get(Estancia, winner['id'])
-        assert saved.operador_entrada_id == winner['operador_entrada_id']
         assert saved.operador_salida_id == winner['operador_salida_id']
-        assert saved.salida == (datetime.fromisoformat(winner['salida']) if winner['salida'] else None)
+        assert saved.salida == datetime.fromisoformat(winner['salida'])

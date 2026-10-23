@@ -8,9 +8,9 @@ from app.schemas.vehiculo import Placa, VehiculoRespuesta
 
 
 class EntradaCrear(BaseModel):
+    """Iteración 1: el operador ya no elige la celda; la asigna el sistema."""
     model_config = ConfigDict(extra="forbid")
     placa: Placa
-    celda_id: Identificador
     operador_id: Identificador
 
 
@@ -38,6 +38,14 @@ class EstanciaRespuesta(BaseModel):
 
 class EstanciaAbiertaRespuesta(EstanciaRespuesta):
     celda: CeldaRespuesta
+
+
+class MovimientoRespuesta(EstanciaRespuesta):
+    """Respuesta de entrada y salida: placa, celda asignada y, al salir, la permanencia."""
+    placa: str
+    celda: CeldaRespuesta
+    duracion_segundos: int | None
+    permanencia: str | None
 
 
 class EstadoVehiculoRespuesta(BaseModel):
