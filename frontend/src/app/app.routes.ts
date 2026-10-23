@@ -22,5 +22,15 @@ export const routes: Routes = [
     title: 'Vehículos | Autos Colombia',
     loadComponent: () => import('./vehiculos/vehiculos').then((m) => m.Vehiculos),
   },
+  {
+    path: 'consultas/ocupacion',
+    title: 'Ocupación | Autos Colombia',
+    loadComponent: () => import('./ocupacion/ocupacion').then((m) => m.Ocupacion),
+  },
+  {
+    path: 'consultas/historial',
+    title: 'Historial | Autos Colombia',
+    loadComponent: () => import('./historial/historial').then((m) => m.Historial),
+  },
   { path: '**', redirectTo: '' },
 ];
