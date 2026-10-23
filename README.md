@@ -23,6 +23,7 @@ conserva tal cual.
 | **Nuestro** (Fase 1) | Capa de dominio `app/domain/reglas.py` (placa, modelo, mensualidad de fecha a fecha), modelos `Cliente` y `Mensualidad` con la migración `0003`, cliente obligatorio en cada vehículo, API de consulta de clientes y de mensualidades, semillas de demostración (`app/seed.py`), selector de cliente y estado de mensualidad en la pantalla de Vehículos, y sus pruebas. |
 | **Nuestro** (Fase 2) | Celdas de tipo MOTO o CARRO con la fecha desde la que están libres (migración `0004`), asignación automática de celda al entrar, validación de mensualidad vigente, tiempo de permanencia al salir, 80 celdas y 2 operadores en las semillas, pantallas de Control de acceso y Celdas adaptadas, y pruebas de concurrencia de dos porterías. |
 | **Nuestro** (Fase 3) | Corrección de la celda de una estancia abierta (solo hacia una celda libre y compatible, con motivo obligatorio y registro) y novedades del vehículo (rayón, golpe, objeto olvidado, otro), tablas `correccion_celda` y `novedad` (migración `0005`), componente Angular `estancia-acciones` dentro de Control de acceso y sus pruebas, incluida la de dos correcciones simultáneas. |
+| **Nuestro** (Fase 4) | Reporte de ocupación (vehículos dentro y celdas libres por tipo), historial de estancias filtrable por placa y por días de Bogotá con paginación y detalle de novedades y correcciones, pantallas Ocupación e Historial, bloqueo del cambio de tipo de una celda ocupada y script de datos de demostración (`app/demo.py`). |
 
 > La tabla se completa al cerrar cada fase de la iteración.
 
@@ -44,6 +45,9 @@ conserva tal cual.
 | Corregir la celda de una estancia **abierta**, solo hacia una celda **libre y compatible**, con **motivo obligatorio** (máx. 200 caracteres); queda registro con operador y hora del servidor | Servicio de estancias (409/422), tabla `correccion_celda`, CHECK de celda distinta y motivo |
 | Novedades del vehículo asociadas a su estancia abierta (rayón, golpe, objeto olvidado, otro) | Tabla `novedad`; se consultan también después de la salida |
 | El historial no se borra | FK `ON DELETE RESTRICT` en todas las tablas de movimientos |
+| No se cambia el tipo de una celda ocupada | Servicio de celdas (409) |
+| Reporte de ocupación: vehículos dentro (placa, tipo, celda, hora de entrada) y celdas libres por tipo | `GET /reportes/ocupacion`, pantalla Ocupación |
+| Historial filtrable por placa y por rango de fechas (días de Bogotá sobre la hora de entrada) | `rango_bogota` en el dominio, `GET /reportes/historial`, pantalla Historial |
 
 ### API agregada
 
@@ -75,7 +79,32 @@ Fase 3:
 | `GET /estancias/{id}/novedades` | Novedades de la estancia (abierta o cerrada) |
 
 Errores: 404 (estancia, celda u operador inexistente), 409 (estancia cerrada, celda
-ocupada, incompatible o la misma) y 422 (motivo o descripción vacíos o muy largos). Crear y
+ocupada, incompatible o la misma) y 422 (motivo o descripción vacíos o muy largos).
+
+Fase 4:
+
+| Método y ruta | Respuesta |
+| --- | --- |
+| `GET /reportes/ocupacion` | `celdas` (total, ocupadas y libres por tipo) y `dentro` (placa, tipo, celda, entrada, operador, tiempo) |
+| `GET /reportes/historial?placa&desde&hasta&offset&limit` | Estancias de la más reciente a la más antigua, con permanencia, operadores y cantidad de novedades y correcciones. `desde`/`hasta` son días `AAAA-MM-DD` de Bogotá, incluidos; `desde > hasta` → 422 |
+
+### Datos de demostración para el historial y el reporte
+
+Aparte de las semillas existe `app/demo.py`, que **no se ejecuta al arrancar**. Crea
+estancias cerradas de los últimos 7 días (varias por placa, solo en días con mensualidad
+vigente, con correcciones y novedades) y 5 vehículos dentro. Nunca pone dos vehículos en
+la misma celda al mismo tiempo. Solo corre sobre una base sin estancias:
+
+```bash
+docker compose exec backend python -m app.demo     # con Docker
+backend/.venv/bin/python -m app.demo               # sin Docker (después de app.seed)
+```
+
+Para volver a la base limpia (solo semillas), borra el volumen y levanta de nuevo:
+
+```bash
+docker compose down -v && docker compose up -d
+``` Crear y
 editar clientes es de la Iteración 2; registrar pagos, de la Iteración 3.
 
 ### Datos de demostración
@@ -256,6 +285,9 @@ Aquí declaramos cada archivo del profesor que modifiquemos y por qué.
 - Fase 3, frontend: `control-acceso/*` muestra el componente nuevo `estancia-acciones` cuando el
   vehículo está dentro; la etiqueta del operador de consulta pasó a "Operador (salida,
   corrección o novedad)".
+- Fase 4: `services/celda.py` (bloqueo del cambio de tipo de una celda ocupada) y en el
+  frontend `celdas/celdas.ts` (muestra ese mensaje junto al tipo), `app.routes.ts` y `app.html`
+  (pantallas Ocupación e Historial en `/consultas/…`), `proxy.conf.json` (`/reportes/**`).
 - Fase 2, frontend: `control-acceso/*` (sin selector de celda, celda asignada y permanencia),
   `celdas/*` y `models/celda.ts` (tipo MOTO o CARRO), `models/estancia.ts` y
   `services/estancias.service.ts`.
