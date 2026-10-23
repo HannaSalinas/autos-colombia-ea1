@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Vehiculos } from './vehiculos';
+import { Vehiculos, modeloMaximo } from './vehiculos';
 import { Vehiculo } from '../models/vehiculo';
 
 describe('Gestión de vehículos', () => {
@@ -11,7 +11,7 @@ describe('Gestión de vehículos', () => {
     fixture.detectChanges();
     const root = fixture.nativeElement as HTMLElement;
     for (const [field, value] of Object.entries({
-      placa: ' dom123 ',
+      placa: ' dom-12a ',
       marca: 'Prueba',
       modelo: '2025',
       color: 'Azul',
@@ -23,13 +23,18 @@ describe('Gestión de vehículos', () => {
     const select = root.querySelector<HTMLSelectElement>('#tipo')!;
     select.value = 'MOTO';
     select.dispatchEvent(new Event('change', { bubbles: true }));
+    const owner = root.querySelector<HTMLSelectElement>('#cliente_id')!;
+    owner.selectedIndex = 1;
+    owner.dispatchEvent(new Event('change', { bubbles: true }));
     root
       .querySelector('form')!
       .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     const request = http.expectOne({ method: 'POST', url: '/vehiculos' });
     expect(request.request.body.modelo).toBe(2025);
-    request.flush({ ...vehicle, placa: 'DOM123' });
-    flushList([{ ...vehicle, placa: 'DOM123' }]);
+    expect(request.request.body.placa).toBe('DOM12A');
+    expect(request.request.body.cliente_id).toBe(1);
+    request.flush({ ...vehicle, placa: 'DOM12A', tipo: 'MOTO' });
+    flushList([{ ...vehicle, placa: 'DOM12A', tipo: 'MOTO' }]);
   });
   let fixture: ComponentFixture<Vehiculos>;
   let component: Vehiculos;
@@ -40,7 +45,11 @@ describe('Gestión de vehículos', () => {
     marca: 'Marca',
     color: 'Azul',
     modelo: 2025,
-    tipo: 'MOTO',
+    tipo: 'AUTOMOVIL',
+    cliente_id: 1,
+    cliente_nombre: 'Laura Gómez',
+    mensualidad_vigente: true,
+    mensualidad_hasta: '2026-11-20',
   };
   const flushList = (items: Vehiculo[] = [], total = items.length, offset = 0) => {
     http
@@ -58,6 +67,13 @@ describe('Gestión de vehículos', () => {
     fixture = TestBed.createComponent(Vehiculos);
     component = fixture.componentInstance;
     fixture.detectChanges();
+    // Iteración 1: el selector de cliente carga todos los clientes al abrir la pantalla.
+    http.expectOne('/clientes?offset=0&limit=100').flush({
+      items: [{ id: 1, documento: '1001', nombre: 'Laura Gómez', telefono: '300', correo: null }],
+      total: 1,
+      offset: 0,
+      limit: 100,
+    });
   });
   afterEach(() => http.verify());
 
@@ -194,5 +210,76 @@ describe('Gestión de vehículos', () => {
     flushList([], 10, 10);
     flushList([vehicle], 10, 0);
     expect(component.page()).toBe(1);
+  });
+
+  // --- Iteración 1 ---
+
+  it('valida la placa según el tipo antes de enviar', () => {
+    flushList();
+    component.newVehicle();
+    component.form.patchValue({ ...vehicle, placa: 'abc-123', tipo: 'MOTO' });
+    component.save();
+    expect(component.fieldError('placa')).toContain('moto');
+    component.form.patchValue({ placa: 'abc12d', tipo: 'AUTOMOVIL' });
+    expect(component.fieldError('placa')).toContain('carro');
+    component.form.patchValue({ tipo: 'MOTO' });
+    expect(component.fieldError('placa')).toBe('');
+    http.expectNone((request) => request.method === 'POST');
+  });
+
+  it('acepta modelos de 1900 al año actual + 1', () => {
+    flushList();
+    component.newVehicle();
+    const modelo = component.form.controls.modelo;
+    for (const [value, valid] of [
+      [1899, false],
+      [1900, true],
+      [modeloMaximo(), true],
+      [modeloMaximo() + 1, false],
+    ] as const) {
+      modelo.setValue(value);
+      expect(modelo.valid).toBe(valid);
+    }
+  });
+
+  it('exige el cliente', () => {
+    flushList();
+    component.newVehicle();
+    component.form.patchValue({ ...vehicle, cliente_id: null });
+    component.save();
+    expect(component.fieldError('cliente_id')).toContain('cliente');
+    http.expectNone((request) => request.method === 'POST');
+  });
+
+  it('muestra el estado de la mensualidad en el listado', () => {
+    flushList([
+      vehicle,
+      {
+        ...vehicle,
+        id: 2,
+        placa: 'DEF456',
+        mensualidad_vigente: false,
+        mensualidad_hasta: '2026-10-18',
+      },
+      { ...vehicle, id: 3, placa: 'GHI789', mensualidad_vigente: false, mensualidad_hasta: null },
+    ]);
+    const text = (fixture.nativeElement as HTMLElement).textContent!;
+    expect(text).toContain('Laura Gómez');
+    expect(text).toContain('Vigente hasta 20/11/2026');
+    expect(text).toContain('Vencida el 18/10/2026');
+    expect(text).toContain('Sin mensualidad');
+  });
+
+  it('informa que no se puede cambiar el tipo de un vehículo dentro', () => {
+    flushList([vehicle]);
+    component.edit(vehicle);
+    http.expectOne({ method: 'GET', url: '/vehiculos/1' }).flush(vehicle);
+    component.form.patchValue({ tipo: 'CAMIONETA' });
+    component.save();
+    const detail = 'No se puede cambiar el tipo de un vehículo que está dentro del parqueadero.';
+    http.expectOne('/vehiculos/1').flush({ detail }, { status: 409, statusText: 'Conflict' });
+    expect(component.actionError()).toBe(detail);
+    expect(component.fieldError('tipo')).toBe(detail);
+    expect(component.fieldError('placa')).toBe('');
   });
 });

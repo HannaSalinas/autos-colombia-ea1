@@ -231,3 +231,19 @@ thead th {
     padding-top: 28px;
   }
 }
+
+/* Iteración 1: estado de la mensualidad en el listado. */
+.status-tag {
+  font-size: 11px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.status-tag.ok {
+  background: #e3f4e8;
+  color: #1d6b35;
+}
+.status-tag.expired {
+  background: #fde8e8;
+  color: #9b1c1c;
+}

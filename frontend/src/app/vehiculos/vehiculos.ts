@@ -2,7 +2,9 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms';
+import { Cliente } from '../models/cliente';
 import { ApiService } from '../services/api.service';
+import { ClientesService } from '../services/clientes.service';
 import {
   ErrorApi,
   TIPOS_VEHICULO,
@@ -13,10 +15,29 @@ import {
 
 const nonBlank: ValidatorFn = (control) =>
   typeof control.value === 'string' && control.value.trim() ? null : { required: true };
+// Año actual en Bogotá: el modelo va de 1900 al año actual + 1 (misma regla que el backend).
+export const MODELO_MINIMO = 1900;
+export const modeloMaximo = () =>
+  Number(new Intl.DateTimeFormat('en', { timeZone: 'America/Bogota', year: 'numeric' }).format()) +
+  1;
 const year: ValidatorFn = (control) =>
-  Number.isInteger(control.value) && control.value >= 1 && control.value <= 9999
+  Number.isInteger(control.value) &&
+  control.value >= MODELO_MINIMO &&
+  control.value <= modeloMaximo()
     ? null
     : { year: true };
+/** Quita espacios y guiones y pasa a mayúsculas: ' abc-123 ' -> 'ABC123'. */
+export const normalizarPlaca = (placa: string) => placa.replace(/[\s-]+/g, '').toUpperCase();
+const PLACA_CARRO = /^[A-Z]{3}[0-9]{3}$/;
+const PLACA_MOTO = /^[A-Z]{3}[0-9]{2}[A-Z]$/;
+/** Valida la placa según el tipo elegido; el error queda en el formulario completo. */
+const placaSegunTipo: ValidatorFn = (group) => {
+  const placa = normalizarPlaca(String(group.get('placa')?.value ?? ''));
+  const tipo = group.get('tipo')?.value;
+  if (!placa || !tipo) return null;
+  const valida = tipo === 'MOTO' ? PLACA_MOTO.test(placa) : PLACA_CARRO.test(placa);
+  return valida ? null : { placaFormato: tipo === 'MOTO' ? 'moto' : 'carro' };
+};
 type Field = keyof VehiculoCrear;
 
 @Component({
@@ -27,6 +48,7 @@ type Field = keyof VehiculoCrear;
 })
 export class Vehiculos {
   private readonly api = inject(ApiService);
+  private readonly clientsApi = inject(ClientesService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly fb = inject(FormBuilder);
   readonly types = TIPOS_VEHICULO;
@@ -37,16 +59,24 @@ export class Vehiculos {
       { key: 'modelo', label: 'Modelo (año)', type: 'number' },
       { key: 'color', label: 'Color', type: 'text' },
     ];
-  readonly form = this.fb.group({
-    placa: this.fb.nonNullable.control('', nonBlank),
-    color: this.fb.nonNullable.control('', nonBlank),
-    modelo: this.fb.control<number | null>(null, [Validators.required, year]),
-    marca: this.fb.nonNullable.control('', nonBlank),
-    tipo: this.fb.nonNullable.control<TipoVehiculo | ''>('', [
-      Validators.required,
-      (control) => (this.types.includes(control.value) ? null : { type: true }),
-    ]),
-  });
+  readonly minYear = MODELO_MINIMO;
+  readonly maxYear = modeloMaximo();
+  readonly form = this.fb.group(
+    {
+      placa: this.fb.nonNullable.control('', nonBlank),
+      color: this.fb.nonNullable.control('', nonBlank),
+      modelo: this.fb.control<number | null>(null, [Validators.required, year]),
+      marca: this.fb.nonNullable.control('', nonBlank),
+      tipo: this.fb.nonNullable.control<TipoVehiculo | ''>('', [
+        Validators.required,
+        (control) => (this.types.includes(control.value) ? null : { type: true }),
+      ]),
+      cliente_id: this.fb.control<number | null>(null, Validators.required),
+    },
+    { validators: placaSegunTipo },
+  );
+  readonly clients = signal<Cliente[]>([]);
+  readonly clientsError = signal('');
   readonly items = signal<Vehiculo[]>([]);
   readonly total = signal(0);
   readonly offset = signal(0);
@@ -65,6 +95,26 @@ export class Vehiculos {
 
   constructor() {
     this.load();
+    this.loadClients();
+  }
+
+  loadClients(): void {
+    this.clientsError.set('');
+    this.clientsApi
+      .todos()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (clients) => this.clients.set(clients),
+        error: () =>
+          this.clientsError.set('No se pudieron cargar los clientes. Recarga la página.'),
+      });
+  }
+
+  /** Texto de la columna Mensualidad: '2026-11-20' -> 'Vigente hasta 20/11/2026'. */
+  mensualidad(vehicle: Vehiculo): string {
+    if (!vehicle.mensualidad_hasta) return 'Sin mensualidad';
+    const [y, m, d] = vehicle.mensualidad_hasta.split('-');
+    return `${vehicle.mensualidad_vigente ? 'Vigente hasta' : 'Vencida el'} ${d}/${m}/${y}`;
   }
 
   load(offset = this.offset()): void {
@@ -134,10 +184,17 @@ export class Vehiculos {
 
   fieldError(field: Field): string {
     const control = this.form.controls[field];
+    const formato = this.form.errors?.['placaFormato'];
+    if (field === 'placa' && control.touched && !control.errors && formato)
+      return formato === 'moto'
+        ? 'La placa de moto debe tener 3 letras, 2 números y 1 letra (ej. ABC12D).'
+        : 'La placa de carro debe tener 3 letras y 3 números (ej. ABC123).';
     if (!control.touched || !control.errors) return '';
     if (control.errors['server']) return String(control.errors['server']);
+    if (field === 'cliente_id' && control.errors['required']) return 'Selecciona el cliente.';
     if (control.errors['required']) return 'Este campo es obligatorio y no puede estar vacío.';
-    if (field === 'modelo') return 'Introduce un año entero entre 1 y 9999.';
+    if (field === 'modelo')
+      return `Introduce un año entero entre ${this.minYear} y ${this.maxYear}.`;
     if (field === 'tipo') return 'Selecciona un tipo válido.';
     return 'Revisa este campo.';
   }
@@ -151,11 +208,12 @@ export class Vehiculos {
     }
     const value = this.form.getRawValue();
     const payload: VehiculoCrear = {
-      placa: value.placa.trim().toUpperCase(),
+      placa: normalizarPlaca(value.placa),
       color: value.color.trim(),
       marca: value.marca.trim(),
       modelo: value.modelo!,
       tipo: value.tipo as TipoVehiculo,
+      cliente_id: value.cliente_id!,
     };
     this.form.controls.placa.setValue(payload.placa);
     this.saving.set(true);
@@ -174,10 +232,19 @@ export class Vehiculos {
       },
       error: (error: HttpErrorResponse) => {
         this.saving.set(false);
-        this.actionError.set(this.errorMessage(error));
-        if (error.status === 409)
-          this.setFieldError('placa', 'Ya existe un vehículo con esa placa.');
         const body = error.error as ErrorApi | null;
+        const detail = typeof body?.detail === 'string' ? body.detail : '';
+        this.actionError.set(this.errorMessage(error));
+        if (error.status === 409 && detail.includes('tipo')) {
+          // Iteración 1: no se cambia el tipo de un vehículo que está dentro.
+          this.actionError.set(detail);
+          this.setFieldError('tipo', detail);
+        } else if (error.status === 409) {
+          this.setFieldError('placa', 'Ya existe un vehículo con esa placa.');
+        } else if (detail && error.status !== 0) {
+          // Mensajes de negocio del backend (cliente inexistente, placa según tipo, etc.).
+          this.actionError.set(detail);
+        }
         if (error.status === 422 && Array.isArray(body?.detail)) {
           for (const issue of body.detail) {
             const field = issue.loc.at(-1);

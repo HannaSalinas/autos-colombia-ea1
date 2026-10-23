@@ -6,10 +6,15 @@ export interface VehiculoCrear {
   modelo: number;
   marca: string;
   tipo: TipoVehiculo;
+  cliente_id: number;
 }
 export type VehiculoActualizar = Partial<VehiculoCrear>;
 export interface Vehiculo extends VehiculoCrear {
   id: number;
+  cliente_nombre: string;
+  mensualidad_vigente: boolean;
+  /** Fecha YYYY-MM-DD: vence (si está vigente) o venció. null si nunca ha pagado. */
+  mensualidad_hasta: string | null;
 }
 export interface VehiculosPagina {
   items: Vehiculo[];
