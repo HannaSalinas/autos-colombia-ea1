@@ -50,6 +50,7 @@ describe('Gestión de vehículos', () => {
     cliente_nombre: 'Laura Gómez',
     mensualidad_vigente: true,
     mensualidad_hasta: '2026-11-20',
+    mensualidad_proxima: null,
   };
   const flushList = (items: Vehiculo[] = [], total = items.length, offset = 0) => {
     http
@@ -262,12 +263,21 @@ describe('Gestión de vehículos', () => {
         mensualidad_hasta: '2026-10-18',
       },
       { ...vehicle, id: 3, placa: 'GHI789', mensualidad_vigente: false, mensualidad_hasta: null },
+      {
+        ...vehicle,
+        id: 4,
+        placa: 'PQR98B',
+        mensualidad_vigente: false,
+        mensualidad_hasta: null,
+        mensualidad_proxima: '2026-10-24',
+      },
     ]);
     const text = (fixture.nativeElement as HTMLElement).textContent!;
     expect(text).toContain('Laura Gómez');
     expect(text).toContain('Vigente hasta 20/11/2026');
     expect(text).toContain('Vencida el 18/10/2026');
     expect(text).toContain('Sin mensualidad');
+    expect(text).toContain('Empieza el 24/10/2026');
   });
 
   it('informa que no se puede cambiar el tipo de un vehículo dentro', () => {

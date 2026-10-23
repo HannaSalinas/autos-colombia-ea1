@@ -15,6 +15,8 @@ export interface Vehiculo extends VehiculoCrear {
   mensualidad_vigente: boolean;
   /** Fecha YYYY-MM-DD: vence (si está vigente) o venció. null si nunca ha pagado. */
   mensualidad_hasta: string | null;
+  /** Inicio de una mensualidad pagada que todavía no empieza. */
+  mensualidad_proxima: string | null;
 }
 export interface VehiculosPagina {
   items: Vehiculo[];

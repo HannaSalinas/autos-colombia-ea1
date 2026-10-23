@@ -183,7 +183,8 @@
                   <span
                     class="status-tag"
                     [class.ok]="vehicle.mensualidad_vigente"
-                    [class.expired]="!vehicle.mensualidad_vigente"
+                    [class.expired]="!vehicle.mensualidad_vigente && !vehicle.mensualidad_proxima"
+                    [class.upcoming]="!vehicle.mensualidad_vigente && !!vehicle.mensualidad_proxima"
                     >{{ mensualidad(vehicle) }}</span
                   >
                 </td>

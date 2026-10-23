@@ -5,6 +5,7 @@ import { FormBuilder, ReactiveFormsModule, ValidatorFn, Validators } from '@angu
 import { Cliente } from '../models/cliente';
 import { ApiService } from '../services/api.service';
 import { ClientesService } from '../services/clientes.service';
+import { normalizarPlaca } from '../utils/placa';
 import {
   ErrorApi,
   TIPOS_VEHICULO,
@@ -26,8 +27,6 @@ const year: ValidatorFn = (control) =>
   control.value <= modeloMaximo()
     ? null
     : { year: true };
-/** Quita espacios y guiones y pasa a mayúsculas: ' abc-123 ' -> 'ABC123'. */
-export const normalizarPlaca = (placa: string) => placa.replace(/[\s-]+/g, '').toUpperCase();
 const PLACA_CARRO = /^[A-Z]{3}[0-9]{3}$/;
 const PLACA_MOTO = /^[A-Z]{3}[0-9]{2}[A-Z]$/;
 /** Valida la placa según el tipo elegido; el error queda en el formulario completo. */
@@ -110,11 +109,15 @@ export class Vehiculos {
       });
   }
 
-  /** Texto de la columna Mensualidad: '2026-11-20' -> 'Vigente hasta 20/11/2026'. */
+  /** Texto de la columna Mensualidad: 'Vigente hasta 20/11/2026', 'Empieza el …', 'Vencida el …'. */
   mensualidad(vehicle: Vehiculo): string {
-    if (!vehicle.mensualidad_hasta) return 'Sin mensualidad';
-    const [y, m, d] = vehicle.mensualidad_hasta.split('-');
-    return `${vehicle.mensualidad_vigente ? 'Vigente hasta' : 'Vencida el'} ${d}/${m}/${y}`;
+    // Fechas 'AAAA-MM-DD' sin hora: se reordenan sin convertir zona horaria.
+    const fecha = (iso: string) => iso.split('-').reverse().join('/');
+    if (vehicle.mensualidad_vigente && vehicle.mensualidad_hasta)
+      return `Vigente hasta ${fecha(vehicle.mensualidad_hasta)}`;
+    if (vehicle.mensualidad_proxima) return `Empieza el ${fecha(vehicle.mensualidad_proxima)}`;
+    if (vehicle.mensualidad_hasta) return `Vencida el ${fecha(vehicle.mensualidad_hasta)}`;
+    return 'Sin mensualidad';
   }
 
   load(offset = this.offset()): void {

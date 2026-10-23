@@ -243,6 +243,10 @@ thead th {
   background: #e3f4e8;
   color: #1d6b35;
 }
+.status-tag.upcoming {
+  background: #fdf3dc;
+  color: #7a5200;
+}
 .status-tag.expired {
   background: #fde8e8;
   color: #9b1c1c;
