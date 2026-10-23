@@ -9,6 +9,7 @@ y unas 5 estancias abiertas. Un vehículo solo tiene estancias en días con mens
 """
 
 import random
+import sys
 from datetime import date, datetime, time, timedelta, timezone
 
 from sqlalchemy import func, select
@@ -131,11 +132,16 @@ def generar(session: Session, ahora: datetime, semilla: int = 20261025) -> dict[
     return creados
 
 
-def main() -> None:
-    with Session(get_engine()) as session, session.begin():
-        creados = generar(session, datetime.now(timezone.utc))
+def main() -> int:
+    try:
+        with Session(get_engine()) as session, session.begin():
+            creados = generar(session, datetime.now(timezone.utc))
+    except RuntimeError as error:
+        print(error, file=sys.stderr)
+        return 1
     print("Datos de demostración creados: " + ", ".join(f"{n} {k.replace('_', ' ')}" for k, n in creados.items()))
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
