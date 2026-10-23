@@ -135,4 +135,24 @@ describe('Control de acceso', () => {
     expect(c.fecha('2026-10-19T15:00:00Z')).toBe(c.fecha('2026-10-19T10:00:00-05:00'));
     expect(c.fecha('2026-10-19T15:00:00Z')).toContain('10:00:00');
   });
+
+  it('tras corregir la celda muestra el cambio y vuelve a consultar el vehículo', () => {
+    c.consulta.setValue({ placa: 'KLM45D', operador_id: 4 });
+    c.buscar();
+    http.expectOne('/estancias/vehiculo/KLM45D').flush(state);
+    c.alCorregir({
+      id: 1,
+      estancia_id: 3,
+      celda_anterior: celda,
+      celda_nueva: { ...celda, id: 7, codigo: 'M07' },
+      operador_id: 4,
+      fecha: '2026-10-23T15:00:00Z',
+      motivo: 'Parqueó en la M07',
+    });
+    expect(c.exitoCorreccion()).toContain('M01 → M07');
+    http
+      .expectOne('/estancias/vehiculo/KLM45D')
+      .flush({ ...state, estancia: { ...state.estancia, celda: { ...celda, codigo: 'M07' } } });
+    expect(c.estado()?.estancia?.celda.codigo).toBe('M07');
+  });
 });

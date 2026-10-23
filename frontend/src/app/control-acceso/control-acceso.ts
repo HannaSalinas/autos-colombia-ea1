@@ -3,7 +3,8 @@ import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms';
 import { Operador } from '../models/operador';
-import { EstadoVehiculo, Movimiento } from '../models/estancia';
+import { Correccion, EstadoVehiculo, Movimiento } from '../models/estancia';
+import { EstanciaAcciones } from '../estancia-acciones/estancia-acciones';
 import { EstanciasService } from '../services/estancias.service';
 import { normalizarPlaca } from '../utils/placa';
 
@@ -13,7 +14,7 @@ const placa = normalizarPlaca;
 
 @Component({
   selector: 'app-control-acceso',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, EstanciaAcciones],
   templateUrl: './control-acceso.html',
   styleUrl: './control-acceso.css',
 })
@@ -45,6 +46,8 @@ export class ControlAcceso {
   readonly ultimaEntrada = signal<Movimiento | null>(null);
   /** Última salida registrada: incluye el tiempo de permanencia. */
   readonly ultimaSalida = signal<Movimiento | null>(null);
+  /** Mensaje de la última corrección de celda (Fase 3). */
+  readonly exitoCorreccion = signal('');
 
   constructor() {
     this.consulta.controls.placa.valueChanges
@@ -55,6 +58,7 @@ export class ControlAcceso {
         this.errorConsulta.set('');
         this.exitoSalida.set('');
         this.ultimaSalida.set(null);
+        this.exitoCorreccion.set('');
       });
     this.cargarCatalogos();
   }
@@ -182,6 +186,14 @@ export class ControlAcceso {
             );
         },
       });
+  }
+
+  /** Tras corregir la celda se vuelve a consultar para mostrar la celda nueva. */
+  alCorregir(c: Correccion): void {
+    this.exitoCorreccion.set(
+      `Celda corregida: ${c.celda_anterior.codigo} → ${c.celda_nueva.codigo}. Motivo: ${c.motivo}`,
+    );
+    this.buscar();
   }
 
   fecha(value: string): string {

@@ -95,7 +95,7 @@
             </span>
           </div>
           <div class="field">
-            <label for="exit-operator">Operador de salida</label
+            <label for="exit-operator">Operador (salida, corrección o novedad)</label
             ><select id="exit-operator" formControlName="operador_id">
               <option [ngValue]="null">Selecciona un operador</option>
               @for (o of operadores(); track o.id) {
@@ -133,10 +133,19 @@
           >
             Confirmar salida
           </button>
+          <app-estancia-acciones
+            [estanciaId]="stay.id"
+            [celdaActual]="stay.celda.codigo"
+            [operadorId]="consulta.controls.operador_id.value"
+            (corregida)="alCorregir($event)"
+          />
         } @else {
           <p>Vehículo registrado sin estancia abierta.</p>
         }
       </div>
+    }
+    @if (exitoCorreccion()) {
+      <p role="status" class="notice success">{{ exitoCorreccion() }}</p>
     }
     @if (errorConsulta()) {
       <p role="alert" class="notice error">{{ errorConsulta() }}</p>
