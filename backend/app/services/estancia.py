@@ -5,12 +5,15 @@ from sqlalchemy import and_, exists, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.domain.reglas import formatear_permanencia, hoy_bogota, permanencia_segundos, tipo_celda_para
-from app.models import Celda, Estancia, Mensualidad, Operador, Vehiculo, required_text
+from app.domain.reglas import (
+    formatear_permanencia, hoy_bogota, permanencia_segundos, tipo_celda_para, validar_celda_compatible,
+)
+from app.models import Celda, CorreccionCelda, Estancia, Mensualidad, Novedad, Operador, Vehiculo, required_text
 from app.schemas.celda import CeldaRespuesta
 from app.schemas.estancia import (
     EntradaCrear, SalidaCrear, EstanciaRespuesta, EstanciaAbiertaRespuesta,
-    EstadoVehiculoRespuesta, MovimientoRespuesta,
+    EstadoVehiculoRespuesta, MovimientoRespuesta, CorreccionCrear, CorreccionRespuesta,
+    NovedadCrear, NovedadRespuesta,
 )
 from app.schemas.vehiculo import VehiculoRespuesta
 
@@ -167,3 +170,90 @@ class ServicioEstancia:
             )
         return EstadoVehiculoRespuesta(vehiculo=VehiculoRespuesta.model_validate(vehiculo),
                                        esta_dentro=estancia is not None, estancia=abierta)
+
+    # --- Corrección de celda y novedades (Fase 3) ---
+
+    def _estancia(self, estancia_id: int, abierta: bool, bloquear: bool = False) -> Estancia:
+        consulta = select(Estancia).where(Estancia.id == estancia_id)
+        # FOR UPDATE: una salida simultánea espera (o hace esperar) a esta operación.
+        estancia = self.session.scalar(consulta.with_for_update() if bloquear else consulta)
+        if estancia is None:
+            raise EstanciaError(404, "Estancia no encontrada.")
+        if abierta and not estancia.esta_abierta():
+            raise EstanciaError(409, "La estancia ya está cerrada: no se puede modificar.")
+        return estancia
+
+    def _celda_ocupada(self, celda_id: int) -> bool:
+        return self.session.scalar(select(Estancia.id).where(
+            Estancia.celda_id == celda_id, Estancia.salida.is_(None)
+        )) is not None
+
+    @transaccion
+    def celdas_disponibles(self, estancia_id: int) -> list[CeldaRespuesta]:
+        """Celdas libres y compatibles a las que se puede corregir una estancia abierta."""
+        estancia = self._estancia(estancia_id, abierta=True)
+        abierta = exists().where(Estancia.celda_id == Celda.id, Estancia.salida.is_(None))
+        celdas = self.session.scalars(
+            select(Celda).where(Celda.tipo == tipo_celda_para(estancia.vehiculo.tipo), ~abierta)
+            .order_by(Celda.codigo)
+        )
+        return [CeldaRespuesta.model_validate(c) for c in celdas]
+
+    @transaccion
+    def corregir_celda(self, estancia_id: int, data: CorreccionCrear) -> CorreccionRespuesta:
+        estancia = self._estancia(estancia_id, abierta=True, bloquear=True)
+        operador = self._operador(data.operador_id)
+        # Bloquea la celda destino: una entrada simultánea (SKIP LOCKED) no la tomará.
+        nueva = self.session.scalar(select(Celda).where(Celda.id == data.celda_id).with_for_update())
+        if nueva is None:
+            raise EstanciaError(404, "Celda no encontrada.")
+        if nueva.id == estancia.celda_id:
+            raise EstanciaError(409, f"El vehículo ya está registrado en la celda {nueva.codigo}.")
+        try:
+            validar_celda_compatible(estancia.vehiculo.tipo, nueva.tipo, nueva.codigo)
+        except ValueError as error:
+            raise EstanciaError(409, str(error)) from None
+        # Se consulta después del bloqueo: ve cualquier entrada confirmada justo antes.
+        if self._celda_ocupada(nueva.id):
+            raise EstanciaError(409, f"La celda {nueva.codigo} está ocupada.")
+        anterior = estancia.celda
+        ahora = datetime.now(timezone.utc)
+        correccion = CorreccionCelda(estancia_id=estancia.id, celda_anterior_id=anterior.id,
+                                     celda_nueva_id=nueva.id, operador_id=operador.id,
+                                     fecha=ahora, motivo=data.motivo)
+        estancia.celda = nueva
+        anterior.disponible_desde = ahora   # la celda anterior queda libre desde ahora
+        self.session.add(correccion)
+        self.session.flush()
+        return self._correccion(correccion, anterior, nueva)
+
+    def _correccion(self, c: CorreccionCelda, anterior: Celda, nueva: Celda) -> CorreccionRespuesta:
+        return CorreccionRespuesta(
+            id=c.id, estancia_id=c.estancia_id, operador_id=c.operador_id, fecha=c.fecha, motivo=c.motivo,
+            celda_anterior=CeldaRespuesta.model_validate(anterior), celda_nueva=CeldaRespuesta.model_validate(nueva),
+        )
+
+    @transaccion
+    def correcciones(self, estancia_id: int) -> list[CorreccionRespuesta]:
+        self._estancia(estancia_id, abierta=False)
+        filas = self.session.scalars(select(CorreccionCelda).where(CorreccionCelda.estancia_id == estancia_id)
+                                     .order_by(CorreccionCelda.fecha, CorreccionCelda.id))
+        return [self._correccion(c, c.celda_anterior, c.celda_nueva) for c in filas]
+
+    @transaccion
+    def registrar_novedad(self, estancia_id: int, data: NovedadCrear) -> NovedadRespuesta:
+        estancia = self._estancia(estancia_id, abierta=True, bloquear=True)
+        operador = self._operador(data.operador_id)
+        novedad = Novedad(estancia_id=estancia.id, operador_id=operador.id, tipo=data.tipo,
+                          descripcion=data.descripcion, fecha=datetime.now(timezone.utc))
+        self.session.add(novedad)
+        self.session.flush()
+        return NovedadRespuesta.model_validate(novedad)
+
+    @transaccion
+    def novedades(self, estancia_id: int) -> list[NovedadRespuesta]:
+        """El historial se consulta también con la estancia cerrada."""
+        self._estancia(estancia_id, abierta=False)
+        filas = self.session.scalars(select(Novedad).where(Novedad.estancia_id == estancia_id)
+                                     .order_by(Novedad.fecha, Novedad.id))
+        return [NovedadRespuesta.model_validate(n) for n in filas]

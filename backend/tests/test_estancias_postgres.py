@@ -19,7 +19,7 @@ from conftest import ALEMBIC_HEAD, placa_aleatoria
 from app.database import get_engine
 from app.domain.reglas import fin_de_mensualidad, hoy_bogota
 from app.main import app
-from app.models import Celda, Cliente, Estancia, Mensualidad, Operador, Vehiculo
+from app.models import Celda, Cliente, CorreccionCelda, Estancia, Mensualidad, Novedad, Operador, Vehiculo
 
 pytestmark = pytest.mark.skipif(os.getenv('RUN_POSTGRES_TESTS') != '1', reason='Requiere PostgreSQL local.')
 
@@ -61,6 +61,9 @@ def datos(request):
         yield data
     finally:
         with Session(engine) as s, s.begin():
+            estancias = select(Estancia.id).where(Estancia.vehiculo_id.in_(data['v']))
+            s.execute(delete(CorreccionCelda).where(CorreccionCelda.estancia_id.in_(estancias)))
+            s.execute(delete(Novedad).where(Novedad.estancia_id.in_(estancias)))
             s.execute(delete(Estancia).where(Estancia.vehiculo_id.in_(data['v'])))
             s.execute(delete(Mensualidad).where(Mensualidad.vehiculo_id.in_(data['v'])))
             s.execute(delete(Vehiculo).where(Vehiculo.id.in_(data['v'])))
@@ -203,3 +206,41 @@ def test_concurrencia_dos_salidas(datos):
         saved = s.get(Estancia, winner['id'])
         assert saved.operador_salida_id == winner['operador_salida_id']
         assert saved.salida == datetime.fromisoformat(winner['salida'])
+
+
+@pytest.mark.parametrize('datos', [3], indirect=True)
+def test_concurrencia_dos_correcciones_hacia_la_misma_celda(datos):
+    """Fase 3: dos operadores corrigen a la vez dos estancias hacia la única celda libre (C)."""
+    d = datos
+    with TestClient(app) as client:
+        ids = [client.post('/estancias/entrada', json=entrada(d, v=v)).json()['id'] for v in (0, 1)]
+    libre = d['c'][2]
+    payloads = [(i, {'celda_id': libre, 'operador_id': d['o'][n], 'motivo': 'Parqueó en C'}) for n, i in enumerate(ids)]
+    barrier = Barrier(2, timeout=15)
+    esperado = threading.local()
+
+    def sincronizar(conn, cursor, statement, parameters, context, executemany):
+        if ('FROM celda' in statement and 'FOR UPDATE' in statement and 'SKIP LOCKED' not in statement
+                and not getattr(esperado, 'listo', False)):
+            esperado.listo = True
+            barrier.wait()
+
+    def enviar(item):
+        estancia_id, payload = item
+        with TestClient(app) as client:
+            return client.post(f'/estancias/{estancia_id}/correccion-celda', json=payload)
+
+    engine = get_engine()
+    event.listen(engine, 'before_cursor_execute', sincronizar)
+    try:
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            responses = list(pool.map(enviar, payloads))
+    finally:
+        event.remove(engine, 'before_cursor_execute', sincronizar)
+    assert sorted(r.status_code for r in responses) == [201, 409]
+    assert 'ocupada' in next(r.json()['detail'] for r in responses if r.status_code == 409)
+    with Session(engine) as s:
+        assert s.scalar(select(func.count()).select_from(Estancia).where(
+            Estancia.celda_id == libre, Estancia.salida.is_(None))) == 1
+        assert s.scalar(select(func.count()).select_from(CorreccionCelda).where(
+            CorreccionCelda.estancia_id.in_(ids))) == 1

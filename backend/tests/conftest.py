@@ -45,7 +45,10 @@ def api_y_sesion():
         transaction = connection.begin()
         try:
             assert connection.scalar(text("SELECT version_num FROM alembic_version")) == ALEMBIC_HEAD
-            with Session(bind=connection, join_transaction_mode="create_savepoint") as session:
+            # expire_on_commit=False: tras session.commit() (que aquí solo libera un savepoint)
+            # los objetos preparados se pueden leer sin abrir otra transacción en la sesión.
+            with Session(bind=connection, join_transaction_mode="create_savepoint",
+                         expire_on_commit=False) as session:
                 def override_session():
                     yield session
                 app.dependency_overrides[get_session] = override_session
