@@ -144,3 +144,14 @@ def test_restricciones_de_la_base(escena, sql):
     session.flush()
     with pytest.raises(IntegrityError), session.begin_nested():
         session.execute(text(sql), {"e": d.estancia, "x": d.celda["X"].id, "y": d.celda["Y"].id, "o": d.operador})
+
+
+def test_no_cambia_el_tipo_de_una_celda_ocupada(escena):
+    """Fase 4: la celda X tiene un automóvil dentro; su tipo no puede pasar a MOTO."""
+    api, _, d = escena
+    ocupada = api.patch(f"/celdas/{d.celda['X'].id}", json={"tipo": "MOTO"})
+    assert ocupada.status_code == 409 and "ocupada" in ocupada.json()["detail"]
+    assert api.get(f"/celdas/{d.celda['X'].id}").json()["tipo"] == "CARRO"
+    # El código sí se puede corregir, y la celda libre Y sí puede cambiar de tipo.
+    assert api.patch(f"/celdas/{d.celda['X'].id}", json={"tipo": "CARRO"}).status_code == 200
+    assert api.patch(f"/celdas/{d.celda['Y'].id}", json={"tipo": "MOTO"}).json()["tipo"] == "MOTO"

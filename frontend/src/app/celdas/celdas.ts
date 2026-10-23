@@ -154,7 +154,12 @@ export class Celdas {
       error: (error: HttpErrorResponse) => {
         this.saving.set(false);
         this.actionError.set(this.errorMessage(error));
-        if (error.status === 409)
+        const detail = typeof error.error?.detail === 'string' ? error.error.detail : '';
+        if (error.status === 409 && detail.includes('ocupada')) {
+          // Iteración 1: no se cambia el tipo de una celda con un vehículo dentro.
+          this.actionError.set(detail);
+          this.setFieldError('tipo', detail);
+        } else if (error.status === 409)
           this.setFieldError('codigo', 'Ya existe una celda con ese código.');
         const body = error.error as ErrorApi | null;
         if (error.status === 422 && Array.isArray(body?.detail)) {

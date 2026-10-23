@@ -4,7 +4,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.models import Celda
+from app.models import Celda, Estancia
 from app.schemas.celda import CeldaActualizar, CeldaCrear
 
 
@@ -37,8 +37,8 @@ def database_operation(operation):
     return wrapped
 
 
-def find_cell(session: Session, cell_id: int) -> Celda:
-    cell = session.get(Celda, cell_id)
+def find_cell(session: Session, cell_id: int, for_update: bool = False) -> Celda:
+    cell = session.get(Celda, cell_id, with_for_update=for_update)
     if cell is None:
         raise CeldaError(404, "Celda no encontrada.")
     return cell
@@ -67,8 +67,15 @@ def get_cell(session: Session, cell_id: int) -> Celda:
 
 @database_operation
 def update_cell(session: Session, cell_id: int, data: CeldaActualizar) -> Celda:
-    cell = find_cell(session, cell_id)
-    for key, value in data.model_dump(exclude_unset=True).items():
+    # FOR UPDATE: una entrada simultánea (SKIP LOCKED) no asigna esta celda mientras se edita.
+    cell = find_cell(session, cell_id, for_update=True)
+    changes = data.model_dump(exclude_unset=True)
+    if "tipo" in changes and changes["tipo"] != cell.tipo and session.scalar(
+        select(Estancia.id).where(Estancia.celda_id == cell.id, Estancia.salida.is_(None))
+    ) is not None:
+        session.rollback()
+        raise CeldaError(409, "No se puede cambiar el tipo de una celda ocupada.")
+    for key, value in changes.items():
         setattr(cell, key, value)
     session.commit()
     session.refresh(cell)

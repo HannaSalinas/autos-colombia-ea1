@@ -91,4 +91,17 @@ describe('Gestión de celdas', () => {
       .flush({ items: [], total: 0, offset: 0, limit: 10 });
     expect(c.success()).toContain('eliminada');
   });
+
+  it('informa que no se puede cambiar el tipo de una celda ocupada', () => {
+    const c = fixture.componentInstance;
+    c.edit(cell);
+    http.expectOne('/celdas/1').flush(cell);
+    c.form.controls.tipo.setValue('MOTO');
+    c.save();
+    const detail = 'No se puede cambiar el tipo de una celda ocupada.';
+    http.expectOne('/celdas/1').flush({ detail }, { status: 409, statusText: 'Conflict' });
+    expect(c.actionError()).toBe(detail);
+    expect(c.fieldError('tipo')).toBe(detail);
+    expect(c.fieldError('codigo')).toBe('');
+  });
 });
