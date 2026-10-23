@@ -1,0 +1,78 @@
+# Levanta todo con: docker compose up --build
+# Pruebas del backend con: docker compose run --rm backend-tests
+
+x-db-env: &db-env
+  POSTGRES_DB: autos_colombia
+  POSTGRES_USER: autos
+  POSTGRES_PASSWORD: autos_local_dev   # Solo para desarrollo local.
+
+x-backend-env: &backend-env
+  DB_PORT: "5432"
+  DB_NAME: autos_colombia
+  DB_USER: autos
+  DB_PASSWORD: autos_local_dev
+  DB_CONNECT_TIMEOUT: "5"
+  TZ: America/Bogota
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      <<: *db-env
+      TZ: America/Bogota
+    volumes:
+      - datos_postgres:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U autos -d autos_colombia"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  backend:
+    build: ./backend
+    environment:
+      <<: *backend-env
+      DB_HOST: db
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "4200:80"
+
+  # Base de pruebas desechable (en memoria): las pruebas nunca tocan los datos de la demo.
+  db-test:
+    profiles: ["test"]
+    image: postgres:17-alpine
+    environment:
+      <<: *db-env
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U autos -d autos_colombia"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  backend-tests:
+    profiles: ["test"]
+    build: ./backend
+    environment:
+      <<: *backend-env
+      DB_HOST: db-test
+      RUN_POSTGRES_TESTS: "1"
+    depends_on:
+      db-test:
+        condition: service_healthy
+    command: ["sh", "-c", "python -m alembic -c alembic.ini upgrade head && python -m pytest -q"]
+
+volumes:
+  datos_postgres:
