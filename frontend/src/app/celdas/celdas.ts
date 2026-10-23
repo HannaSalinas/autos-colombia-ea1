@@ -3,7 +3,7 @@ import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, ValidatorFn } from '@angular/forms';
 import { CeldasService } from '../services/celdas.service';
-import { Celda, CeldaCrear } from '../models/celda';
+import { Celda, CeldaCrear, TIPOS_CELDA, TipoCelda } from '../models/celda';
 import { ErrorApi } from '../models/vehiculo';
 
 const nonBlank: ValidatorFn = (control) =>
@@ -26,8 +26,11 @@ export class Celdas {
   ];
   readonly form = this.fb.group({
     codigo: this.fb.nonNullable.control('', nonBlank),
-    tipo: this.fb.nonNullable.control('', nonBlank),
+    tipo: this.fb.nonNullable.control<TipoCelda | string>('', (control) =>
+      (TIPOS_CELDA as readonly string[]).includes(control.value) ? null : { required: true },
+    ),
   });
+  readonly types = TIPOS_CELDA;
   readonly items = signal<Celda[]>([]);
   readonly total = signal(0);
   readonly offset = signal(0);
@@ -131,7 +134,7 @@ export class Celdas {
     const value = this.form.getRawValue();
     const payload: CeldaCrear = {
       codigo: value.codigo.trim().toUpperCase(),
-      tipo: value.tipo.trim(),
+      tipo: value.tipo as TipoCelda,
     };
     this.form.controls.codigo.setValue(payload.codigo);
     this.saving.set(true);
@@ -219,4 +222,3 @@ export class Celdas {
     return 'No se pudo conectar con el servicio. Comprueba la conexión y actualiza el listado antes de reintentar.';
   }
 }
-
