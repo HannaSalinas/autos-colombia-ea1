@@ -9,6 +9,10 @@ from sqlalchemy.schema import CreateTable
 from app.models import Base, Celda, Operador, Vehiculo
 
 
+def test_placa_sin_espacios_ni_guiones():
+    assert Vehiculo(placa=" abc - 123 ").placa == "ABC123"
+
+
 def test_normalizes_unique_identifiers_on_creation_and_assignment():
     vehicle = Vehiculo(placa=" \tabc123\n", color="Azul", modelo=2025, marca="Marca", tipo="MOTO")
     cell = Celda(codigo=" a-01 ", tipo="Libre")
@@ -57,6 +61,13 @@ def test_required_columns_and_identity():
         assert table.c.id.identity.always is True
 
 
+# Columnas y CHECK que agregó después la migración 0003 (Iteración 1); 0001 no los crea.
+AGREGADO_EN_0003 = {
+    "vehiculo": {"columnas": {"cliente_id"},
+                 "checks": {"ck_vehiculo_placa_formato", "ck_vehiculo_modelo_minimo"}},
+}
+
+
 def test_migration_matches_models_without_connecting(monkeypatch):
     path = Path(__file__).resolve().parents[1] / "migrations/versions/0001_modelos_iniciales.py"
     spec = importlib.util.spec_from_file_location("initial_migration", path)
@@ -68,11 +79,13 @@ def test_migration_matches_models_without_connecting(monkeypatch):
     assert set(metadata.tables) == {"vehiculo", "celda", "operador"}
     for name, table in metadata.tables.items():
         model_table = Base.metadata.tables[name]
+        later = AGREGADO_EN_0003.get(name, {"columnas": set(), "checks": set()})
         assert [(c.name, str(c.type), c.nullable) for c in table.columns] == [
-            (c.name, str(c.type), c.nullable) for c in model_table.columns
+            (c.name, str(c.type), c.nullable) for c in model_table.columns if c.name not in later["columnas"]
         ]
         def constraints(t):
-            return {(c.name, str(c.sqltext)) for c in t.constraints if isinstance(c, sa.CheckConstraint)}
+            return {(c.name, str(c.sqltext)) for c in t.constraints
+                    if isinstance(c, sa.CheckConstraint) and c.name not in later["checks"]}
         assert constraints(table) == constraints(model_table)
         def unique_columns(t):
             return {tuple(c.columns.keys()) for c in t.constraints if isinstance(c, sa.UniqueConstraint)}

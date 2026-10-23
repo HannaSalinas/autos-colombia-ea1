@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session
 
+from conftest import ALEMBIC_HEAD
 from app.database import get_engine, get_session
 from app.main import app
 
@@ -20,7 +21,7 @@ def test_operadores_structure_and_crud():
         transaction = connection.begin()
         try:
             assert connection.scalar(text("SELECT current_database()")) == "autos_colombia"
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) in {"0001", "0002"}
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == ALEMBIC_HEAD
             inspector = inspect(connection)
             columns = {c["name"]: c for c in inspector.get_columns("operador")}
             assert set(columns) == {"id", "nombre", "telefono"}

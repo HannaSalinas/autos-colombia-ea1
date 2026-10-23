@@ -4,7 +4,9 @@ from fastapi import APIRouter, Depends, Path, Query, Response
 from sqlalchemy.orm import Session
 
 from app.database import get_session
-from app.schemas.vehiculo import VehiculoActualizar, VehiculoCrear, VehiculoRespuesta, VehiculosPagina
+from app.schemas.mensualidad import MensualidadRespuesta
+from app.schemas.vehiculo import VehiculoActualizar, VehiculoCrear, VehiculoDetalle, VehiculosPagina
+from app.services import mensualidad as mensualidades
 from app.services import vehiculo as service
 
 router = APIRouter(prefix="/vehiculos", tags=["Vehículos"])
@@ -12,7 +14,7 @@ DatabaseSession = Annotated[Session, Depends(get_session)]
 VehicleId = Annotated[int, Path(ge=1, le=9223372036854775807)]
 
 
-@router.post("", response_model=VehiculoRespuesta, status_code=201)
+@router.post("", response_model=VehiculoDetalle, status_code=201)
 def create(data: VehiculoCrear, session: DatabaseSession):
     return service.create_vehicle(session, data)
 
@@ -26,12 +28,12 @@ def list_all(
     return service.list_vehicles(session, offset, limit)
 
 
-@router.get("/{id}", response_model=VehiculoRespuesta)
+@router.get("/{id}", response_model=VehiculoDetalle)
 def get_one(id: VehicleId, session: DatabaseSession):
     return service.get_vehicle(session, id)
 
 
-@router.patch("/{id}", response_model=VehiculoRespuesta)
+@router.patch("/{id}", response_model=VehiculoDetalle)
 def update(id: VehicleId, data: VehiculoActualizar, session: DatabaseSession):
     return service.update_vehicle(session, id, data)
 
@@ -40,3 +42,10 @@ def update(id: VehicleId, data: VehiculoActualizar, session: DatabaseSession):
 def delete(id: VehicleId, session: DatabaseSession) -> Response:
     service.delete_vehicle(session, id)
     return Response(status_code=204)
+
+
+@router.get("/{id}/mensualidades", response_model=list[MensualidadRespuesta])
+def list_monthly_payments(id: VehicleId, session: DatabaseSession):
+    """Solo consulta: las mensualidades se cargan con las semillas (los pagos son de la Iteración 3)."""
+    service.get_vehicle(session, id)
+    return mensualidades.listar_de_vehiculo(session, id)

@@ -10,9 +10,10 @@ import pytest
 from sqlalchemy import delete, event, func, select, text
 from sqlalchemy.orm import Session
 
+from conftest import ALEMBIC_HEAD, placa_aleatoria
 from app.database import get_engine
 from app.main import app
-from app.models import Celda, Estancia, Operador, Vehiculo
+from app.models import Celda, Cliente, Estancia, Operador, Vehiculo
 
 pytestmark = pytest.mark.skipif(os.getenv('RUN_POSTGRES_TESTS') != '1', reason='Requiere PostgreSQL local.')
 
@@ -22,16 +23,21 @@ def datos():
     engine = get_engine()
     with engine.connect() as c:
         assert c.scalar(text('SELECT current_database()')) == 'autos_colombia'
-        assert c.scalar(text('SELECT version_num FROM alembic_version')) == '0002'
+        assert c.scalar(text('SELECT version_num FROM alembic_version')) == ALEMBIC_HEAD
     token = 'TEST-EST-' + uuid4().hex.upper()
     with Session(engine) as s, s.begin():
-        vehicles = [Vehiculo(placa=f'{token}-{n}', color='Prueba', modelo=2026, marca='Prueba', tipo='MOTO') for n in range(2)]
+        # Iteración 1: todo vehículo tiene cliente y una placa con formato válido.
+        owner = Cliente(documento=token, nombre='Prueba', telefono='001')
+        s.add(owner)
+        s.flush()
+        vehicles = [Vehiculo(placa=placa_aleatoria('MOTO'), color='Prueba', modelo=2026, marca='Prueba',
+                             tipo='MOTO', cliente_id=owner.id) for n in range(2)]
         cells = [Celda(codigo=f'{token}-{n}', tipo='Libre') for n in range(2)]
         operators = [Operador(nombre=f'{token}-{n}', telefono='001') for n in range(2)]
         s.add_all(vehicles + cells + operators)
         s.flush()
         data = {'v': [v.id for v in vehicles], 'placas': [v.placa for v in vehicles],
-                'c': [c.id for c in cells], 'o': [o.id for o in operators]}
+                'c': [c.id for c in cells], 'o': [o.id for o in operators], 'cliente': owner.id}
     try:
         yield data
     finally:
@@ -40,6 +46,7 @@ def datos():
             s.execute(delete(Vehiculo).where(Vehiculo.id.in_(data['v'])))
             s.execute(delete(Celda).where(Celda.id.in_(data['c'])))
             s.execute(delete(Operador).where(Operador.id.in_(data['o'])))
+            s.execute(delete(Cliente).where(Cliente.id == data['cliente']))
         with Session(engine) as s:
             assert s.scalar(select(func.count()).select_from(Estancia).where(Estancia.vehiculo_id.in_(data['v']))) == 0
 

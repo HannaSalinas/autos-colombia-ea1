@@ -1,9 +1,11 @@
 """Modelos iniciales. Importar este módulo no crea tablas ni abre conexiones."""
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
-from sqlalchemy import BigInteger, CheckConstraint, DateTime, ForeignKey, Identity, Index, Integer, Text, UniqueConstraint, func, text
+from sqlalchemy import BigInteger, CheckConstraint, Date, DateTime, ForeignKey, Identity, Index, Integer, Text, UniqueConstraint, func, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, validates
+
+from app.domain.reglas import MODELO_MINIMO, normalizar_placa
 
 
 class Base(DeclarativeBase):
@@ -16,6 +18,29 @@ def required_text(value: str, attribute: str) -> str:
     return value.strip()
 
 
+class Cliente(Base):
+    """Propietario de uno o varios vehículos. Agregado en la migración 0003."""
+    __tablename__ = "cliente"
+    __table_args__ = (
+        UniqueConstraint("documento", name="uq_cliente_documento"),
+        CheckConstraint("documento ~ '[^[:space:]]'", name="ck_cliente_documento_no_vacio"),
+        CheckConstraint("nombre ~ '[^[:space:]]'", name="ck_cliente_nombre_no_vacio"),
+        CheckConstraint("telefono ~ '[^[:space:]]'", name="ck_cliente_telefono_no_vacio"),
+        CheckConstraint("correo IS NULL OR correo ~ '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$'",
+                        name="ck_cliente_correo_formato"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    documento: Mapped[str] = mapped_column(Text, nullable=False)
+    nombre: Mapped[str] = mapped_column(Text, nullable=False)
+    telefono: Mapped[str] = mapped_column(Text, nullable=False)
+    correo: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    @validates("documento", "nombre", "telefono")
+    def validate_text(self, key: str, value: str) -> str:
+        return required_text(value, key)
+
+
 class Vehiculo(Base):
     __tablename__ = "vehiculo"
     __table_args__ = (
@@ -26,6 +51,14 @@ class Vehiculo(Base):
         CheckConstraint("marca ~ '[^[:space:]]'", name="ck_vehiculo_marca_no_vacia"),
         CheckConstraint("modelo BETWEEN 1 AND 9999", name="ck_vehiculo_modelo_anio"),
         CheckConstraint("tipo IN ('MOTO', 'AUTOMOVIL', 'CAMIONETA')", name="ck_vehiculo_tipo"),
+        # Agregadas en la migración 0003.
+        CheckConstraint(
+            "(tipo = 'MOTO' AND placa ~ '^[A-Z]{3}[0-9]{2}[A-Z]$') OR "
+            "(tipo <> 'MOTO' AND placa ~ '^[A-Z]{3}[0-9]{3}$')",
+            name="ck_vehiculo_placa_formato",
+        ),
+        CheckConstraint(f"modelo >= {MODELO_MINIMO}", name="ck_vehiculo_modelo_minimo"),
+        Index("ix_vehiculo_cliente", "cliente_id"),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
@@ -34,20 +67,26 @@ class Vehiculo(Base):
     modelo: Mapped[int] = mapped_column(Integer, nullable=False)
     marca: Mapped[str] = mapped_column(Text, nullable=False)
     tipo: Mapped[str] = mapped_column(Text, nullable=False)
+    cliente_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("cliente.id", name="fk_vehiculo_cliente", ondelete="RESTRICT"), nullable=False
+    )
+
+    cliente: Mapped[Cliente] = relationship()
 
     @validates("placa", "color", "marca", "tipo")
     def validate_text(self, key: str, value: str) -> str:
         value = required_text(value, key)
         if key == "placa":
-            return value.upper()
+            return normalizar_placa(value)
         if key == "tipo" and value not in {"MOTO", "AUTOMOVIL", "CAMIONETA"}:
             raise ValueError("tipo debe ser MOTO, AUTOMOVIL o CAMIONETA.")
         return value
 
     @validates("modelo")
     def validate_modelo(self, key: str, value: int) -> int:
-        if type(value) is not int or not 1 <= value <= 9999:
-            raise ValueError("modelo debe ser un año entero entre 1 y 9999.")
+        # El tope "año actual + 1" depende de la fecha: lo valida la API (app.domain.reglas).
+        if type(value) is not int or not MODELO_MINIMO <= value <= 9999:
+            raise ValueError(f"modelo debe ser un año entero entre {MODELO_MINIMO} y 9999.")
         return value
 
 
@@ -140,3 +179,21 @@ class Estancia(Base):
         self.salida = fecha_salida
         self.operador_salida = operador
         self.operador_salida_id = operador.id
+
+
+class Mensualidad(Base):
+    """Mensualidad pagada por un vehículo, de fecha a fecha. Agregada en la migración 0003."""
+    __tablename__ = "mensualidad"
+    __table_args__ = (
+        CheckConstraint("fecha_fin > fecha_inicio", name="ck_mensualidad_fechas"),
+        Index("ix_mensualidad_vehiculo_fin", "vehiculo_id", "fecha_fin"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    vehiculo_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("vehiculo.id", name="fk_mensualidad_vehiculo", ondelete="RESTRICT"), nullable=False
+    )
+    fecha_inicio: Mapped[date] = mapped_column(Date, nullable=False)
+    fecha_fin: Mapped[date] = mapped_column(Date, nullable=False)
+
+    vehiculo: Mapped[Vehiculo] = relationship()

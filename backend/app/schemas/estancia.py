@@ -1,12 +1,10 @@
 from datetime import datetime, timezone
-from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from app.schemas.celda import CeldaRespuesta
+from app.schemas.comun import Identificador
 from app.schemas.vehiculo import Placa, VehiculoRespuesta
-
-Identificador = Annotated[int, Field(strict=True, ge=1, le=9223372036854775807)]
 
 
 class EntradaCrear(BaseModel):

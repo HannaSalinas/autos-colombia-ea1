@@ -8,6 +8,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from conftest import ALEMBIC_HEAD, placa_aleatoria
+from app.models import Cliente
 from app.database import get_engine, get_session
 from app.main import app
 
@@ -23,13 +25,18 @@ def client():
         transaction = connection.begin()
         try:
             assert connection.scalar(text("SELECT current_database()")) == "autos_colombia"
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) in {"0001", "0002"}
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == ALEMBIC_HEAD
             with Session(bind=connection, join_transaction_mode="create_savepoint") as session:
+                # Iteración 1: todo vehículo pertenece a un cliente.
+                owner = Cliente(documento=f"TEST-{uuid4().hex}", nombre="Prueba", telefono="001")
+                session.add(owner)
+                session.flush()
                 def override_session():
                     yield session
                 app.dependency_overrides[get_session] = override_session
                 try:
                     with TestClient(app) as api:
+                        api.cliente_id = owner.id
                         yield api
                 finally:
                     app.dependency_overrides.pop(get_session, None)
@@ -38,19 +45,20 @@ def client():
 
 
 def test_crud_and_errors_in_postgres(client):
-    suffix = uuid4().hex[:12].upper()
-    payload = {"placa": f" test-{suffix} ", "color": "Azul", "modelo": 2025,
-               "marca": "Prueba", "tipo": "AUTOMOVIL"}
+    # Iteración 1: placas con formato válido (ABC123) y cliente obligatorio.
+    first, second_plate, changed = (placa_aleatoria() for _ in range(3))
+    payload = {"placa": f" {first[:3].lower()}-{first[3:]} ", "color": "Azul", "modelo": 2025,
+               "marca": "Prueba", "tipo": "AUTOMOVIL", "cliente_id": client.cliente_id}
     created = client.post("/vehiculos", json=payload)
     assert created.status_code == 201
     vehicle = created.json()
     first_id = vehicle["id"]
-    assert vehicle["placa"] == payload["placa"].strip().upper()
+    assert vehicle["placa"] == first
     assert vehicle["modelo"] == 2025
     assert client.get(f"/vehiculos/{first_id}").json() == vehicle
     assert client.post("/vehiculos", json=payload).status_code == 409
     # La sesión debe seguir siendo utilizable después del conflicto real de PostgreSQL.
-    second = client.post("/vehiculos", json={**payload, "placa": f"SECOND-{suffix}"})
+    second = client.post("/vehiculos", json={**payload, "placa": second_plate})
     assert second.status_code == 201
     second_id = second.json()["id"]
     page = client.get("/vehiculos?offset=0&limit=1")
@@ -62,11 +70,11 @@ def test_crud_and_errors_in_postgres(client):
     assert ids[0] < ids[1]
     assert client.get("/vehiculos?offset=9223372036854775807").json()["items"] == []
     assert client.patch(f"/vehiculos/{second_id}", json={"placa": payload["placa"]}).status_code == 409
-    assert client.get(f"/vehiculos/{second_id}").json()["placa"] == f"SECOND-{suffix}"
-    patched = client.patch(f"/vehiculos/{first_id}", json={"color": " Rojo ", "placa": f" changed-{suffix} "})
+    assert client.get(f"/vehiculos/{second_id}").json()["placa"] == second_plate
+    patched = client.patch(f"/vehiculos/{first_id}", json={"color": " Rojo ", "placa": f" {changed.lower()} "})
     assert patched.status_code == 200
     assert patched.json()["color"] == "Rojo"
-    assert patched.json()["placa"] == f"CHANGED-{suffix}"
+    assert patched.json()["placa"] == changed
     assert patched.json()["marca"] == "Prueba"
     for invalid in ({"color": None}, {"id": first_id}, {"placa": " "}, {"tipo": "BUS"},
                     {"modelo": 0}, {"modelo": True}, {"modelo": "2025"}, {"marca": "\t"}):
