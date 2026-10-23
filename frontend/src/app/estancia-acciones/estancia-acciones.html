@@ -1,0 +1,122 @@
+<div class="acciones">
+  @if (loading()) {
+    <p role="status">Cargando celdas disponibles y novedades…</p>
+  }
+  @if (loadError()) {
+    <p role="alert" class="notice error">{{ loadError() }}</p>
+  }
+
+  <section aria-labelledby="fix-title">
+    <h3 id="fix-title">Corregir celda</h3>
+    <p class="hint">
+      Si el conductor parqueó en otra celda. Actual: <strong>{{ celdaActual() }}</strong
+      >. Solo celdas libres del mismo tipo.
+    </p>
+    <form [formGroup]="correccion" (ngSubmit)="corregir()">
+      <fieldset [disabled]="busy()">
+        <legend class="sr-only">Corrección de celda</legend>
+        <div class="form-grid">
+          <div class="field">
+            <label for="fix-cell">Celda donde quedó</label
+            ><select id="fix-cell" formControlName="celda_id">
+              <option [ngValue]="null">Selecciona una celda libre</option>
+              @for (c of disponibles(); track c.id) {
+                <option [ngValue]="c.id">{{ c.codigo }}</option>
+              }
+            </select>
+            <span class="field-error">
+              @if (correccion.controls.celda_id.touched && correccion.controls.celda_id.invalid) {
+                Selecciona la celda.
+              }
+            </span>
+          </div>
+          <div class="field">
+            <label for="fix-reason">Motivo</label
+            ><input
+              id="fix-reason"
+              type="text"
+              formControlName="motivo"
+              [attr.maxlength]="motivoMaximo"
+            />
+            <span class="field-error">
+              @if (correccion.controls.motivo.touched && correccion.controls.motivo.invalid) {
+                El motivo es obligatorio (máximo {{ motivoMaximo }} caracteres).
+              }
+            </span>
+          </div>
+        </div>
+        <button type="submit">Corregir celda</button>
+      </fieldset>
+    </form>
+    @if (errorCorreccion()) {
+      <p role="alert" class="notice error">{{ errorCorreccion() }}</p>
+    }
+    @if (correcciones().length) {
+      <ul class="registro" aria-label="Correcciones de celda">
+        @for (c of correcciones(); track c.id) {
+          <li>
+            {{ fecha(c.fecha) }} · {{ c.celda_anterior.codigo }} → {{ c.celda_nueva.codigo }} ·
+            {{ c.motivo }}
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <section aria-labelledby="news-title">
+    <h3 id="news-title">Novedades del vehículo</h3>
+    @if (novedades().length) {
+      <ul class="registro" aria-label="Novedades registradas">
+        @for (n of novedades(); track n.id) {
+          <li>
+            {{ fecha(n.fecha) }} · <strong>{{ etiqueta(n.tipo) }}</strong> · {{ n.descripcion }}
+          </li>
+        }
+      </ul>
+    } @else if (!loading()) {
+      <p class="hint">Sin novedades en esta estancia.</p>
+    }
+    <form [formGroup]="novedad" (ngSubmit)="registrarNovedad()">
+      <fieldset [disabled]="busy()">
+        <legend class="sr-only">Nueva novedad</legend>
+        <div class="form-grid">
+          <div class="field">
+            <label for="news-type">Tipo</label
+            ><select id="news-type" formControlName="tipo">
+              <option value="">Selecciona el tipo</option>
+              @for (t of tipos; track t.valor) {
+                <option [value]="t.valor">{{ t.etiqueta }}</option>
+              }
+            </select>
+            <span class="field-error">
+              @if (novedad.controls.tipo.touched && novedad.controls.tipo.invalid) {
+                Selecciona el tipo.
+              }
+            </span>
+          </div>
+          <div class="field">
+            <label for="news-text">Descripción</label
+            ><input
+              id="news-text"
+              type="text"
+              formControlName="descripcion"
+              [attr.maxlength]="descripcionMaxima"
+            />
+            <span class="field-error">
+              @if (novedad.controls.descripcion.touched && novedad.controls.descripcion.invalid) {
+                La descripción es obligatoria (máximo {{ descripcionMaxima }} caracteres).
+              }
+            </span>
+          </div>
+        </div>
+        <button type="submit">Registrar novedad</button>
+      </fieldset>
+    </form>
+    @if (errorNovedad()) {
+      <p role="alert" class="notice error">{{ errorNovedad() }}</p>
+    }
+    @if (exitoNovedad()) {
+      <p role="status" class="notice success">{{ exitoNovedad() }}</p>
+    }
+  </section>
+</div>
