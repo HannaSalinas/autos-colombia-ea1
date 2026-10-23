@@ -104,3 +104,33 @@ def formatear_permanencia(segundos: int) -> str:
     if horas:
         return f"{horas} h {minutos:02d} min"
     return f"{minutos} min"
+
+
+# --- Corrección de celda y novedades (Fase 3) ---
+
+MOTIVO_MAXIMO = 200        # "texto corto" para la corrección de celda
+DESCRIPCION_MAXIMA = 500
+TIPOS_NOVEDAD = {
+    "RAYON": "Rayón",
+    "GOLPE": "Golpe",
+    "OBJETO_OLVIDADO": "Objeto olvidado",
+    "OTRO": "Otro",
+}
+
+
+def validar_celda_compatible(tipo_vehiculo: str, tipo_celda: str, codigo: str) -> None:
+    """Una moto solo va en celda MOTO; automóvil y camioneta, en celda CARRO."""
+    necesaria = tipo_celda_para(tipo_vehiculo)
+    if tipo_celda != necesaria:
+        raise ValueError(
+            f"La celda {codigo} es de {tipo_celda.lower()}; el vehículo necesita celda de {necesaria.lower()}."
+        )
+
+
+def validar_texto_corto(texto: str, maximo: int, campo: str) -> str:
+    texto = " ".join(texto.split())
+    if not texto:
+        raise ValueError(f"El {campo} es obligatorio.")
+    if len(texto) > maximo:
+        raise ValueError(f"El {campo} admite máximo {maximo} caracteres.")
+    return texto

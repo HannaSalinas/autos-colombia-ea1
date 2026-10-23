@@ -129,3 +129,26 @@ def test_permanencia_en_segundos():
     entrada = datetime(2026, 10, 23, 8, tzinfo=timezone.utc)
     assert permanencia_segundos(entrada, entrada + timedelta(hours=2, seconds=30)) == 7230
     assert permanencia_segundos(entrada, entrada) == 0
+
+
+# --- Fase 3: corrección de celda y novedades ---
+from app.domain.reglas import MOTIVO_MAXIMO, validar_celda_compatible, validar_texto_corto  # noqa: E402
+
+
+@pytest.mark.parametrize("vehiculo,celda", [("MOTO", "MOTO"), ("AUTOMOVIL", "CARRO"), ("CAMIONETA", "CARRO")])
+def test_celda_compatible(vehiculo, celda):
+    validar_celda_compatible(vehiculo, celda, "X01")
+
+
+@pytest.mark.parametrize("vehiculo,celda", [("MOTO", "CARRO"), ("AUTOMOVIL", "MOTO"), ("CAMIONETA", "MOTO")])
+def test_celda_incompatible(vehiculo, celda):
+    with pytest.raises(ValueError, match="X01"):
+        validar_celda_compatible(vehiculo, celda, "X01")
+
+
+def test_texto_corto_limpia_espacios_y_limites():
+    assert validar_texto_corto("  parqueó   en la C05 ", MOTIVO_MAXIMO, "motivo") == "parqueó en la C05"
+    assert len(validar_texto_corto("a" * MOTIVO_MAXIMO, MOTIVO_MAXIMO, "motivo")) == MOTIVO_MAXIMO
+    for invalido in ("", "   \n", "a" * (MOTIVO_MAXIMO + 1)):
+        with pytest.raises(ValueError):
+            validar_texto_corto(invalido, MOTIVO_MAXIMO, "motivo")
