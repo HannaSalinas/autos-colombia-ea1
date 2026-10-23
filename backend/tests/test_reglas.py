@@ -152,3 +152,35 @@ def test_texto_corto_limpia_espacios_y_limites():
     for invalido in ("", "   \n", "a" * (MOTIVO_MAXIMO + 1)):
         with pytest.raises(ValueError):
             validar_texto_corto(invalido, MOTIVO_MAXIMO, "motivo")
+
+
+# --- Fase 4: rango de fechas del historial ---
+from app.domain.reglas import ZONA_BOGOTA, rango_bogota  # noqa: E402
+
+
+def dentro_del_rango(instante, inicio, fin):
+    return (inicio is None or instante >= inicio) and (fin is None or instante < fin)
+
+
+@pytest.mark.parametrize("hora,incluida", [
+    (datetime(2026, 10, 22, 23, 59, 59, tzinfo=ZONA_BOGOTA), False),   # un segundo antes
+    (datetime(2026, 10, 23, 0, 0, 0, tzinfo=ZONA_BOGOTA), True),       # primer instante del día
+    (datetime(2026, 10, 23, 23, 59, 59, 999999, tzinfo=ZONA_BOGOTA), True),
+    (datetime(2026, 10, 24, 0, 0, 0, tzinfo=ZONA_BOGOTA), False),      # siguiente día
+    (datetime(2026, 10, 24, 4, 30, tzinfo=timezone.utc), True),        # 23:30 del 23 en Bogotá
+    (datetime(2026, 10, 23, 4, 30, tzinfo=timezone.utc), False),       # 23:30 del 22 en Bogotá
+])
+def test_un_dia_de_bogota(hora, incluida):
+    inicio, fin = rango_bogota(date(2026, 10, 23), date(2026, 10, 23))
+    assert dentro_del_rango(hora, inicio, fin) is incluida
+
+
+def test_rango_abierto_y_utc():
+    inicio, fin = rango_bogota(date(2026, 10, 1), None)
+    assert fin is None and inicio.astimezone(timezone.utc) == datetime(2026, 10, 1, 5, tzinfo=timezone.utc)
+    assert rango_bogota(None, None) == (None, None)
+
+
+def test_desde_posterior_a_hasta():
+    with pytest.raises(ValueError):
+        rango_bogota(date(2026, 10, 24), date(2026, 10, 23))

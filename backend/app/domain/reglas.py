@@ -2,7 +2,7 @@
 
 import calendar
 import re
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 ZONA_BOGOTA = ZoneInfo("America/Bogota")
@@ -134,3 +134,17 @@ def validar_texto_corto(texto: str, maximo: int, campo: str) -> str:
     if len(texto) > maximo:
         raise ValueError(f"El {campo} admite máximo {maximo} caracteres.")
     return texto
+
+
+# --- Historial (Fase 4) ---
+
+def rango_bogota(desde: date | None, hasta: date | None) -> tuple[datetime | None, datetime | None]:
+    """Convierte días de Bogotá (ambos incluidos) en instantes [inicio, fin) para filtrar entradas.
+
+    Ejemplo: del 23 al 23 de octubre = desde 23-oct 00:00 hasta 24-oct 00:00 (hora de Bogotá).
+    """
+    if desde is not None and hasta is not None and desde > hasta:
+        raise ValueError("La fecha 'desde' no puede ser posterior a 'hasta'.")
+    inicio = datetime.combine(desde, datetime.min.time(), ZONA_BOGOTA) if desde else None
+    fin = datetime.combine(hasta + timedelta(days=1), datetime.min.time(), ZONA_BOGOTA) if hasta else None
+    return inicio, fin
