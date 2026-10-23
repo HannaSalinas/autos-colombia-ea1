@@ -16,5 +16,5 @@ COPY . .
 
 EXPOSE 8000
 
-# Aplica las migraciones pendientes y luego inicia la API.
-CMD ["sh", "-c", "python -m alembic -c alembic.ini upgrade head && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+# Aplica las migraciones pendientes, carga las semillas de demostración (sin duplicar) e inicia la API.
+CMD ["sh", "-c", "python -m alembic -c alembic.ini upgrade head && python -m app.seed && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"]
