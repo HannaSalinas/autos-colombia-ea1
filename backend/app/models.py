@@ -5,7 +5,9 @@ from datetime import date, datetime, timezone
 from sqlalchemy import BigInteger, CheckConstraint, Date, DateTime, ForeignKey, Identity, Index, Integer, Text, UniqueConstraint, func, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, validates
 
-from app.domain.reglas import MODELO_MINIMO, TOTAL_CELDAS, normalizar_placa
+from app.domain.reglas import (
+    DESCRIPCION_MAXIMA, MODELO_MINIMO, MOTIVO_MAXIMO, TIPOS_NOVEDAD, TOTAL_CELDAS, normalizar_placa,
+)
 
 TIPOS_CELDA = set(TOTAL_CELDAS)
 
@@ -209,3 +211,55 @@ class Mensualidad(Base):
     fecha_fin: Mapped[date] = mapped_column(Date, nullable=False)
 
     vehiculo: Mapped[Vehiculo] = relationship()
+
+
+class CorreccionCelda(Base):
+    """Registro de cada cambio de celda de una estancia abierta. Agregado en la migración 0005."""
+    __tablename__ = "correccion_celda"
+    __table_args__ = (
+        CheckConstraint("celda_anterior_id <> celda_nueva_id", name="ck_correccion_celda_distinta"),
+        CheckConstraint(f"motivo ~ '[^[:space:]]' AND char_length(motivo) <= {MOTIVO_MAXIMO}",
+                        name="ck_correccion_celda_motivo"),
+        Index("ix_correccion_celda_estancia", "estancia_id"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    estancia_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("estancia.id", name="fk_correccion_celda_estancia", ondelete="RESTRICT"), nullable=False
+    )
+    celda_anterior_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("celda.id", name="fk_correccion_celda_anterior", ondelete="RESTRICT"), nullable=False
+    )
+    celda_nueva_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("celda.id", name="fk_correccion_celda_nueva", ondelete="RESTRICT"), nullable=False
+    )
+    operador_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("operador.id", name="fk_correccion_celda_operador", ondelete="RESTRICT"), nullable=False
+    )
+    fecha: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    motivo: Mapped[str] = mapped_column(Text, nullable=False)
+
+    celda_anterior: Mapped[Celda] = relationship(foreign_keys=[celda_anterior_id])
+    celda_nueva: Mapped[Celda] = relationship(foreign_keys=[celda_nueva_id])
+
+
+class Novedad(Base):
+    """Novedad sobre un vehículo (rayón, golpe, objeto olvidado...) durante su estancia. Migración 0005."""
+    __tablename__ = "novedad"
+    __table_args__ = (
+        CheckConstraint("tipo IN (" + ", ".join(f"'{t}'" for t in TIPOS_NOVEDAD) + ")", name="ck_novedad_tipo"),
+        CheckConstraint(f"descripcion ~ '[^[:space:]]' AND char_length(descripcion) <= {DESCRIPCION_MAXIMA}",
+                        name="ck_novedad_descripcion"),
+        Index("ix_novedad_estancia", "estancia_id"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    estancia_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("estancia.id", name="fk_novedad_estancia", ondelete="RESTRICT"), nullable=False
+    )
+    operador_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("operador.id", name="fk_novedad_operador", ondelete="RESTRICT"), nullable=False
+    )
+    fecha: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    tipo: Mapped[str] = mapped_column(Text, nullable=False)
+    descripcion: Mapped[str] = mapped_column(Text, nullable=False)
