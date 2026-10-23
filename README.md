@@ -21,6 +21,7 @@ conserva tal cual.
 | **Profesor** | Estructura por capas (routers, schemas, services, models), configuración y conexión a PostgreSQL, modelos `Vehiculo`, `Celda`, `Operador` y `Estancia`, migraciones `0001` y `0002`, CRUD de vehículos, celdas y operadores, endpoints de entrada, salida y consulta de estancias, pantallas Angular (Inicio, Vehículos, Celdas, Operadores, Control de acceso) y sus pruebas. |
 | **Nuestro** (Fase 0) | Adaptación a Linux, `Dockerfile` del backend y del frontend, `nginx` como proxy de la API, `docker-compose.yml` con base de pruebas desechable y este README. |
 | **Nuestro** (Fase 1) | Capa de dominio `app/domain/reglas.py` (placa, modelo, mensualidad de fecha a fecha), modelos `Cliente` y `Mensualidad` con la migración `0003`, cliente obligatorio en cada vehículo, API de consulta de clientes y de mensualidades, semillas de demostración (`app/seed.py`), selector de cliente y estado de mensualidad en la pantalla de Vehículos, y sus pruebas. |
+| **Nuestro** (Fase 2) | Celdas de tipo MOTO o CARRO con la fecha desde la que están libres (migración `0004`), asignación automática de celda al entrar, validación de mensualidad vigente, tiempo de permanencia al salir, 80 celdas y 2 operadores en las semillas, pantallas de Control de acceso y Celdas adaptadas, y pruebas de concurrencia de dos porterías. |
 
 > La tabla se completa al cerrar cada fase de la iteración.
 
@@ -34,6 +35,11 @@ conserva tal cual.
 | Todo vehículo pertenece a un cliente; un cliente puede tener varios | FK `vehiculo.cliente_id` NOT NULL |
 | No se puede cambiar el tipo de un vehículo que está dentro | Servicio de vehículos (409) |
 | Mensualidad **por vehículo**, de fecha a fecha (31-ene → 28/29-feb); vigente si inicio ≤ hoy ≤ fin | Dominio y servicio de mensualidades |
+| Solo entran vehículos con mensualidad vigente | Servicio de estancias (409) |
+| 80 celdas: C01–C70 de carro y M01–M10 de moto; automóvil y camioneta usan celda de carro | Semillas, CHECK `tipo IN ('MOTO','CARRO')` |
+| El sistema asigna la celda: libre, del tipo correcto y la que lleva más tiempo libre (las nunca usadas primero) | `orden_de_asignacion` en el dominio y `ORDER BY disponible_desde NULLS FIRST, codigo` |
+| Dos porterías a la vez nunca reciben la misma celda ni abren dos entradas del mismo vehículo | `SELECT … FOR UPDATE SKIP LOCKED` + índices únicos parciales del profesor |
+| La celda queda ocupada hasta la salida; al salir se libera y se muestra la permanencia | Servicio de estancias (`disponible_desde`, `permanencia`) |
 
 ### API agregada
 
@@ -45,13 +51,21 @@ conserva tal cual.
 | `GET /vehiculos/{id}/mensualidades` | Mensualidades del vehículo y si cada una está vigente |
 
 Las respuestas de `/vehiculos` ahora incluyen `cliente_id`, `cliente_nombre`,
-`mensualidad_vigente` y `mensualidad_hasta` (fecha en que vence o venció). Crear y
+`mensualidad_vigente`, `mensualidad_hasta` (fecha en que vence o venció) y
+`mensualidad_proxima` (inicio de una mensualidad que todavía no empieza).
+
+**Cambio de contrato (Fase 2):** `POST /estancias/entrada` recibe solo `placa` y
+`operador_id`; ya no acepta `celda_id`. La entrada y la salida responden además con
+`placa`, `celda` (código y tipo asignados) y, al salir, `duracion_segundos` y
+`permanencia` (por ejemplo `"2 h 15 min"`). Errores nuevos de entrada (409): sin
+mensualidad vigente y sin celdas disponibles del tipo del vehículo. Crear y
 editar clientes es de la Iteración 2; registrar pagos, de la Iteración 3.
 
 ### Datos de demostración
 
 Al arrancar con Docker se ejecuta `python -m app.seed`, que **no duplica** registros
-si se repite. Los datos son ficticios y las fechas se calculan a partir del día de
+si se repite. Crea las 80 celdas (C01–C70 carro, M01–M10 moto), los operadores
+"Marta Úsuga (Portería 1)" y "Diego Arango (Portería 2)" y estos vehículos. Los datos son ficticios y las fechas se calculan a partir del día de
 hoy, para que la demostración siempre tenga todos los casos:
 
 | Placa | Tipo | Cliente | Mensualidad |
@@ -125,7 +139,8 @@ docker compose --profile test down -v              # limpia la base de pruebas
 
 `backend-tests` usa un PostgreSQL **aparte** (`db-test`) cuyos datos viven en
 memoria. Las pruebas de integración y de concurrencia nunca tocan los datos de la
-demostración.
+demostración. Las de concurrencia (`test_estancias_postgres.py`) además se omiten
+solas si la base ya tiene celdas, porque la asignación elige entre todas las libres.
 
 ## Opción 2: sin Docker
 
@@ -209,5 +224,17 @@ Aquí declaramos cada archivo del profesor que modifiquemos y por qué.
   crean un cliente y placas con formato válido; `test_models.py` excluye de la comparación
   con `0001` lo que agregó `0003`.
 - `backend/Dockerfile` (nuestro) ejecuta las semillas al arrancar.
+- Fase 2, backend: `models.py` (`Celda.tipo` MOTO o CARRO y `disponible_desde`),
+  `schemas/celda.py` (tipo de lista fija), `schemas/estancia.py` (entrada sin `celda_id`,
+  respuesta `MovimientoRespuesta`), `services/estancia.py` (asignación automática,
+  mensualidad vigente, liberación de la celda y permanencia) y `routers/estancias.py`.
+- Fase 2, pruebas del profesor: `test_estancias_postgres.py` se **reescribió** con la misma
+  técnica (datos confirmados, limpieza por id y barreras) para el nuevo contrato: mismo
+  vehículo en dos porterías, dos vehículos con celdas distintas, una sola celda libre y dos
+  salidas. `test_estancias_api.py`, `test_celdas_postgres.py` y `test_models.py` usan los
+  tipos MOTO o CARRO y la entrada sin celda.
+- Fase 2, frontend: `control-acceso/*` (sin selector de celda, celda asignada y permanencia),
+  `celdas/*` y `models/celda.ts` (tipo MOTO o CARRO), `models/estancia.ts` y
+  `services/estancias.service.ts`.
 - Frontend: `models/vehiculo.ts`, `vehiculos/vehiculos.ts`, `.html`, `.css` y `.spec.ts`
   (selector de cliente, validaciones y columna de mensualidad) y `proxy.conf.json` (`/clientes`).
