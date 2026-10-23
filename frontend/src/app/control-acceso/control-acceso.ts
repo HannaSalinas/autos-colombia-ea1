@@ -163,6 +163,7 @@ export class ControlAcceso {
     this.errorConsulta.set('');
     this.exitoSalida.set('');
     this.ultimaSalida.set(null);
+    this.exitoCorreccion.set('');
     this.api
       .salida({ placa: value, operador_id: this.consulta.controls.operador_id.value! })
       .pipe(takeUntilDestroyed(this.destroy))

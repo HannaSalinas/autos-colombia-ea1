@@ -154,5 +154,8 @@ describe('Control de acceso', () => {
       .expectOne('/estancias/vehiculo/KLM45D')
       .flush({ ...state, estancia: { ...state.estancia, celda: { ...celda, codigo: 'M07' } } });
     expect(c.estado()?.estancia?.celda.codigo).toBe('M07');
+    c.registrarSalida();
+    expect(c.exitoCorreccion()).toBe('');
+    http.expectOne('/estancias/salida').flush({}, { status: 409, statusText: 'Conflict' });
   });
 });
