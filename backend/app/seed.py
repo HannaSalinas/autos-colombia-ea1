@@ -9,8 +9,15 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import get_engine
-from app.domain.reglas import fin_de_mensualidad, hoy_bogota, sumar_meses
-from app.models import Cliente, Mensualidad, Vehiculo
+from app.domain.reglas import TOTAL_CELDAS, fin_de_mensualidad, hoy_bogota, sumar_meses
+from app.models import Celda, Cliente, Mensualidad, Operador, Vehiculo
+
+# 80 celdas: C01–C70 para carros y M01–M10 para motos.
+CELDAS = [(f"C{n:02d}", "CARRO") for n in range(1, TOTAL_CELDAS["CARRO"] + 1)] + [
+    (f"M{n:02d}", "MOTO") for n in range(1, TOTAL_CELDAS["MOTO"] + 1)
+]
+# Un operador por portería.
+OPERADORES = [("Marta Úsuga (Portería 1)", "3101112233"), ("Diego Arango (Portería 2)", "3102223344")]
 
 CLIENTES = [
     # documento, nombre, teléfono, correo (opcional)
@@ -57,7 +64,17 @@ def mensualidades(caso: str, hoy: date) -> list[tuple[date, date]]:
 
 
 def sembrar(session: Session, hoy: date) -> dict[str, int]:
-    creados = {"clientes": 0, "vehiculos": 0, "mensualidades": 0}
+    creados = {"celdas": 0, "operadores": 0, "clientes": 0, "vehiculos": 0, "mensualidades": 0}
+    existentes = set(session.scalars(select(Celda.codigo)))
+    for codigo, tipo in CELDAS:
+        if codigo not in existentes:
+            session.add(Celda(codigo=codigo, tipo=tipo))
+            creados["celdas"] += 1
+    for nombre, telefono in OPERADORES:
+        if session.scalar(select(Operador.id).where(Operador.nombre == nombre)) is None:
+            session.add(Operador(nombre=nombre, telefono=telefono))
+            creados["operadores"] += 1
+
     por_documento: dict[str, Cliente] = {}
     for documento, nombre, telefono, correo in CLIENTES:
         cliente = session.scalar(select(Cliente).where(Cliente.documento == documento))
