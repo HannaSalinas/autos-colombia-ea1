@@ -9,19 +9,25 @@ from app.routers.operadores import router as operadores_router
 from app.services.operador import OperadorError
 from app.routers.estancias import router as estancias_router
 from app.services.estancia import EstanciaError
+from app.routers.clientes import router as clientes_router
+from app.services.cliente import ClienteError
 
 app = FastAPI(title="Autos Colombia API")
 app.include_router(vehiculos_router)
 app.include_router(celdas_router)
 app.include_router(operadores_router)
 app.include_router(estancias_router)
+app.include_router(clientes_router)
 
 
 @app.exception_handler(VehiculoError)
 @app.exception_handler(CeldaError)
 @app.exception_handler(OperadorError)
 @app.exception_handler(EstanciaError)
-async def entity_error_handler(request, error: VehiculoError | CeldaError | OperadorError | EstanciaError) -> JSONResponse:
+@app.exception_handler(ClienteError)
+async def entity_error_handler(
+    request, error: VehiculoError | CeldaError | OperadorError | EstanciaError | ClienteError
+) -> JSONResponse:
     return JSONResponse(status_code=error.status_code, content={"detail": error.detail})
 
 
