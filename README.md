@@ -20,8 +20,54 @@ conserva tal cual.
 | --- | --- |
 | **Profesor** | Estructura por capas (routers, schemas, services, models), configuración y conexión a PostgreSQL, modelos `Vehiculo`, `Celda`, `Operador` y `Estancia`, migraciones `0001` y `0002`, CRUD de vehículos, celdas y operadores, endpoints de entrada, salida y consulta de estancias, pantallas Angular (Inicio, Vehículos, Celdas, Operadores, Control de acceso) y sus pruebas. |
 | **Nuestro** (Fase 0) | Adaptación a Linux, `Dockerfile` del backend y del frontend, `nginx` como proxy de la API, `docker-compose.yml` con base de pruebas desechable y este README. |
+| **Nuestro** (Fase 1) | Capa de dominio `app/domain/reglas.py` (placa, modelo, mensualidad de fecha a fecha), modelos `Cliente` y `Mensualidad` con la migración `0003`, cliente obligatorio en cada vehículo, API de consulta de clientes y de mensualidades, semillas de demostración (`app/seed.py`), selector de cliente y estado de mensualidad en la pantalla de Vehículos, y sus pruebas. |
 
 > La tabla se completa al cerrar cada fase de la iteración.
+
+## Reglas implementadas (Iteración 1)
+
+| Regla | Dónde se aplica |
+| --- | --- |
+| Placa sin espacios ni guiones y en mayúsculas (`abc-123` → `ABC123`) | `app/domain/reglas.py`, pantalla de Vehículos |
+| Placa de carro `ABC123` (3 letras + 3 números); de moto `ABC12D` (3 letras + 2 números + 1 letra) | Dominio, API (422), CHECK en PostgreSQL y pantalla |
+| Modelo entre 1900 y el año actual + 1 (fecha de Bogotá) | Dominio, API (422), CHECK `>= 1900` y pantalla |
+| Todo vehículo pertenece a un cliente; un cliente puede tener varios | FK `vehiculo.cliente_id` NOT NULL |
+| No se puede cambiar el tipo de un vehículo que está dentro | Servicio de vehículos (409) |
+| Mensualidad **por vehículo**, de fecha a fecha (31-ene → 28/29-feb); vigente si inicio ≤ hoy ≤ fin | Dominio y servicio de mensualidades |
+
+### API agregada
+
+| Método y ruta | Respuesta |
+| --- | --- |
+| `GET /clientes?offset&limit` | Clientes paginados (solo lectura) |
+| `GET /clientes/{id}` | Documento, nombre, teléfono y correo (opcional) |
+| `GET /clientes/{id}/vehiculos` | Vehículos del cliente con estado de mensualidad |
+| `GET /vehiculos/{id}/mensualidades` | Mensualidades del vehículo y si cada una está vigente |
+
+Las respuestas de `/vehiculos` ahora incluyen `cliente_id`, `cliente_nombre`,
+`mensualidad_vigente` y `mensualidad_hasta` (fecha en que vence o venció). Crear y
+editar clientes es de la Iteración 2; registrar pagos, de la Iteración 3.
+
+### Datos de demostración
+
+Al arrancar con Docker se ejecuta `python -m app.seed`, que **no duplica** registros
+si se repite. Los datos son ficticios y las fechas se calculan a partir del día de
+hoy, para que la demostración siempre tenga todos los casos:
+
+| Placa | Tipo | Cliente | Mensualidad |
+| --- | --- | --- | --- |
+| ABC123 | Automóvil | Laura Gómez | Vigente |
+| KLM45D | Moto | Laura Gómez | Vigente |
+| DEF456 | Camioneta | Carlos Pérez | Vencida hace 5 días |
+| GHI789 | Automóvil | Ana Restrepo | Vence hoy (todavía puede entrar) |
+| XYZ12A | Moto | Ana Restrepo | Vencida |
+| JKL321 | Automóvil | Jorge Mesa | Renovada (dos periodos seguidos) |
+| MNO654 | Camioneta | Paola Ríos | Nunca ha pagado |
+| PQR98B | Moto | Andrés Cano | Empieza mañana (hoy no está vigente) |
+| STU852 | Automóvil | Andrés Cano | Vigente |
+
+Sin Docker, ejecuta las semillas después de las migraciones:
+`.venv/bin/python -m app.seed`.
 
 ## Requisitos (Linux)
 
@@ -148,3 +194,20 @@ AutosColombia/
 Aquí declaramos cada archivo del profesor que modifiquemos y por qué.
 
 - `README.md` se movió sin cambios a `docs/README-profesor.md`.
+- `backend/app/models.py`: modelos `Cliente` y `Mensualidad`; en `Vehiculo`, la columna
+  `cliente_id`, los CHECK de formato de placa y modelo mínimo, y la normalización de placa
+  sin espacios ni guiones. El mínimo del modelo pasó de 1 a 1900.
+- `backend/app/schemas/vehiculo.py`: `cliente_id` obligatorio, placa según tipo, modelo
+  1900…año actual + 1; respuesta `VehiculoDetalle` con cliente y mensualidad.
+- `backend/app/services/vehiculo.py`: cliente existente, placa válida con el tipo final
+  en PATCH y bloqueo del cambio de tipo con el vehículo dentro.
+- `backend/app/routers/vehiculos.py`: respuesta detallada y `GET /vehiculos/{id}/mensualidades`.
+- `backend/app/schemas/estancia.py`: `Identificador` se movió a `app/schemas/comun.py`.
+- `backend/app/main.py`: registra el router de clientes.
+- Pruebas del profesor ajustadas: `test_vehiculos_postgres.py`, `test_estancias_postgres.py`
+  y `test_operadores_postgres.py` exigen la revisión más reciente (antes `0001`/`0002`) y
+  crean un cliente y placas con formato válido; `test_models.py` excluye de la comparación
+  con `0001` lo que agregó `0003`.
+- `backend/Dockerfile` (nuestro) ejecuta las semillas al arrancar.
+- Frontend: `models/vehiculo.ts`, `vehiculos/vehiculos.ts`, `.html`, `.css` y `.spec.ts`
+  (selector de cliente, validaciones y columna de mensualidad) y `proxy.conf.json` (`/clientes`).
