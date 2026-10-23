@@ -17,12 +17,25 @@ ALEMBIC_INI = str(Path(__file__).resolve().parents[1] / "alembic.ini")
 
 
 @pytest.mark.skipif(os.getenv("RUN_POSTGRES_TESTS") != "1", reason="Requiere PostgreSQL local.")
+# Al reflejar el CHECK NOT VALID de celda (0004), SQLAlchemy avisa que no reconoce esa opción
+# en la comparación. No afecta el resultado: la comparación sigue viendo tablas, columnas e índices.
+@pytest.mark.filterwarnings("ignore:Can't validate argument 'dialect_options'")
 def test_modelos_y_migraciones_no_tienen_diferencias():
     # Si alguien cambia un modelo sin crear su migración (o al revés), esta lista no queda vacía.
     with get_engine().connect() as connection:
         diferencias = compare_metadata(MigrationContext.configure(connection, opts={"compare_type": True}),
                                        Base.metadata)
     assert diferencias == []
+
+
+def test_sql_offline_de_0004():
+    output = StringIO()
+    command.upgrade(Config(ALEMBIC_INI, output_buffer=output), "0003:0004", sql=True)
+    sql = output.getvalue()
+    assert "ADD COLUMN disponible_desde TIMESTAMP WITH TIME ZONE" in sql
+    assert "CHECK (tipo IN ('MOTO', 'CARRO')) NOT VALID" in sql
+    assert "CREATE INDEX ix_celda_tipo_disponible ON celda (tipo, disponible_desde)" in sql
+    assert "DROP" not in sql
 
 
 def test_sql_offline_de_0003():

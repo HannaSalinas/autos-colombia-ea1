@@ -5,7 +5,9 @@ from datetime import date, datetime, timezone
 from sqlalchemy import BigInteger, CheckConstraint, Date, DateTime, ForeignKey, Identity, Index, Integer, Text, UniqueConstraint, func, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, validates
 
-from app.domain.reglas import MODELO_MINIMO, normalizar_placa
+from app.domain.reglas import MODELO_MINIMO, TOTAL_CELDAS, normalizar_placa
+
+TIPOS_CELDA = set(TOTAL_CELDAS)
 
 
 class Base(DeclarativeBase):
@@ -97,16 +99,26 @@ class Celda(Base):
         CheckConstraint("codigo ~ '[^[:space:]]'", name="ck_celda_codigo_no_vacio"),
         CheckConstraint("codigo = upper(regexp_replace(codigo, '^[[:space:]]+|[[:space:]]+$', '', 'g'))", name="ck_celda_codigo_normalizado"),
         CheckConstraint("tipo ~ '[^[:space:]]'", name="ck_celda_tipo_no_vacio"),
+        # Agregados en la migración 0004. NOT VALID: no revisa celdas antiguas, sí las nuevas.
+        CheckConstraint("tipo IN ('MOTO', 'CARRO')", name="ck_celda_tipo", postgresql_not_valid=True),
+        Index("ix_celda_tipo_disponible", "tipo", "disponible_desde"),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
     codigo: Mapped[str] = mapped_column(Text, nullable=False)
     tipo: Mapped[str] = mapped_column(Text, nullable=False)
+    # Momento en que quedó libre por última vez. NULL = nunca se ha usado (se asigna primero).
+    disponible_desde: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     @validates("codigo", "tipo")
     def validate_text(self, key: str, value: str) -> str:
         value = required_text(value, key)
-        return value.upper() if key == "codigo" else value
+        if key == "tipo":
+            value = value.upper()
+            if value not in TIPOS_CELDA:
+                raise ValueError("tipo de celda debe ser MOTO o CARRO.")
+            return value
+        return value.upper()
 
 
 class Operador(Base):

@@ -15,7 +15,7 @@ def test_placa_sin_espacios_ni_guiones():
 
 def test_normalizes_unique_identifiers_on_creation_and_assignment():
     vehicle = Vehiculo(placa=" \tabc123\n", color="Azul", modelo=2025, marca="Marca", tipo="MOTO")
-    cell = Celda(codigo=" a-01 ", tipo="Libre")
+    cell = Celda(codigo=" a-01 ", tipo="CARRO")
     assert vehicle.placa == "ABC123"
     assert cell.codigo == "A-01"
     vehicle.placa = " xyz789 "
@@ -50,13 +50,17 @@ def test_rejects_unknown_type_and_preserves_phone_text():
     with pytest.raises(ValueError):
         Vehiculo(tipo="CAMION")
     assert Operador(telefono="+57 00123").telefono == "+57 00123"
-    assert Celda(tipo="Categoría futura").tipo == "Categoría futura"
+    # Iteración 1: la celda es MOTO o CARRO (se normaliza a mayúsculas).
+    assert Celda(tipo=" moto ").tipo == "MOTO"
+    with pytest.raises(ValueError):
+        Celda(tipo="Categoría futura")
 
 
 def test_required_columns_and_identity():
     for name in ("vehiculo", "celda", "operador"):
         table = Base.metadata.tables[name]
-        assert all(not column.nullable for column in table.columns)
+        # disponible_desde (0004) es la única columna opcional: NULL = celda nunca usada.
+        assert all(not column.nullable for column in table.columns if column.name != "disponible_desde")
         assert isinstance(table.c.id.type, sa.BigInteger)
         assert table.c.id.identity.always is True
 
@@ -65,6 +69,7 @@ def test_required_columns_and_identity():
 AGREGADO_EN_0003 = {
     "vehiculo": {"columnas": {"cliente_id"},
                  "checks": {"ck_vehiculo_placa_formato", "ck_vehiculo_modelo_minimo"}},
+    "celda": {"columnas": {"disponible_desde"}, "checks": {"ck_celda_tipo"}},  # migración 0004
 }
 
 
