@@ -1,0 +1,80 @@
+<section class="management" aria-labelledby="occupancy-title">
+  <header class="heading">
+    <div>
+      <span class="eyebrow">REPORTES</span>
+      <h1 id="occupancy-title">Ocupación</h1>
+      <p>Vehículos dentro del parqueadero y celdas disponibles por tipo.</p>
+    </div>
+    <button type="button" (click)="cargar()" [disabled]="loading()">Actualizar reporte</button>
+  </header>
+
+  @if (error()) {
+    <p class="notice error" role="alert">{{ error() }}</p>
+  }
+  @if (loading() && !reporte()) {
+    <p role="status">Cargando reporte…</p>
+  }
+
+  @if (reporte(); as r) {
+    <section class="resumen" aria-label="Celdas disponibles por tipo">
+      @for (c of r.celdas; track c.tipo) {
+        <article class="panel tarjeta">
+          <span class="eyebrow">{{ nombreTipo(c.tipo) }}</span>
+          <strong>{{ c.libres }}</strong>
+          <span>libres de {{ c.total }} · {{ c.ocupadas }} ocupadas</span>
+          <div
+            class="barra"
+            role="meter"
+            [attr.aria-label]="'Ocupación de celdas de ' + nombreTipo(c.tipo).toLowerCase()"
+            aria-valuemin="0"
+            [attr.aria-valuemax]="c.total"
+            [attr.aria-valuenow]="c.ocupadas"
+          >
+            <span [style.width.%]="porcentaje(c.ocupadas, c.total)"></span>
+          </div>
+        </article>
+      }
+    </section>
+
+    <section class="panel list" aria-labelledby="inside-title" [attr.aria-busy]="loading()">
+      <div class="list-heading">
+        <h2 id="inside-title">
+          Vehículos dentro <span class="count">{{ r.dentro.length }}</span>
+        </h2>
+        <span class="hint">Generado: {{ hora(r.generado) }} (Bogotá)</span>
+      </div>
+      @if (r.dentro.length === 0) {
+        <p class="empty">No hay vehículos dentro del parqueadero.</p>
+      } @else {
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Placa</th>
+                <th scope="col">Tipo</th>
+                <th scope="col">Celda</th>
+                <th scope="col">Hora de entrada</th>
+                <th scope="col">Tiempo dentro</th>
+                <th scope="col">Operador</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (v of r.dentro; track v.estancia_id) {
+                <tr>
+                  <th scope="row">{{ v.placa }}</th>
+                  <td>
+                    <span class="type-tag">{{ v.tipo_vehiculo }}</span>
+                  </td>
+                  <td>{{ v.celda }}</td>
+                  <td>{{ hora(v.entrada) }}</td>
+                  <td>{{ v.tiempo }}</td>
+                  <td>{{ v.operador_entrada }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  }
+</section>
