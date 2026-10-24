@@ -15,16 +15,17 @@ ocupación e historial.
 ## Contenido
 
 1. [Inicio rápido](#inicio-rápido)
-2. [Guion de demostración (HU-01 a HU-14)](#guion-de-demostración-hu-01-a-hu-14)
-3. [Verificación de requerimientos no funcionales](#verificación-de-requerimientos-no-funcionales)
-4. [Reglas implementadas](#reglas-implementadas)
-5. [API](#api)
-6. [Datos de demostración](#datos-de-demostración)
-7. [Pruebas](#pruebas)
-8. [Arquitectura y estructura](#arquitectura-y-estructura)
-9. [Instalación sin Docker](#instalación-sin-docker)
-10. [Crédito: qué viene del profesor y qué agregamos](#crédito-qué-viene-del-profesor-y-qué-agregamos)
-11. [Decisiones y supuestos](#decisiones-y-supuestos)
+2. [Capturas](#capturas)
+3. [Guion de demostración (HU-01 a HU-14)](#guion-de-demostración-hu-01-a-hu-14)
+4. [Verificación de requerimientos no funcionales](#verificación-de-requerimientos-no-funcionales)
+5. [Reglas implementadas](#reglas-implementadas)
+6. [API](#api)
+7. [Datos de demostración](#datos-de-demostración)
+8. [Pruebas](#pruebas)
+9. [Arquitectura y estructura](#arquitectura-y-estructura)
+10. [Instalación sin Docker](#instalación-sin-docker)
+11. [Crédito: qué viene del profesor y qué agregamos](#crédito-qué-viene-del-profesor-y-qué-agregamos)
+12. [Decisiones y supuestos](#decisiones-y-supuestos)
 
 ## Inicio rápido
 
@@ -63,6 +64,27 @@ docker compose exec backend python -m app.demo  # (opcional) historial de 7 día
 docker compose down                             # detener (conserva los datos)
 docker compose down -v                          # detener y BORRAR la base (vuelve a quedar limpia al levantar)
 ```
+
+## Capturas
+
+Tomadas del sistema con los [datos de demostración](#datos-de-demostración) cargados. Todos
+los nombres, placas y documentos son ficticios.
+
+**Control de acceso:** entrada registrada con la celda que asignó el sistema.
+
+![Control de acceso con la celda asignada](docs/img/control-acceso.png)
+
+**Ocupación:** celdas libres por tipo y vehículos dentro.
+
+![Reporte de ocupación](docs/img/ocupacion.png)
+
+**Historial:** estancias con permanencia, operadores y el detalle de novedades y correcciones.
+
+![Historial de estancias](docs/img/historial.png)
+
+**Documentación de la API** (`/docs`, generada por FastAPI).
+
+![Documentación interactiva de la API](docs/img/api-docs.png)
 
 ## Guion de demostración (HU-01 a HU-14)
 
