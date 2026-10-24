@@ -327,7 +327,7 @@ Todas las llaves, restricciones e índices están en [`docs/modelo_fisico.sql`](
 
    ```bash
    docker compose run --rm --build backend-tests
-   cd frontend && npm test -- --watch=false
+   cd frontend && npm ci && npm test -- --watch=false
    ```
 
 2. Arquitectura por capas: las reglas de negocio están en `app/domain/reglas.py`, sin
@@ -436,8 +436,8 @@ docker compose down -v && docker compose up -d
 
 ```bash
 docker compose run --rm --build backend-tests   # backend: unitarias + integración con PostgreSQL real
-docker compose --profile test down -v           # limpia la base de pruebas
-cd frontend && npm test -- --watch=false        # frontend (Vitest)
+docker compose --profile test rm -sf db-test    # quita solo la base de pruebas (la de la app no se toca)
+cd frontend && npm ci && npm test -- --watch=false   # frontend (Vitest); requiere Node 22
 ```
 
 `backend-tests` usa un PostgreSQL **aparte** (`db-test`, en memoria): las pruebas nunca
