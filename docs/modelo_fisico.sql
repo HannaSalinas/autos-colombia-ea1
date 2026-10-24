@@ -1,6 +1,6 @@
 -- Modelo físico de la base de datos de Autos Colombia (EA1, Iteración 1).
 -- Esquema real exportado del contenedor, con las migraciones 0001–0005 aplicadas:
---   docker compose exec -T db pg_dump -U autos -d autos_colombia --schema-only --no-owner --no-privileges > docs/modelo_fisico.sql
+--   docker compose exec -T db pg_dump --schema-only --no-owner --no-privileges > docs/modelo_fisico.sql
 -- Las líneas \restrict / \unrestrict las agrega pg_dump (PostgreSQL 17.6 o superior) como protección de psql.
 
 --

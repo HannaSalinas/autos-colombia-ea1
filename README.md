@@ -33,8 +33,16 @@ Requisitos: Docker 29 y Docker Compose v5 (verificado en Ubuntu con 29.9 / v5.6)
 ```bash
 git clone https://github.com/HannaSalinas/autos-colombia-ea1.git
 cd autos-colombia-ea1
+cp .env.example .env      # credenciales de PostgreSQL (cambia la contraseña en .env)
 docker compose up --build
 ```
+
+**Antes de levantar el sistema hay que copiar `.env.example` a `.env`.** El usuario y la
+contraseña de PostgreSQL no están en el repositorio: Docker Compose los lee de `.env`, que
+git ignora. `.env.example` solo trae valores de ejemplo. Si falta `.env`, Compose se detiene
+con el mensaje "Falta .env. Ejecuta: cp .env.example .env". Si cambias la contraseña cuando
+la base ya existe, recréala con `docker compose down -v`, porque PostgreSQL guarda la
+contraseña al crear la base.
 
 | Qué | Dirección |
 | --- | --- |
@@ -250,17 +258,34 @@ La base de datos protege las reglas aunque alguien se salte la aplicación. Esta
 se ejecutan directo en PostgreSQL y **todas fallan**, así que no cambian nada:
 
 ```bash
-docker compose exec db psql -U autos -d autos_colombia -c "UPDATE vehiculo SET placa = 'ABC-123' WHERE placa = 'ABC123';"
+docker compose exec db psql -c "UPDATE vehiculo SET placa = 'ABC-123' WHERE placa = 'ABC123';"
 # ERROR: … violates check constraint "ck_vehiculo_placa_formato"
-docker compose exec db psql -U autos -d autos_colombia -c "DELETE FROM vehiculo WHERE placa = 'ABC123';"
+docker compose exec db psql -c "DELETE FROM vehiculo WHERE placa = 'ABC123';"
 # ERROR: … violates foreign key constraint "fk_estancia_vehiculo" …
-docker compose exec db psql -U autos -d autos_colombia -c "INSERT INTO estancia (vehiculo_id, celda_id, operador_entrada_id) SELECT vehiculo_id, 50, 1 FROM estancia WHERE salida IS NULL LIMIT 1;"
+docker compose exec db psql -c "INSERT INTO estancia (vehiculo_id, celda_id, operador_entrada_id) SELECT vehiculo_id, 50, 1 FROM estancia WHERE salida IS NULL LIMIT 1;"
 # ERROR: duplicate key value violates unique constraint "uq_estancia_vehiculo_abierta"
 ```
 
 Todas las llaves, restricciones e índices están en [`docs/modelo_fisico.sql`](docs/modelo_fisico.sql)
 (esquema exportado con `pg_dump`) y explicados en
 [`docs/diccionario_datos.md`](docs/diccionario_datos.md).
+
+### RNF-06 · Credenciales fuera del repositorio
+
+1. El usuario y la contraseña de PostgreSQL están solo en `.env`, que git ignora (`.gitignore`).
+   El repositorio trae `.env.example` con valores de ejemplo, y `docker-compose.yml` solo
+   tiene referencias `${POSTGRES_USER}` y `${POSTGRES_PASSWORD}`.
+2. Para comprobar que ningún archivo versionado tiene la contraseña ni el archivo `.env`:
+
+   ```bash
+   git check-ignore .env                                    # imprime ".env": está ignorado
+   git ls-files | grep -E '(^|/)\.env$'                     # vacío: .env no está versionado
+   git grep -n "$(grep '^POSTGRES_PASSWORD=' .env | cut -d= -f2)"   # vacío: la contraseña real no aparece
+   ```
+
+3. Sin `.env` el sistema no arranca: Compose avisa que hay que copiar `.env.example`.
+4. El backend tampoco guarda credenciales en el código: las lee de variables de entorno o de
+   `backend/.env` (también ignorado) y no las muestra en los errores.
 
 ### RNF-07 · Portabilidad
 
@@ -419,6 +444,7 @@ Persistencia   backend/app/models.py         SQLAlchemy + restricciones; migraci
 ```text
 AutosColombia/
 ├── docker-compose.yml          # (nuestro) db, backend, frontend, db-test, backend-tests
+├── .env.example                # (nuestro) plantilla de credenciales: cp .env.example .env
 ├── AGENTS.md                   # (profesor) guía original para Windows
 ├── docs/README-profesor.md     # (profesor) README original sin cambios
 ├── docs/modelo_fisico.sql      # (nuestro) esquema real exportado con pg_dump
@@ -481,9 +507,9 @@ cp -n .env.example .env        # edita DB_NAME, DB_USER y DB_PASSWORD
 .venv/bin/python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Con el PostgreSQL de Docker, los valores de `.env` son `DB_NAME=autos_colombia`,
-`DB_USER=autos` y `DB_PASSWORD=autos_local_dev`. Son credenciales **solo para desarrollo
-local**, igual que las de `docker-compose.yml`. `.env` no se sube a git.
+Con el PostgreSQL de Docker, `backend/.env` lleva `DB_NAME=autos_colombia` y, en `DB_USER` y
+`DB_PASSWORD`, los mismos valores de `POSTGRES_USER` y `POSTGRES_PASSWORD` del `.env` de la
+raíz. Ninguno de los dos `.env` se sube a git.
 
 ```bash
 .venv/bin/python -m pytest -q                      # sin PostgreSQL (se omiten las de integración)
@@ -556,6 +582,11 @@ y su guía `AGENTS.md` también se conserva.
 - **Fechas:** se guardan con zona horaria (UTC) y hora del servidor; nunca se aceptan fechas
   del cliente. Se muestran en America/Bogota. El filtro del historial usa días de Bogotá
   sobre la hora de entrada.
+- **Credenciales (RNF-06):** el usuario y la contraseña de PostgreSQL van en `.env`, que no
+  se versiona, y `.env.example` trae valores de ejemplo. El nombre de la base
+  (`autos_colombia`) queda fijo en `docker-compose.yml` porque no es un secreto y las pruebas
+  del proyecto base lo exigen. Dentro del contenedor de la base, `PGUSER` y `PGDATABASE`
+  permiten usar `psql` y `pg_dump` sin escribir el usuario.
 - **Restricciones nuevas sobre tablas existentes:** el tipo de celda usa `NOT VALID` para no
   romper celdas antiguas. La 0003 exige la tabla `vehiculo` vacía porque `cliente_id` es
   obligatorio; si hay vehículos sin dueño, se detiene con un mensaje claro.

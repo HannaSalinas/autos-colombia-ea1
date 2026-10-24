@@ -231,7 +231,7 @@ como CHECK. Las validan los servicios del backend, dentro de transacciones con b
 Con la pila levantada y las migraciones al día (`docker compose up -d`):
 
 ```bash
-docker compose exec -T db pg_dump -U autos -d autos_colombia --schema-only --no-owner --no-privileges > docs/modelo_fisico.sql
+docker compose exec -T db pg_dump --schema-only --no-owner --no-privileges > docs/modelo_fisico.sql
 ```
 
 `--no-owner` y `--no-privileges` quitan el usuario dueño y los permisos, que dependen de la

@@ -1,16 +1,22 @@
+# Antes de la primera vez: cp .env.example .env   (y cambia la contraseña)
 # Levanta todo con: docker compose up --build
 # Pruebas del backend con: docker compose run --rm backend-tests
+#
+# El usuario y la contraseña de PostgreSQL salen de .env (no se versiona). El nombre de la
+# base es fijo porque las pruebas del proyecto base lo exigen y no es un secreto.
 
 x-db-env: &db-env
   POSTGRES_DB: autos_colombia
-  POSTGRES_USER: autos
-  POSTGRES_PASSWORD: autos_local_dev   # Solo para desarrollo local.
+  POSTGRES_USER: "${POSTGRES_USER:?Falta .env. Ejecuta: cp .env.example .env}"
+  POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Falta .env. Ejecuta: cp .env.example .env}"
+  PGUSER: "${POSTGRES_USER:?Falta .env. Ejecuta: cp .env.example .env}"   # psql, pg_dump y pg_isready dentro del contenedor
+  PGDATABASE: autos_colombia
 
 x-backend-env: &backend-env
   DB_PORT: "5432"
   DB_NAME: autos_colombia
-  DB_USER: autos
-  DB_PASSWORD: autos_local_dev
+  DB_USER: "${POSTGRES_USER:?Falta .env. Ejecuta: cp .env.example .env}"
+  DB_PASSWORD: "${POSTGRES_PASSWORD:?Falta .env. Ejecuta: cp .env.example .env}"
   DB_CONNECT_TIMEOUT: "5"
   TZ: America/Bogota
 
@@ -25,7 +31,7 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U autos -d autos_colombia"]
+      test: ["CMD-SHELL", "pg_isready"]
       interval: 2s
       timeout: 3s
       retries: 30
@@ -58,7 +64,7 @@ services:
     tmpfs:
       - /var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U autos -d autos_colombia"]
+      test: ["CMD-SHELL", "pg_isready"]
       interval: 2s
       timeout: 3s
       retries: 30
