@@ -44,11 +44,13 @@ con el mensaje "Falta .env. Ejecuta: cp .env.example .env". Si cambias la contra
 la base ya existe, recréala con `docker compose down -v`, porque PostgreSQL guarda la
 contraseña al crear la base.
 
+Estas direcciones funcionan en tu equipo después de levantar el sistema con `docker compose up`:
+
 | Qué | Dirección |
 | --- | --- |
-| Aplicación | <http://localhost:4200> |
-| Documentación interactiva de la API | <http://localhost:8000/docs> |
-| Salud de la API | <http://localhost:8000/health> |
+| Aplicación | `http://localhost:4200` |
+| Documentación interactiva de la API | `http://localhost:8000/docs` |
+| Salud de la API | `http://localhost:8000/health` |
 
 Al arrancar, el backend aplica las migraciones (`alembic upgrade head`) y carga las
 **semillas** (`python -m app.seed`): 80 celdas, 2 operadores, 6 clientes, 9 vehículos y sus
@@ -336,8 +338,9 @@ Todas las llaves, restricciones e índices están en [`docs/modelo_fisico.sql`](
 
 ## API
 
-Documentación interactiva completa en <http://localhost:8000/docs>. Rutas del profesor
-(CRUD de `/vehiculos`, `/celdas` y `/operadores`, `/health`) y rutas agregadas o cambiadas:
+Documentación interactiva completa en `http://localhost:8000/docs` (con el sistema
+levantado). Rutas del profesor (CRUD de `/vehiculos`, `/celdas` y `/operadores`, `/health`)
+y rutas agregadas o cambiadas:
 
 | Método y ruta | Descripción |
 | --- | --- |
