@@ -31,7 +31,7 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1"]   # por TCP: el servidor temporal de la inicialización no escucha por red
       interval: 2s
       timeout: 3s
       retries: 30
@@ -64,7 +64,7 @@ services:
     tmpfs:
       - /var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1"]   # por TCP: el servidor temporal de la inicialización no escucha por red
       interval: 2s
       timeout: 3s
       retries: 30
