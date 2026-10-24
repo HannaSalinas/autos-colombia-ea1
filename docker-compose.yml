@@ -39,6 +39,7 @@ services:
 
   backend:
     build: ./backend
+    restart: on-failure:5   # reintenta si la base aún no responde; máx. 5 para no ocultar errores reales
     environment:
       <<: *backend-env
       DB_HOST: db
@@ -50,6 +51,7 @@ services:
 
   frontend:
     build: ./frontend
+    restart: on-failure:5   # nginx se cierra si no encuentra el backend al arrancar
     depends_on:
       - backend
     ports:
