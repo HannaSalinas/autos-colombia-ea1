@@ -16,14 +16,15 @@ ocupación e historial.
 
 1. [Inicio rápido](#inicio-rápido)
 2. [Guion de demostración (HU-01 a HU-14)](#guion-de-demostración-hu-01-a-hu-14)
-3. [Reglas implementadas](#reglas-implementadas)
-4. [API](#api)
-5. [Datos de demostración](#datos-de-demostración)
-6. [Pruebas](#pruebas)
-7. [Arquitectura y estructura](#arquitectura-y-estructura)
-8. [Instalación sin Docker](#instalación-sin-docker)
-9. [Crédito: qué viene del profesor y qué agregamos](#crédito-qué-viene-del-profesor-y-qué-agregamos)
-10. [Decisiones y supuestos](#decisiones-y-supuestos)
+3. [Verificación de requerimientos no funcionales](#verificación-de-requerimientos-no-funcionales)
+4. [Reglas implementadas](#reglas-implementadas)
+5. [API](#api)
+6. [Datos de demostración](#datos-de-demostración)
+7. [Pruebas](#pruebas)
+8. [Arquitectura y estructura](#arquitectura-y-estructura)
+9. [Instalación sin Docker](#instalación-sin-docker)
+10. [Crédito: qué viene del profesor y qué agregamos](#crédito-qué-viene-del-profesor-y-qué-agregamos)
+11. [Decisiones y supuestos](#decisiones-y-supuestos)
 
 ## Inicio rápido
 
@@ -63,103 +64,124 @@ docker compose down -v && docker compose up --build -d
 ```
 
 Los dos operadores son **Marta Úsuga (Portería 1)** y **Diego Arango (Portería 2)**.
-Las fechas se muestran en hora de Bogotá y las asigna el servidor.
+Las fechas se muestran en hora de Bogotá y las asigna el servidor. Los pasos siguen el
+orden de una demostración real: primero se registra un vehículo, luego entra, se consulta,
+se corrige y sale. Cada paso lleva el número de su historia de usuario. Los requerimientos
+no funcionales se verifican al final, en
+[Verificación de requerimientos no funcionales](#verificación-de-requerimientos-no-funcionales).
 
-> Las historias se numeran en el orden de los requerimientos del cliente dados en clase.
-> Si el documento del curso usa otra numeración, basta con reordenar esta tabla.
+### HU-14 · Registrar vehículo con propietario
 
-| HU | Historia | Dónde se ve |
-| --- | --- | --- |
-| HU-01 | Solo entran vehículos con mensualidad vigente (de fecha a fecha) | Vehículos, Control de acceso |
-| HU-02 | Vehículos registrados y asociados a su cliente (uno o varios por cliente) | Vehículos, `/docs` |
-| HU-03 | Tipos de vehículo moto y carro (automóvil, camioneta); no se reciben camiones | Vehículos, `/docs` |
-| HU-04 | 80 celdas: 70 de carro y 10 de moto | Celdas, Ocupación |
-| HU-05 | Asignación automática de una celda libre del tipo correcto, repartiendo el uso | Control de acceso |
-| HU-06 | Dos porterías a la vez sin repetir celda ni abrir dos entradas del mismo vehículo | Dos ventanas, pruebas de concurrencia |
-| HU-07 | La celda queda ocupada hasta la salida; al salir se libera | Control de acceso, Ocupación |
-| HU-08 | Corrección de la celda de una estancia abierta, con registro y motivo | Control de acceso |
-| HU-09 | Novedades del vehículo asociadas a su estancia | Control de acceso, Historial |
-| HU-10 | Reporte de ocupación | Ocupación |
-| HU-11 | Historial filtrable por placa y por rango de fechas | Historial |
-| HU-12 | Tiempo de permanencia al registrar la salida | Control de acceso, Historial |
-| HU-13 | Hora del servidor y operador en cada movimiento; el historial no se borra | Historial, `/docs` |
-| HU-14 | Validaciones de placa (ABC123 / ABC12D) y modelo (1900 … año actual + 1) | Vehículos |
+1. En **Vehículos → Nuevo vehículo** registra: placa `qwe-456`, marca Kia, modelo 2024,
+   color Gris, tipo AUTOMOVIL y cliente **Paola Ríos**. Se guarda como `QWE456`.
+2. Sin cliente no deja guardar ("Selecciona el cliente").
+3. El selector de tipo solo ofrece MOTO, AUTOMOVIL y CAMIONETA. En `/docs`,
+   `POST /vehiculos` con `"tipo": "CAMION"` responde **422**.
+4. Modelo `1899` o el año actual + 2: error de año. El rango válido va de 1900 al año
+   actual + 1.
+5. En `/docs`, `GET /clientes` y luego `GET /clientes/{id}/vehiculos` de Paola Ríos: ahora
+   tiene dos vehículos (MNO654 y QWE456). Un cliente puede tener varios vehículos.
 
-### HU-01 · Mensualidad vigente
+### HU-03 · Validar formato de placa
 
-1. Abre **Vehículos**. La columna *Mensualidad* muestra cada caso:
+En **Vehículos → Nuevo vehículo**:
+
+| Datos | Resultado |
+| --- | --- |
+| Placa `ABC12D`, tipo AUTOMOVIL | Error: la placa de carro es 3 letras y 3 números |
+| Placa `ZZZ111`, tipo MOTO | Error: la placa de moto es 3 letras, 2 números y 1 letra |
+| Placa ` xyz-98 a `, tipo MOTO, modelo del año actual + 1 | Se guarda como `XYZ98A` |
+
+La misma regla se valida en el navegador, en la API (422) y en PostgreSQL (CHECK). En
+Control de acceso la placa también se normaliza: `abc-123` se busca como `ABC123` (se ve
+en HU-02).
+
+### HU-01 · Identificar operador
+
+1. Abre **Control de acceso**. El panel de catálogos muestra "2 operadores".
+2. En **Registrar entrada**, escribe `ABC123` y pulsa *Registrar entrada* sin elegir
+   operador: no se envía y aparece "Selecciona un operador.". La salida, la corrección y la
+   novedad también exigen operador.
+3. En `/docs`, `POST /estancias/entrada` con `"operador_id": 999` responde **404**
+   "Operador no encontrado.".
+4. Cada movimiento guarda quién lo hizo. Se ve en Ocupación (HU-12) y en el Historial
+   (HU-13).
+
+### HU-04 · Validar vehículo registrado y mensualidad vigente
+
+1. En **Vehículos**, la columna *Mensualidad* muestra cada caso:
    - ABC123: "Vigente hasta …".
    - GHI789: vigente hasta **hoy** (vence hoy y todavía puede entrar).
    - DEF456: "Vencida el …".
    - PQR98B: "Empieza el …" (mañana).
    - MNO654: "Sin mensualidad".
-2. En **Control de acceso → Registrar entrada**, con Marta Úsuga, intenta `DEF456`, `PQR98B`
-   y `MNO654`. Las tres se rechazan con "El vehículo no tiene mensualidad vigente".
+2. En **Control de acceso → Registrar entrada**, con Marta Úsuga:
+   - `AAA111` (no está registrado): "Vehículo no encontrado.".
+   - `DEF456`, `PQR98B` y `MNO654`: "El vehículo no tiene mensualidad vigente. No puede
+     ingresar.".
 3. Fecha a fecha: en `/docs`, `GET /vehiculos/6/mensualidades` (JKL321) muestra una
    renovación en la que cada periodo termina el mismo día del mes siguiente. Los casos de
    31 de enero → 28/29 de febrero están en `tests/test_reglas.py`.
 
-### HU-02 · Vehículo asociado a su cliente
+### HU-02 · Registrar entrada
 
-1. En **Vehículos → Nuevo vehículo** registra: placa `qwe-456`, marca Kia, modelo 2024,
-   color Gris, tipo AUTOMOVIL, cliente **Paola Ríos**. Se guarda como `QWE456`.
-2. Sin cliente no deja guardar ("Selecciona el cliente").
-3. En `/docs`, `GET /clientes` y luego `GET /clientes/{id}/vehiculos` de Paola Ríos: ahora
-   tiene dos vehículos (MNO654 y QWE456).
+En **Control de acceso → Registrar entrada** (no hay selector de celda), con Marta Úsuga,
+escribe `abc-123` y pulsa *Registrar entrada*. Aparece "Entrada registrada: ABC123, celda
+**C01**, …" con la hora del servidor, y una tarjeta con la celda asignada.
 
-### HU-03 · Tipos de vehículo
+### HU-05 · Evitar doble entrada
 
-1. El selector de tipo solo ofrece MOTO, AUTOMOVIL y CAMIONETA.
-2. En `/docs`, `POST /vehiculos` con `"tipo": "CAMION"` responde **422**.
+Vuelve a registrar la entrada de `ABC123`: responde "El vehículo ya está dentro.". Además
+de esta validación, la base tiene un índice único que no permite dos estancias abiertas del
+mismo vehículo.
 
-### HU-04 · 80 celdas
+### HU-06 · Asignar celda automáticamente
 
-1. **Celdas** muestra 80 celdas: C01–C70 de tipo CARRO y M01–M10 de tipo MOTO. El tipo
-   solo puede ser MOTO o CARRO.
-2. **Ocupación** muestra "70 libres de 70" carros y "10 libres de 10" motos.
+1. Con Marta Úsuga registra las entradas:
 
-### HU-05 · Asignación automática
+   | Placa | Celda asignada |
+   | --- | --- |
+   | `KLM45D` | **M01** (moto → celda de moto) |
+   | `GHI789` | **C02** (carro; su mensualidad vence hoy y todavía entra) |
 
-En **Control de acceso → Registrar entrada** (no hay selector de celda), con Marta Úsuga:
+   Regla: celda libre del tipo del vehículo; primero las nunca usadas y luego la que lleva
+   **más tiempo libre**. Esto se comprueba en HU-08.
+2. **Dos porterías al mismo tiempo:** abre Control de acceso en **dos ventanas**, una con
+   Marta (Portería 1) y otra con Diego (Portería 2). Escribe `JKL321` en las dos y pulsa
+   *Registrar entrada* en ambas. Una registra la entrada (celda **C03**) y la otra responde
+   "El vehículo ya está dentro.". Nunca se repite celda ni se abren dos entradas.
+3. **No hay celdas:** cuando no queda ninguna libre del tipo, la entrada responde "No hay
+   celdas disponibles para motos." (o "para carros."). Llenar 70 celdas a mano no es práctico
+   en una demostración, así que se prueba con
+   `test_concurrencia_una_sola_celda_libre`: dos motos piden la única celda libre a la vez,
+   una la recibe y la otra recibe ese mensaje (ver RNF-03).
 
-| Placa | Celda asignada |
+### HU-11 · Consultar estado de un vehículo
+
+En **Control de acceso → Consultar vehículo**:
+
+| Placa | Resultado |
 | --- | --- |
-| `abc-123` | **C01** (carro; la placa se normaliza a ABC123) |
-| `KLM45D` | **M01** (moto) |
-| `GHI789` | **C02** |
+| `ABC123` | "ABC123 · Dentro", marca y color, "Celda C01 · Entrada …" y el botón *Confirmar salida* |
+| `DEF456` | "DEF456 · Fuera" |
+| `AAA111` | "Vehículo no registrado." |
 
-Regla: celda libre del tipo del vehículo; primero las nunca usadas y luego la que lleva
-**más tiempo libre**. Se comprueba en HU-07.
+La mensualidad de cada vehículo se consulta en **Vehículos** (HU-04).
 
-### HU-06 · Dos porterías al mismo tiempo
+### HU-07 · Registrar salida con tiempo de permanencia
 
-1. Abre Control de acceso en **dos ventanas**: una con Marta (Portería 1) y otra con Diego
-   (Portería 2).
-2. Escribe `JKL321` en las dos y pulsa *Registrar entrada* en ambas. Una registra la entrada
-   (celda **C03**) y la otra responde "El vehículo ya está dentro".
-3. La carrera exacta se demuestra con pruebas que obligan a las dos solicitudes a llegar a
-   la vez:
-   - mismo vehículo;
-   - dos vehículos que reciben celdas distintas;
-   - una sola celda libre;
-   - dos salidas;
-   - dos correcciones hacia la misma celda.
+Con `ABC123` consultado, elige a **Diego Arango** como operador y pulsa **Confirmar
+salida**. Se muestra en grande el **tiempo de permanencia** (por ejemplo "4 min"), que
+calcula el servidor con sus propias horas de entrada y salida.
 
-   ```bash
-   docker compose run --rm --build backend-tests sh -c \
-     "python -m alembic -c alembic.ini upgrade head && python -m pytest -v tests/test_estancias_postgres.py"
-   ```
+### HU-08 · Liberar celda
 
-### HU-07 · Celda ocupada hasta la salida
+1. Consulta otra vez `ABC123`: ahora aparece "Fuera". En **Ocupación**, C01 ya no está
+   ocupada.
+2. Registra la entrada de `STU852`. Recibe **C04**, que nunca se ha usado, y no C01, que
+   acaba de quedar libre: así se reparte el uso de las celdas.
 
-1. **Ocupación** muestra 4 vehículos dentro (ABC123 en C01, KLM45D en M01, GHI789 en C02 y
-   JKL321 en C03).
-2. En **Control de acceso → Consultar vehículo**, consulta `ABC123` con Diego Arango:
-   aparece "Dentro · Celda C01". Pulsa **Confirmar salida**.
-3. Registra la entrada de `STU852`. Recibe **C04**, que nunca se ha usado, y no C01, que
-   acaba de quedar libre: así se reparte el uso.
-
-### HU-08 · Corrección de celda
+### HU-09 · Corregir celda
 
 1. Consulta `GHI789` (está en C02). Debajo aparece **Corregir celda**, que solo lista celdas
    libres de carro.
@@ -169,21 +191,22 @@ Regla: celda libre del tipo del vehículo; primero las nunca usadas y luego la q
 4. En `/docs`, `POST /estancias/{id}/correccion-celda` hacia una celda de moto o hacia una
    ocupada responde **409** con el motivo.
 
-### HU-09 · Novedades
+### HU-10 · Registrar novedad
 
 Con GHI789 consultado, en **Novedades del vehículo** elige *Rayón*, escribe "Rayón en el
 bómper trasero" y pulsa *Registrar novedad*. Aparece en la lista con fecha y hora.
 
-### HU-10 · Reporte de ocupación
+### HU-12 · Ver reporte de ocupación
 
 **Ocupación** muestra 4 vehículos dentro (KLM45D en M01, GHI789 en C10, JKL321 en C03 y
 STU852 en C04) con hora de entrada, tiempo dentro y operador. Arriba aparecen **67 libres
 de 70** carros y **9 libres de 10** motos.
 
-### HU-11 · Historial
+### HU-13 · Consultar historial
 
-1. **Historial** muestra todas las estancias, de la más reciente a la más antigua.
-2. Filtra por placa `abc-123`: aparece la estancia cerrada de ABC123.
+1. **Historial** muestra todas las estancias, de la más reciente a la más antigua, con
+   operador de entrada y de salida.
+2. Filtra por placa `abc-123`: aparece la estancia cerrada de ABC123 con su permanencia.
 3. Filtra por *Desde* y *Hasta* = hoy: aparecen las estancias de hoy. Si *Desde* es
    posterior a *Hasta*, no deja buscar.
 4. En la fila de GHI789 pulsa el botón "1 nov. · 1 corr.": muestra la corrección C02 → C10
@@ -191,32 +214,77 @@ de 70** carros y **9 libres de 10** motos.
 
 Para capturas con más datos, ver [Datos de demostración](#datos-de-demostración).
 
-### HU-12 · Tiempo de permanencia
+## Verificación de requerimientos no funcionales
 
-Consulta `GHI789` y pulsa **Confirmar salida**: se muestra en grande el **tiempo de
-permanencia** (por ejemplo "12 min"). También aparece en la columna *Permanencia* del Historial.
+### RNF-03 · Concurrencia
 
-### HU-13 · Trazabilidad e historial que no se borra
+Además de la prueba con dos ventanas (HU-06), hay pruebas que obligan a dos porterías a
+enviar la solicitud exactamente a la vez:
 
-1. En **Historial** cada estancia muestra el operador de entrada y el de salida, y las horas
-   asignadas por el servidor en hora de Bogotá. Las correcciones y novedades también guardan
-   operador y hora.
-2. En **Vehículos**, intenta eliminar ABC123: se rechaza porque tiene registros relacionados.
-3. La API no tiene ninguna operación para borrar estancias, correcciones ni novedades, y la
-   base usa `ON DELETE RESTRICT`.
+- mismo vehículo: una entrada y un "ya está dentro";
+- dos vehículos: reciben celdas distintas;
+- una sola celda libre: uno la recibe y el otro recibe "No hay celdas disponibles";
+- dos salidas del mismo vehículo: solo una se registra;
+- dos correcciones hacia la misma celda: solo una se aplica.
 
-### HU-14 · Validaciones de placa y modelo
+```bash
+docker compose run --rm --build backend-tests sh -c \
+  "python -m alembic -c alembic.ini upgrade head && python -m pytest -v tests/test_estancias_postgres.py"
+```
 
-En **Vehículos → Nuevo vehículo**:
+Cómo se logra: `SELECT … FOR UPDATE SKIP LOCKED` al elegir la celda, `FOR UPDATE` sobre la
+estancia al salir o corregir, y los índices únicos parciales como última barrera.
 
-| Datos | Resultado |
-| --- | --- |
-| Placa `ABC12D`, tipo AUTOMOVIL | Error: la placa de carro es 3 letras y 3 números |
-| Placa `ZZZ111`, tipo MOTO | Error: la placa de moto es 3 letras, 2 números y 1 letra |
-| Modelo `1899` o el año actual + 2 | Error de año |
-| Placa ` xyz-98 a `, tipo MOTO, modelo del año actual + 1 | Se guarda como `XYZ98A` |
+### RNF-04 · Trazabilidad
 
-La misma regla se valida en el navegador, en la API (422) y en PostgreSQL (CHECK).
+1. En **Historial**, cada estancia muestra el operador de entrada y el de salida, y las
+   horas asignadas por el servidor (en hora de Bogotá). Las correcciones y novedades
+   también guardan operador, hora y motivo o descripción.
+2. **El historial no se borra.** En **Vehículos** intenta eliminar ABC123: se rechaza
+   porque tiene registros relacionados. La API no tiene ninguna operación para borrar
+   estancias, correcciones ni novedades.
+
+### RNF-05 · Integridad
+
+La base de datos protege las reglas aunque alguien se salte la aplicación. Estas órdenes
+se ejecutan directo en PostgreSQL y **todas fallan**, así que no cambian nada:
+
+```bash
+docker compose exec db psql -U autos -d autos_colombia -c "UPDATE vehiculo SET placa = 'ABC-123' WHERE placa = 'ABC123';"
+# ERROR: … violates check constraint "ck_vehiculo_placa_formato"
+docker compose exec db psql -U autos -d autos_colombia -c "DELETE FROM vehiculo WHERE placa = 'ABC123';"
+# ERROR: … violates foreign key constraint "fk_estancia_vehiculo" …
+docker compose exec db psql -U autos -d autos_colombia -c "INSERT INTO estancia (vehiculo_id, celda_id, operador_entrada_id) SELECT vehiculo_id, 50, 1 FROM estancia WHERE salida IS NULL LIMIT 1;"
+# ERROR: duplicate key value violates unique constraint "uq_estancia_vehiculo_abierta"
+```
+
+Todas las llaves, restricciones e índices están en [`docs/modelo_fisico.sql`](docs/modelo_fisico.sql)
+(esquema exportado con `pg_dump`) y explicados en
+[`docs/diccionario_datos.md`](docs/diccionario_datos.md).
+
+### RNF-07 · Portabilidad
+
+1. Todo se levanta en cualquier equipo con Docker usando un solo comando:
+   `docker compose up --build` (ver [Inicio rápido](#inicio-rápido)). Se verificó clonando
+   el repositorio desde cero en otra carpeta.
+2. Sin Docker: ver [Instalación sin Docker](#instalación-sin-docker) (Linux, Python 3.12,
+   Node 22 y PostgreSQL 17).
+3. La configuración va en variables de entorno (`DB_*`), no en el código.
+
+### RNF-09 · Calidad
+
+1. Pruebas automáticas (ver [Pruebas](#pruebas)): **244 de backend** (unitarias, valores
+   límite, integración con PostgreSQL real y concurrencia) y **58 de frontend**:
+
+   ```bash
+   docker compose run --rm --build backend-tests
+   cd frontend && npm test -- --watch=false
+   ```
+
+2. Arquitectura por capas: las reglas de negocio están en `app/domain/reglas.py`, sin
+   base de datos, y se prueban solas (ver [Arquitectura](#arquitectura-y-estructura)).
+3. Cada cambio de esquema es una migración Alembic nueva, y una prueba comprueba que las
+   migraciones coinciden con los modelos.
 
 ## Reglas implementadas
 
@@ -353,6 +421,8 @@ AutosColombia/
 ├── docker-compose.yml          # (nuestro) db, backend, frontend, db-test, backend-tests
 ├── AGENTS.md                   # (profesor) guía original para Windows
 ├── docs/README-profesor.md     # (profesor) README original sin cambios
+├── docs/modelo_fisico.sql      # (nuestro) esquema real exportado con pg_dump
+├── docs/diccionario_datos.md   # (nuestro) tablas, columnas, tipos, llaves y restricciones
 ├── backend/
 │   ├── Dockerfile              # (nuestro) migra, carga semillas e inicia la API
 │   ├── app/
@@ -384,7 +454,9 @@ lo reenvía al backend, así que no hace falta CORS. Las pantallas usan rutas `/
 | 0004 | Nuestra | `celda.tipo` MOTO o CARRO (`NOT VALID`) y `celda.disponible_desde` |
 | 0005 | Nuestra | `correccion_celda` y `novedad` |
 
-No se modificó ninguna migración existente.
+No se modificó ninguna migración existente. El esquema resultante está en
+[`docs/modelo_fisico.sql`](docs/modelo_fisico.sql) y su diccionario de datos en
+[`docs/diccionario_datos.md`](docs/diccionario_datos.md).
 
 ## Instalación sin Docker
 
@@ -487,4 +559,5 @@ y su guía `AGENTS.md` también se conserva.
 - **Restricciones nuevas sobre tablas existentes:** el tipo de celda usa `NOT VALID` para no
   romper celdas antiguas. La 0003 exige la tabla `vehiculo` vacía porque `cliente_id` es
   obligatorio; si hay vehículos sin dueño, se detiene con un mensaje claro.
-- **Numeración HU-01 a HU-14:** sigue el orden de los requerimientos dados en clase.
+- **Numeración HU y RNF:** la del documento de la entrega. El guion sigue el orden lógico
+  de la demostración, no el numérico.
