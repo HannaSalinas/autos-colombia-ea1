@@ -1,16 +1,21 @@
 """Datos de demostración (ficticios). Se puede ejecutar varias veces: no duplica registros.
 
 Uso: python -m app.seed
+
+Iteración 2: también crea la cuenta del Administrador y las de Marta y Diego (rol Operador),
+con las contraseñas de .env. Una cuenta que ya existe no se toca (nunca se cambia su contraseña).
 """
 
 from datetime import date, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.config import ConfigurationError, CredencialesSemilla, load_seed_credentials
 from app.database import get_engine
 from app.domain.reglas import TOTAL_CELDAS, fin_de_mensualidad, hoy_bogota, sumar_meses
-from app.models import Celda, Cliente, Mensualidad, Operador, Vehiculo
+from app.models import AuditoriaCuenta, Celda, Cliente, CuentaUsuario, Mensualidad, Operador, Vehiculo
+from app.services.seguridad import hash_contrasena
 
 # 80 celdas: C01–C70 para carros y M01–M10 para motos.
 CELDAS = [(f"C{n:02d}", "CARRO") for n in range(1, TOTAL_CELDAS["CARRO"] + 1)] + [
@@ -18,6 +23,8 @@ CELDAS = [(f"C{n:02d}", "CARRO") for n in range(1, TOTAL_CELDAS["CARRO"] + 1)] +
 ]
 # Un operador por portería.
 OPERADORES = [("Marta Úsuga (Portería 1)", "3101112233"), ("Diego Arango (Portería 2)", "3102223344")]
+# Iteración 2: usuario de cada operador semilla (su persona es la fila de OPERADORES de arriba).
+USUARIOS_OPERADORES = {"Marta Úsuga (Portería 1)": "marta.usuga", "Diego Arango (Portería 2)": "diego.arango"}
 
 CLIENTES = [
     # documento, nombre, teléfono, correo (opcional)
@@ -63,8 +70,43 @@ def mensualidades(caso: str, hoy: date) -> list[tuple[date, date]]:
     return []
 
 
-def sembrar(session: Session, hoy: date) -> dict[str, int]:
-    creados = {"celdas": 0, "operadores": 0, "clientes": 0, "vehiculos": 0, "mensualidades": 0}
+def _crear_cuenta(session: Session, persona: Operador, usuario: str, contrasena: str, rol: str) -> bool:
+    """Crea la cuenta si ni el usuario ni la persona tienen una. Devuelve True si la creó."""
+    ya_existe = session.scalar(select(CuentaUsuario.id).where(
+        (func.lower(CuentaUsuario.nombre_usuario) == usuario) | (CuentaUsuario.operador_id == persona.id)))
+    if ya_existe is not None:
+        return False
+    cuenta = CuentaUsuario(operador_id=persona.id, nombre_usuario=usuario, hash_contrasena=hash_contrasena(contrasena),
+                           rol=rol)
+    session.add(cuenta)
+    session.flush()
+    # actor NULL = lo hizo el sistema (semillas), no una persona (RF-31).
+    session.add(AuditoriaCuenta(cuenta_id=cuenta.id, accion="CREAR", detalle="Creada por las semillas."))
+    return True
+
+
+def sembrar_cuentas(session: Session, credenciales: CredencialesSemilla) -> int:
+    """Administrador (persona nueva con ADMIN_NOMBRE) y Marta y Diego sobre sus personas de la EA1,
+    para que sus movimientos anteriores sigan a su nombre (RF-23)."""
+    creadas = 0
+    admin = session.scalar(select(CuentaUsuario.id).where(
+        func.lower(CuentaUsuario.nombre_usuario) == credenciales.admin_usuario))
+    if admin is None:
+        persona = Operador(nombre=credenciales.admin_nombre)
+        session.add(persona)
+        session.flush()
+        creadas += _crear_cuenta(session, persona, credenciales.admin_usuario, credenciales.admin_contrasena,
+                                 "ADMINISTRADOR")
+    contrasenas = {"marta.usuga": credenciales.marta_contrasena, "diego.arango": credenciales.diego_contrasena}
+    for nombre, usuario in USUARIOS_OPERADORES.items():
+        persona = session.scalar(select(Operador).where(Operador.nombre == nombre).order_by(Operador.id).limit(1))
+        creadas += _crear_cuenta(session, persona, usuario, contrasenas[usuario], "OPERADOR")
+    return creadas
+
+
+def sembrar(session: Session, hoy: date, credenciales: CredencialesSemilla | None = None) -> dict[str, int]:
+    """Sin credenciales no crea cuentas (así las pruebas de datos no dependen de .env)."""
+    creados = {"celdas": 0, "operadores": 0, "cuentas": 0, "clientes": 0, "vehiculos": 0, "mensualidades": 0}
     existentes = set(session.scalars(select(Celda.codigo)))
     for codigo, tipo in CELDAS:
         if codigo not in existentes:
@@ -96,12 +138,19 @@ def sembrar(session: Session, hoy: date) -> dict[str, int]:
         for inicio, fin in mensualidades(caso, hoy):
             session.add(Mensualidad(vehiculo_id=vehiculo.id, fecha_inicio=inicio, fecha_fin=fin))
             creados["mensualidades"] += 1
+    if credenciales is not None:
+        session.flush()
+        creados["cuentas"] = sembrar_cuentas(session, credenciales)
     return creados
 
 
 def main() -> None:
+    try:
+        credenciales = load_seed_credentials()
+    except ConfigurationError as error:
+        raise SystemExit(f"No se cargaron las semillas. {error}") from None
     with Session(get_engine()) as session, session.begin():
-        creados = sembrar(session, hoy_bogota())
+        creados = sembrar(session, hoy_bogota(), credenciales)
     print("Semillas aplicadas. Nuevos registros: "
           + ", ".join(f"{cantidad} {tabla}" for tabla, cantidad in creados.items()))
 

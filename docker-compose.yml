@@ -19,6 +19,13 @@ x-backend-env: &backend-env
   DB_PASSWORD: "${POSTGRES_PASSWORD:?Falta .env. Ejecuta: cp .env.example .env}"
   DB_CONNECT_TIMEOUT: "5"
   TZ: America/Bogota
+  # Iteración 2: clave para firmar los tokens de sesión y credenciales de las cuentas semilla.
+  JWT_SECRETO: "${JWT_SECRETO:?Falta JWT_SECRETO en .env (ver .env.example)}"
+  ADMIN_USUARIO: "${ADMIN_USUARIO:?Falta ADMIN_USUARIO en .env (ver .env.example)}"
+  ADMIN_NOMBRE: "${ADMIN_NOMBRE:?Falta ADMIN_NOMBRE en .env (ver .env.example)}"
+  ADMIN_CONTRASENA: "${ADMIN_CONTRASENA:?Falta ADMIN_CONTRASENA en .env (ver .env.example)}"
+  MARTA_CONTRASENA: "${MARTA_CONTRASENA:?Falta MARTA_CONTRASENA en .env (ver .env.example)}"
+  DIEGO_CONTRASENA: "${DIEGO_CONTRASENA:?Falta DIEGO_CONTRASENA en .env (ver .env.example)}"
 
 services:
   db:

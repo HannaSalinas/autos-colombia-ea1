@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 from app.database import get_engine
 from app.domain.reglas import ZONA_BOGOTA, mensualidad_vigente, orden_de_asignacion, tipo_celda_para
 from app.models import Celda, CorreccionCelda, Estancia, Mensualidad, Novedad, Operador, Vehiculo
+from app.seed import OPERADORES
 
 DIAS_DE_HISTORIAL = 7
 ABIERTAS = ["ABC123", "KLM45D", "GHI789", "JKL321", "STU852"]   # todas con mensualidad vigente hoy
@@ -40,7 +41,9 @@ def generar(session: Session, ahora: datetime, semilla: int = 20261025) -> dict[
         raise RuntimeError("La base ya tiene estancias. Para repetir la demostración vuelve a la base "
                            "limpia: docker compose down -v && docker compose up -d")
     vehiculos = list(session.scalars(select(Vehiculo).order_by(Vehiculo.placa)))
-    operadores = list(session.scalars(select(Operador).order_by(Operador.id)))
+    # Iteración 2: solo las personas de portería sembradas (Marta y Diego), no la del Administrador.
+    operadores = list(session.scalars(select(Operador).where(Operador.nombre.in_([n for n, _ in OPERADORES]))
+                                      .order_by(Operador.id)))
     if not set(ABIERTAS) <= {v.placa for v in vehiculos} or len(operadores) < 2:
         raise RuntimeError("Faltan las semillas. Ejecuta primero: python -m app.seed")
     celdas = {tipo: list(session.scalars(select(Celda).where(Celda.tipo == tipo).order_by(Celda.codigo)))
