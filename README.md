@@ -482,7 +482,7 @@ AutosColombia/
 │   │   ├── schemas/ services/ routers/
 │   │   ├── seed.py             # (nuestro) semillas
 │   │   └── demo.py             # (nuestro) datos de demostración opcionales
-│   ├── migrations/versions/    # 0001–0002 del profesor; 0003–0005 nuestras
+│   ├── migrations/versions/    # 0001–0002 del profesor; 0003–0007 nuestras
 │   └── tests/
 └── frontend/
     ├── Dockerfile              # (nuestro) compila Angular y lo sirve con nginx
@@ -504,8 +504,12 @@ lo reenvía al backend, así que no hace falta CORS. Las pantallas usan rutas `/
 | 0003 | Nuestra | `cliente`, `mensualidad`, `vehiculo.cliente_id`, CHECK de placa según tipo y modelo ≥ 1900 |
 | 0004 | Nuestra | `celda.tipo` MOTO o CARRO (`NOT VALID`) y `celda.disponible_desde` |
 | 0005 | Nuestra | `correccion_celda` y `novedad` |
+| 0006 | Nuestra (Iteración 2) | `cuenta_usuario` (usuario único sin distinguir mayúsculas, hash bcrypt de costo ≥ 12, rol, estado) y `auditoria_cuenta`; `operador.telefono` opcional; nombre de 3 a 80 (`NOT VALID`) |
+| 0007 | Nuestra (Iteración 2) | `celda.ubicacion` y `celda.habilitada`, formato del código según el tipo (`NOT VALID`), único `upper(codigo)`, índices de historial y `auditoria_celda` |
 
-No se modificó ninguna migración existente. El esquema resultante está en
+No se modificó ninguna migración existente. Las migraciones 0006 y 0007 se aplican sobre una
+base con datos de la EA1 sin perder la autoría de las estancias, correcciones y novedades (lo
+comprueba `backend/tests/test_migraciones_ea2_postgres.py`, que también prueba la bajada). El esquema resultante está en
 [`docs/modelo_fisico.sql`](docs/modelo_fisico.sql) y su diccionario de datos en
 [`docs/diccionario_datos.md`](docs/diccionario_datos.md).
 
@@ -587,6 +591,9 @@ y su guía `AGENTS.md` también se conserva.
 | `backend/app/routers/vehiculos.py`, `routers/estancias.py`, `main.py` | Rutas nuevas y registro de los routers de clientes y reportes. |
 | `backend/tests/test_estancias_postgres.py` | **Reescrita** con la misma técnica (datos confirmados, limpieza por id, barreras) para el contrato nuevo de entrada. |
 | `backend/tests/test_vehiculos_postgres.py`, `test_operadores_postgres.py`, `test_celdas_postgres.py`, `test_estancias_api.py`, `test_models.py` | Exigen la revisión más reciente (antes `0001`/`0002`), crean un cliente y placas válidas, usan tipos MOTO o CARRO, entrada sin celda; `test_models.py` excluye de la comparación con `0001` lo agregado por `0003` y `0004`. |
+| `backend/app/models.py` (Iteración 2) | `required_text` pasó a `app/domain/reglas.py`. `Operador`: teléfono opcional y nombre de 3 a 80. `Celda`: `ubicacion`, `habilitada` y formato del código. Modelos nuevos `CuentaUsuario`, `AuditoriaCuenta` y `AuditoriaCelda`. |
+| `backend/app/schemas/celda.py`, `schemas/operador.py`, `schemas/vehiculo.py` (Iteración 2) | Importan `required_text` desde el dominio. |
+| `backend/tests/test_celdas_postgres.py`, `test_operadores_postgres.py`, `test_models.py`, `test_estancia.py` (Iteración 2) | Mismo propósito. Reconocen las columnas y restricciones de las migraciones 0006 y 0007 (teléfono opcional, `ubicacion` y `habilitada`, índice `ix_estancia_celda`). Las celdas de prueba usan códigos con el formato nuevo (`C01`–`C99`, `M01`–`M99`), que da el ayudante `codigos_celda_libres` de `conftest.py`. Para cambiar una celda de tipo se cambia también su código. |
 | `frontend/src/app/control-acceso/*` | Sin selector de celda; celda asignada y permanencia; componente de corrección y novedades; etiqueta del operador. |
 | `frontend/src/app/vehiculos/*`, `celdas/*` | Selector de cliente, validaciones, columna de mensualidad; tipo de celda MOTO o CARRO. |
 | `frontend/src/app/models/*.ts`, `services/estancias.service.ts` | Contratos y llamadas nuevas. |
