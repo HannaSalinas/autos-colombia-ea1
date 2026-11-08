@@ -52,3 +52,62 @@ def load_database_settings() -> DatabaseSettings:
         password=values["DB_PASSWORD"],
         connect_timeout=positive_integer("DB_CONNECT_TIMEOUT", 60),
     )
+
+
+# --- Iteración 2: sesión con token firmado ---
+
+SECRETO_MINIMO = 32
+
+
+@dataclass(frozen=True)
+class AuthSettings:
+    jwt_secreto: str = field(repr=False)
+
+
+def load_auth_settings() -> AuthSettings:
+    """Clave con la que se firman los tokens. Va solo en .env (nunca en el repositorio)."""
+    values = {**dotenv_values(ENV_FILE, encoding="utf-8-sig", interpolate=False), **os.environ}
+    secreto = (values.get("JWT_SECRETO") or "").strip()
+    if not secreto or secreto.startswith("CAMBIAR_"):
+        raise ConfigurationError("Completa en .env: JWT_SECRETO")
+    if len(secreto) < SECRETO_MINIMO:
+        raise ConfigurationError(f"JWT_SECRETO debe tener al menos {SECRETO_MINIMO} caracteres.")
+    return AuthSettings(jwt_secreto=secreto)
+
+
+# --- Iteración 2: cuentas semilla (RNF-13: las contraseñas solo viven en .env) ---
+
+@dataclass(frozen=True)
+class CredencialesSemilla:
+    admin_usuario: str
+    admin_nombre: str
+    admin_contrasena: str = field(repr=False)
+    marta_contrasena: str = field(repr=False)
+    diego_contrasena: str = field(repr=False)
+
+
+def load_seed_credentials() -> CredencialesSemilla:
+    """Lee y valida las credenciales de las cuentas semilla. Los errores nombran la variable, nunca su valor."""
+    from app.domain.reglas import validar_contrasena, validar_nombre_completo, validar_nombre_usuario
+
+    values = {**dotenv_values(ENV_FILE, encoding="utf-8-sig", interpolate=False), **os.environ}
+    requeridas = ("ADMIN_USUARIO", "ADMIN_NOMBRE", "ADMIN_CONTRASENA", "MARTA_CONTRASENA", "DIEGO_CONTRASENA")
+    faltan = [k for k in requeridas if not (values.get(k) or "").strip() or (values.get(k) or "").startswith("CAMBIAR_")]
+    if faltan:
+        raise ConfigurationError("Completa en .env: " + ", ".join(faltan))
+    reglas = {"ADMIN_USUARIO": validar_nombre_usuario, "ADMIN_NOMBRE": validar_nombre_completo,
+              "ADMIN_CONTRASENA": validar_contrasena, "MARTA_CONTRASENA": validar_contrasena,
+              "DIEGO_CONTRASENA": validar_contrasena}
+    validos = {}
+    for clave, regla in reglas.items():
+        try:
+            validos[clave] = regla(values[clave])
+        except ValueError as error:
+            raise ConfigurationError(f"{clave} no es válida: {error}") from None
+    if validos["ADMIN_USUARIO"] in {"marta.usuga", "diego.arango"}:
+        raise ConfigurationError("ADMIN_USUARIO no puede ser el usuario de Marta ni el de Diego.")
+    return CredencialesSemilla(
+        admin_usuario=validos["ADMIN_USUARIO"], admin_nombre=validos["ADMIN_NOMBRE"],
+        admin_contrasena=validos["ADMIN_CONTRASENA"], marta_contrasena=validos["MARTA_CONTRASENA"],
+        diego_contrasena=validos["DIEGO_CONTRASENA"],
+    )
