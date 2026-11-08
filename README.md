@@ -34,7 +34,7 @@ Requisitos: Docker 29 y Docker Compose v5 (verificado en Ubuntu con 29.9 / v5.6)
 ```bash
 git clone https://github.com/HannaSalinas/autos-colombia-ea1.git
 cd autos-colombia-ea1
-cp .env.example .env      # credenciales de PostgreSQL (cambia la contraseña en .env)
+cp .env.example .env      # credenciales (cambia en .env las contraseñas y JWT_SECRETO)
 docker compose up --build
 ```
 
@@ -44,6 +44,14 @@ git ignora. `.env.example` solo trae valores de ejemplo. Si falta `.env`, Compos
 con el mensaje "Falta .env. Ejecuta: cp .env.example .env". Si cambias la contraseña cuando
 la base ya existe, recréala con `docker compose down -v`, porque PostgreSQL guarda la
 contraseña al crear la base.
+
+Desde la Iteración 2, `.env` también lleva la clave que firma los tokens de sesión
+(`JWT_SECRETO`, 32 caracteres o más) y las contraseñas de las cuentas semilla
+(`ADMIN_USUARIO`, `ADMIN_NOMBRE`, `ADMIN_CONTRASENA`, `MARTA_CONTRASENA`,
+`DIEGO_CONTRASENA`). Las contraseñas deben tener de 8 a 64 caracteres, con al menos una letra
+y un número. Si falta alguna, Compose se detiene y dice cuál. Las cuentas se crean la primera
+vez que arranca el sistema; si después cambias una contraseña en `.env`, no se actualiza
+(recrea la base con `docker compose down -v`).
 
 Estas direcciones funcionan en tu equipo después de levantar el sistema con `docker compose up`:
 
@@ -361,27 +369,51 @@ Todas las llaves, restricciones e índices están en [`docs/modelo_fisico.sql`](
 ## API
 
 Documentación interactiva completa en `http://localhost:8000/docs` (con el sistema
-levantado). Rutas del profesor (CRUD de `/vehiculos`, `/celdas` y `/operadores`, `/health`)
-y rutas agregadas o cambiadas:
+levantado; el botón **Authorize** recibe el token de `POST /auth/login`). Rutas del profesor
+(CRUD de `/vehiculos` y `/celdas`, consulta de `/operadores`, `/health`) y rutas agregadas o
+cambiadas:
+
+**Iteración 2 · Sesión y permisos.** Toda ruta, salvo `POST /auth/login` y `GET /health`,
+exige el encabezado `Authorization: Bearer <token>`. El token vence a las 8 horas y el
+servidor revisa en cada solicitud la firma, el vencimiento, que la cuenta siga activa y que
+la sesión no se haya cerrado. Qué puede hacer cada rol se define en un solo lugar,
+`backend/app/domain/permisos.py`:
+
+| Permiso | Operador | Administrador | Rutas |
+| --- | --- | --- | --- |
+| `estancias` | ✔ | ✔ | `/estancias/...` (entradas, salidas, correcciones, novedades, estado del vehículo) |
+| `consultas` | ✔ | ✔ | `/reportes/ocupacion`, `/reportes/historial` |
+| `celdas:ver` | ✔ | ✔ | `GET /celdas`, `GET /celdas/{id}` |
+| `vehiculos:ver` | ✔ | ✔ | `GET /vehiculos...`, `GET /clientes...` |
+| `celdas:gestionar` | | ✔ | `POST`, `PATCH` y `DELETE` de `/celdas` |
+| `vehiculos:gestionar` | | ✔ | `POST`, `PATCH` y `DELETE` de `/vehiculos` |
+| `cuentas:gestionar` | | ✔ | `GET /operadores`, `GET /operadores/{id}` |
+
+| Método y ruta | Descripción |
+| --- | --- |
+| `POST /auth/login` | `usuario` y `contrasena` → `token`, `expira_en` y la cuenta (`nombre`, `rol`, `permisos`). 401 "Usuario o contraseña inválidos." si falla cualquiera de los dos; 403 si la cuenta está desactivada (solo con la contraseña correcta) |
+| `GET /auth/yo` | Cuenta con sesión y su lista de permisos (con ella el frontend arma el menú) |
+| `POST /auth/cerrar-sesion` | 204. El token deja de valer (sube la versión de sesión de la cuenta) |
 
 | Método y ruta | Descripción |
 | --- | --- |
 | `GET /clientes`, `GET /clientes/{id}`, `GET /clientes/{id}/vehiculos` | Clientes (solo lectura) y sus vehículos con estado de mensualidad |
 | `GET /vehiculos/{id}/mensualidades` | Mensualidades del vehículo y si cada una está vigente |
-| `POST /estancias/entrada` | **Cambió:** recibe solo `placa` y `operador_id`; responde con la celda asignada |
+| `POST /estancias/entrada` | **Cambió:** recibe solo `placa` (Iteración 2: ya no recibe `operador_id`; el responsable es la persona de la sesión); responde con la celda asignada |
 | `POST /estancias/salida` | Responde además con `duracion_segundos` y `permanencia` ("2 h 15 min") |
 | `GET /estancias/vehiculo/{placa}` | (Profesor) estado del vehículo: dentro o fuera y su celda |
 | `GET /estancias/{id}/celdas-disponibles` | Celdas libres y compatibles para corregir |
-| `POST /estancias/{id}/correccion-celda` | `celda_id`, `operador_id`, `motivo` → 201 |
+| `POST /estancias/{id}/correccion-celda` | `celda_id`, `motivo` → 201 (responsable: la persona de la sesión) |
 | `GET /estancias/{id}/correcciones` | Correcciones de la estancia |
-| `POST /estancias/{id}/novedades`, `GET /estancias/{id}/novedades` | `tipo` (`RAYON`, `GOLPE`, `OBJETO_OLVIDADO`, `OTRO`), `descripcion`, `operador_id` |
+| `POST /estancias/{id}/novedades`, `GET /estancias/{id}/novedades` | `tipo` (`RAYON`, `GOLPE`, `OBJETO_OLVIDADO`, `OTRO`), `descripcion` (responsable: la persona de la sesión) |
+| `GET /operadores`, `GET /operadores/{id}` | **Cambió (Iteración 2):** solo consulta y solo Administrador. Se quitaron `POST`, `PATCH` y `DELETE`: las personas se crean con su cuenta (D3) y nada se borra (D4) |
 | `GET /reportes/ocupacion` | Celdas por tipo (total, ocupadas, libres) y vehículos dentro |
 | `GET /reportes/historial?placa&desde&hasta&offset&limit` | Historial paginado; `desde`/`hasta` son días `AAAA-MM-DD` de Bogotá, incluidos |
 
 Las respuestas de `/vehiculos` incluyen `cliente_id`, `cliente_nombre`,
 `mensualidad_vigente`, `mensualidad_hasta` y `mensualidad_proxima`.
 
-Códigos de error: **404** (referencia inexistente), **409** (conflicto con el estado:
+Códigos de error: **401** (sin sesión, sesión vencida, cerrada o de una cuenta desactivada; credenciales inválidas), **403** (el rol no tiene permiso; cuenta desactivada al ingresar), **404** (referencia inexistente), **409** (conflicto con el estado:
 vehículo ya dentro, sin mensualidad vigente, sin celdas libres, celda ocupada o
 incompatible, estancia cerrada, cambio de tipo no permitido), **422** (datos inválidos) y
 **503** (fallo de base de datos, con mensaje genérico).
@@ -391,7 +423,12 @@ incompatible, estancia cerrada, cambio de tipo no permitido), **422** (datos inv
 ### Semillas (se cargan siempre al arrancar)
 
 `backend/app/seed.py` crea las 80 celdas, los operadores "Marta Úsuga (Portería 1)" y
-"Diego Arango (Portería 2)" y estos vehículos ficticios. Las fechas de las mensualidades se
+"Diego Arango (Portería 2)" y estos vehículos ficticios. Desde la Iteración 2 crea también
+tres cuentas: `marta.usuga` y `diego.arango` (rol Operador, sobre las mismas personas de la
+EA1, para que sus movimientos anteriores sigan a su nombre) y la del Administrador
+(`ADMIN_USUARIO`, persona `ADMIN_NOMBRE`). Las contraseñas salen de `.env`
+(`ADMIN_CONTRASENA`, `MARTA_CONTRASENA`, `DIEGO_CONTRASENA`); se guardan solo como hash
+bcrypt de costo 12 y una cuenta que ya existe nunca se modifica. Las fechas de las mensualidades se
 calculan a partir de **hoy**, para que la demostración siempre tenga todos los casos:
 
 | Placa | Tipo | Cliente | Mensualidad |
@@ -595,6 +632,10 @@ y su guía `AGENTS.md` también se conserva.
 | `backend/app/models.py` (Iteración 2) | `required_text` pasó a `app/domain/reglas.py`. `Operador`: teléfono opcional y nombre de 3 a 80. `Celda`: `ubicacion`, `habilitada` y formato del código. Modelos nuevos `CuentaUsuario`, `AuditoriaCuenta` y `AuditoriaCelda`. |
 | `backend/app/schemas/celda.py`, `schemas/operador.py`, `schemas/vehiculo.py` (Iteración 2) | Importan `required_text` desde el dominio. |
 | `backend/tests/test_celdas_postgres.py`, `test_operadores_postgres.py`, `test_models.py`, `test_estancia.py` (Iteración 2) | Mismo propósito. Reconocen las columnas y restricciones de las migraciones 0006 y 0007 (teléfono opcional, `ubicacion` y `habilitada`, índice `ix_estancia_celda`). Las celdas de prueba usan códigos con el formato nuevo (`C01`–`C99`, `M01`–`M99`), que da el ayudante `codigos_celda_libres` de `conftest.py`. Para cambiar una celda de tipo se cambia también su código. |
+| `backend/app/routers/*.py`, `backend/app/main.py` (Iteración 2) | Cada router exige sesión y declara su permiso con `requiere(...)`; router `/auth` y manejo de 401/403. `/operadores` quedó solo con `GET` para el Administrador (se quitaron `POST`, `PATCH` y `DELETE`, y del servicio las funciones de escritura). |
+| `backend/app/schemas/estancia.py`, `services/estancia.py`, `schemas/operador.py` (Iteración 2) | Entrada, salida, corrección y novedad ya no reciben `operador_id`: lo da la sesión. La respuesta de operador acepta teléfono vacío. |
+| `backend/tests/test_operadores.py`, `test_operadores_postgres.py` (Iteración 2) | **Cambiaron de propósito:** probaban crear, editar y borrar operadores; ahora prueban que `POST`, `PATCH` y `DELETE` responden 405 sin escribir nada, que la consulta sigue funcionando y que el Operador recibe 403. Se conservaron todos los casos. |
+| `backend/tests/test_estancias_postgres.py`, `test_correccion_novedad_postgres.py`, `test_estancias_api.py`, `test_vehiculos_postgres.py`, `test_celdas_postgres.py` (Iteración 2) | Hacen las solicitudes con una sesión. Cada portería usa la cuenta de su persona y el responsable se comprueba sin enviarlo. **Cambió el propósito de un caso:** enviar `operador_id` antes buscaba el operador (404 si no existía) y ahora se rechaza siempre (422), porque el responsable sale de la sesión. |
 | `frontend/src/app/control-acceso/*` | Sin selector de celda; celda asignada y permanencia; componente de corrección y novedades; etiqueta del operador. |
 | `frontend/src/app/vehiculos/*`, `celdas/*` | Selector de cliente, validaciones, columna de mensualidad; tipo de celda MOTO o CARRO. |
 | `frontend/src/app/models/*.ts`, `services/estancias.service.ts` | Contratos y llamadas nuevas. |
@@ -602,9 +643,15 @@ y su guía `AGENTS.md` también se conserva.
 
 ## Decisiones y supuestos
 
-- **Fuera de alcance de esta iteración:** login, roles y gestión de usuarios, así como la
+- **Fuera de alcance de la Iteración 1:** login, roles y gestión de usuarios, así como la
   pantalla de gestión de clientes (Iteración 2); pagos y pantalla de mensualidades
-  (Iteración 3). El operador se elige en cada formulario, como en el proyecto base.
+  (Iteración 3). En la Iteración 1 el operador se elegía en cada formulario, como en el
+  proyecto base; desde la Iteración 2 el responsable es la persona de la cuenta con sesión.
+- **Iteración 2 (sesión):** bcrypt 5.0.0 con costo 12 para las contraseñas y PyJWT 2.15.1
+  para el token firmado (HS256, 8 horas, clave `JWT_SECRETO` de `.env` con 32 caracteres o
+  más). El rol nunca va en el token: se lee de la base en cada solicitud. Desactivar una
+  cuenta o cerrar sesión sube su `version_sesion`, y los tokens anteriores dejan de valer
+  aunque la cuenta se reactive. `/health` sigue siendo público.
 - **Mensualidad:** por vehículo; vigente si inicio ≤ hoy ≤ fin, con "hoy" en Bogotá. La
   tarifa (carro o moto) no se guarda porque los pagos son de la Iteración 3.
 - **Asignación de celda:** entre las celdas libres del tipo correcto, primero las nunca
