@@ -158,3 +158,81 @@ def rango_bogota(desde: date | None, hasta: date | None) -> tuple[datetime | Non
     inicio = datetime.combine(desde, datetime.min.time(), ZONA_BOGOTA) if desde else None
     fin = datetime.combine(hasta + timedelta(days=1), datetime.min.time(), ZONA_BOGOTA) if hasta else None
     return inicio, fin
+
+
+# --- Iteración 2: cuentas de usuario y gestión de celdas ---
+# Los mismos límites se repiten en los CHECK de la base (migraciones 0006 y 0007) y en Angular.
+
+ROLES = ("ADMINISTRADOR", "OPERADOR")
+USUARIO_MINIMO, USUARIO_MAXIMO = 4, 30
+NOMBRE_MINIMO, NOMBRE_MAXIMO = 3, 80
+CONTRASENA_MINIMA, CONTRASENA_MAXIMA = 8, 64
+CONTRASENA_MAXIMA_BYTES = 72        # bcrypt solo procesa 72 bytes
+UBICACION_MAXIMA = 60
+PREFIJO_CELDA = {"CARRO": "C", "MOTO": "M"}
+
+PATRON_USUARIO = re.compile(rf"[a-z0-9._]{{{USUARIO_MINIMO},{USUARIO_MAXIMO}}}")
+PATRON_CODIGO_CELDA = re.compile(r"[CM](0[1-9]|[1-9][0-9])")
+
+
+def normalizar_usuario(usuario: str) -> str:
+    """Quita los espacios exteriores y pasa a minúsculas: ' Marta.Usuga ' -> 'marta.usuga'."""
+    return usuario.strip().lower()
+
+
+def validar_nombre_usuario(usuario: str) -> str:
+    """Normaliza y comprueba: 4 a 30 caracteres entre minúsculas, dígitos, punto y guion bajo."""
+    usuario = normalizar_usuario(usuario)
+    if not PATRON_USUARIO.fullmatch(usuario):
+        raise ValueError(
+            f"El nombre de usuario debe tener de {USUARIO_MINIMO} a {USUARIO_MAXIMO} caracteres: "
+            "letras minúsculas, dígitos, punto o guion bajo."
+        )
+    return usuario
+
+
+def validar_nombre_completo(nombre: str) -> str:
+    """Quita los espacios exteriores y exige de 3 a 80 caracteres."""
+    nombre = nombre.strip()
+    if not NOMBRE_MINIMO <= len(nombre) <= NOMBRE_MAXIMO:
+        raise ValueError(f"El nombre completo debe tener de {NOMBRE_MINIMO} a {NOMBRE_MAXIMO} caracteres.")
+    return nombre
+
+
+def validar_contrasena(contrasena: str) -> str:
+    """De 8 a 64 caracteres, con al menos una letra y un número. No se recorta: los espacios cuentan."""
+    if not CONTRASENA_MINIMA <= len(contrasena) <= CONTRASENA_MAXIMA:
+        raise ValueError(f"La contraseña debe tener de {CONTRASENA_MINIMA} a {CONTRASENA_MAXIMA} caracteres.")
+    if not any(c.isalpha() for c in contrasena) or not any(c in "0123456789" for c in contrasena):
+        raise ValueError("La contraseña debe tener al menos una letra y un número.")
+    if len(contrasena.encode("utf-8")) > CONTRASENA_MAXIMA_BYTES:
+        raise ValueError("La contraseña es demasiado larga: usa menos caracteres especiales.")
+    return contrasena
+
+
+def normalizar_codigo_celda(codigo: str) -> str:
+    """Quita los espacios exteriores y pasa a mayúsculas: ' c05 ' -> 'C05'."""
+    return codigo.strip().upper()
+
+
+def validar_codigo_celda(codigo: str, tipo: str) -> str:
+    """C (carro) o M (moto) seguido de dos dígitos del 01 al 99; el prefijo debe coincidir con el tipo."""
+    codigo = normalizar_codigo_celda(codigo)
+    if not PATRON_CODIGO_CELDA.fullmatch(codigo):
+        raise ValueError("El código debe ser C o M seguido de dos dígitos del 01 al 99 (ej. C05).")
+    prefijo = PREFIJO_CELDA.get(tipo)
+    if prefijo is None:
+        raise ValueError("El tipo de celda debe ser CARRO o MOTO.")
+    if codigo[0] != prefijo:
+        raise ValueError(f"Una celda de tipo {tipo} debe tener un código que empiece por {prefijo}.")
+    return codigo
+
+
+def normalizar_ubicacion(ubicacion: str | None) -> str | None:
+    """Opcional: quita los espacios exteriores, vacía se guarda como NULL, máximo 60 caracteres."""
+    if ubicacion is None or not ubicacion.strip():
+        return None
+    ubicacion = ubicacion.strip()
+    if len(ubicacion) > UBICACION_MAXIMA:
+        raise ValueError(f"La ubicación admite máximo {UBICACION_MAXIMA} caracteres.")
+    return ubicacion
