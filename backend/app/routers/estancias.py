@@ -1,9 +1,9 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path
-from sqlalchemy.orm import Session
 
-from app.database import get_session
+from app.domain.permisos import ESTANCIAS
+from app.routers.dependencias import DatabaseSession, Sesion, requiere
 from app.schemas.celda import CeldaRespuesta
 from app.schemas.estancia import (
     CorreccionCrear, CorreccionRespuesta, EntradaCrear, EstadoVehiculoRespuesta, MovimientoRespuesta,
@@ -12,19 +12,20 @@ from app.schemas.estancia import (
 from app.schemas.vehiculo import Placa
 from app.services.estancia import ServicioEstancia
 
-router = APIRouter(prefix="/estancias", tags=["Estancias"])
-DatabaseSession = Annotated[Session, Depends(get_session)]
+# Iteración 2: exige sesión. El responsable de cada movimiento es la persona de la cuenta con sesión
+# (D7, RF-23): nunca se recibe en el cuerpo de la solicitud.
+router = APIRouter(prefix="/estancias", tags=["Estancias"], dependencies=[Depends(requiere(ESTANCIAS))])
 EstanciaId = Annotated[int, Path(ge=1, le=9223372036854775807)]
 
 
 @router.post("/entrada", response_model=MovimientoRespuesta, status_code=201)
-def entrada(data: EntradaCrear, session: DatabaseSession) -> MovimientoRespuesta:
-    return ServicioEstancia(session).entrada(data)
+def entrada(data: EntradaCrear, session: DatabaseSession, sesion: Sesion) -> MovimientoRespuesta:
+    return ServicioEstancia(session).entrada(data, sesion.operador_id)
 
 
 @router.post("/salida", response_model=MovimientoRespuesta)
-def salida(data: SalidaCrear, session: DatabaseSession) -> MovimientoRespuesta:
-    return ServicioEstancia(session).salida(data)
+def salida(data: SalidaCrear, session: DatabaseSession, sesion: Sesion) -> MovimientoRespuesta:
+    return ServicioEstancia(session).salida(data, sesion.operador_id)
 
 
 @router.get("/vehiculo/{placa}", response_model=EstadoVehiculoRespuesta)
@@ -38,8 +39,9 @@ def celdas_disponibles(id: EstanciaId, session: DatabaseSession) -> list[CeldaRe
 
 
 @router.post("/{id}/correccion-celda", response_model=CorreccionRespuesta, status_code=201)
-def corregir_celda(id: EstanciaId, data: CorreccionCrear, session: DatabaseSession) -> CorreccionRespuesta:
-    return ServicioEstancia(session).corregir_celda(id, data)
+def corregir_celda(id: EstanciaId, data: CorreccionCrear, session: DatabaseSession,
+                   sesion: Sesion) -> CorreccionRespuesta:
+    return ServicioEstancia(session).corregir_celda(id, data, sesion.operador_id)
 
 
 @router.get("/{id}/correcciones", response_model=list[CorreccionRespuesta])
@@ -48,8 +50,9 @@ def correcciones(id: EstanciaId, session: DatabaseSession) -> list[CorreccionRes
 
 
 @router.post("/{id}/novedades", response_model=NovedadRespuesta, status_code=201)
-def registrar_novedad(id: EstanciaId, data: NovedadCrear, session: DatabaseSession) -> NovedadRespuesta:
-    return ServicioEstancia(session).registrar_novedad(id, data)
+def registrar_novedad(id: EstanciaId, data: NovedadCrear, session: DatabaseSession,
+                      sesion: Sesion) -> NovedadRespuesta:
+    return ServicioEstancia(session).registrar_novedad(id, data, sesion.operador_id)
 
 
 @router.get("/{id}/novedades", response_model=list[NovedadRespuesta])

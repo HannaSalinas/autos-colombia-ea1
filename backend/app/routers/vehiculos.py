@@ -4,17 +4,21 @@ from fastapi import APIRouter, Depends, Path, Query, Response
 from sqlalchemy.orm import Session
 
 from app.database import get_session
+from app.domain.permisos import VEHICULOS_GESTIONAR, VEHICULOS_VER
+from app.routers.dependencias import requiere
 from app.schemas.mensualidad import MensualidadRespuesta
 from app.schemas.vehiculo import VehiculoActualizar, VehiculoCrear, VehiculoDetalle, VehiculosPagina
 from app.services import mensualidad as mensualidades
 from app.services import vehiculo as service
 
-router = APIRouter(prefix="/vehiculos", tags=["Vehículos"])
+# Iteración 2: ambos roles consultan; solo el Administrador crea, edita o elimina.
+router = APIRouter(prefix="/vehiculos", tags=["Vehículos"], dependencies=[Depends(requiere(VEHICULOS_VER))])
+Gestionar = [Depends(requiere(VEHICULOS_GESTIONAR))]
 DatabaseSession = Annotated[Session, Depends(get_session)]
 VehicleId = Annotated[int, Path(ge=1, le=9223372036854775807)]
 
 
-@router.post("", response_model=VehiculoDetalle, status_code=201)
+@router.post("", response_model=VehiculoDetalle, status_code=201, dependencies=Gestionar)
 def create(data: VehiculoCrear, session: DatabaseSession):
     return service.create_vehicle(session, data)
 
@@ -33,12 +37,12 @@ def get_one(id: VehicleId, session: DatabaseSession):
     return service.get_vehicle(session, id)
 
 
-@router.patch("/{id}", response_model=VehiculoDetalle)
+@router.patch("/{id}", response_model=VehiculoDetalle, dependencies=Gestionar)
 def update(id: VehicleId, data: VehiculoActualizar, session: DatabaseSession):
     return service.update_vehicle(session, id, data)
 
 
-@router.delete("/{id}", status_code=204)
+@router.delete("/{id}", status_code=204, dependencies=Gestionar)
 def delete(id: VehicleId, session: DatabaseSession) -> Response:
     service.delete_vehicle(session, id)
     return Response(status_code=204)

@@ -7,7 +7,7 @@ from sqlalchemy import inspect, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from conftest import codigos_celda_libres
+from conftest import autenticar, codigos_celda_libres
 from app.database import get_engine, get_session
 from app.main import app
 
@@ -60,6 +60,7 @@ def test_crud_celdas(connection):
         app.dependency_overrides[get_session] = override
         try:
             with TestClient(app) as client:
+                autenticar(client, session)   # Iteración 2: con sesión de Administrador
                 code = codigos_celda_libres(session, 'CARRO')[0]   # Iteración 2: formato C01–C99
                 payload = {'codigo': f' {code.lower()} ', 'tipo': ' carro '}
                 result = client.post('/celdas', json=payload)

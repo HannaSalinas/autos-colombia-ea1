@@ -5,10 +5,12 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_session
+from app.domain.permisos import CONSULTAS
+from app.routers.dependencias import requiere
 from app.schemas.reporte import HistorialPagina, OcupacionRespuesta
 from app.services import reporte as service
 
-router = APIRouter(prefix="/reportes", tags=["Reportes"])
+router = APIRouter(prefix="/reportes", tags=["Reportes"], dependencies=[Depends(requiere(CONSULTAS))])
 DatabaseSession = Annotated[Session, Depends(get_session)]
 
 

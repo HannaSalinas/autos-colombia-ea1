@@ -10,16 +10,15 @@ from app.schemas.vehiculo import Placa, VehiculoRespuesta
 
 
 class EntradaCrear(BaseModel):
-    """Iteración 1: el operador ya no elige la celda; la asigna el sistema."""
+    """Iteración 1: el operador ya no elige la celda; la asigna el sistema.
+    Iteración 2: tampoco se envía el operador; el responsable es la persona de la sesión (D7)."""
     model_config = ConfigDict(extra="forbid")
     placa: Placa
-    operador_id: Identificador
 
 
 class SalidaCrear(BaseModel):
     model_config = ConfigDict(extra="forbid")
     placa: Placa
-    operador_id: Identificador
 
 
 class EstanciaRespuesta(BaseModel):
@@ -73,7 +72,6 @@ class CorreccionCrear(BaseModel):
     """El conductor parqueó en otra celda: el operador la corrige dejando el motivo."""
     model_config = ConfigDict(extra="forbid")
     celda_id: Identificador
-    operador_id: Identificador
     motivo: Motivo
 
 
@@ -96,7 +94,6 @@ class NovedadCrear(BaseModel):
     model_config = ConfigDict(extra="forbid")
     tipo: TipoNovedad
     descripcion: Descripcion
-    operador_id: Identificador
 
 
 class NovedadRespuesta(BaseModel):

@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from conftest import ALEMBIC_HEAD, placa_aleatoria
+from conftest import ALEMBIC_HEAD, autenticar, placa_aleatoria
 from app.models import Cliente
 from app.database import get_engine, get_session
 from app.main import app
@@ -36,6 +36,7 @@ def client():
                 app.dependency_overrides[get_session] = override_session
                 try:
                     with TestClient(app) as api:
+                        autenticar(api, session)   # Iteración 2: con sesión de Administrador
                         api.cliente_id = owner.id
                         yield api
                 finally:

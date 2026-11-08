@@ -4,15 +4,19 @@ from fastapi import APIRouter, Depends, Path, Query, Response
 from sqlalchemy.orm import Session
 
 from app.database import get_session
+from app.domain.permisos import CELDAS_GESTIONAR, CELDAS_VER
+from app.routers.dependencias import requiere
 from app.schemas.celda import CeldaActualizar, CeldaCrear, CeldaRespuesta, CeldasPagina
 from app.services import celda as service
 
-router = APIRouter(prefix="/celdas", tags=["Celdas"])
+# Iteración 2: ambos roles consultan; solo el Administrador las gestiona.
+router = APIRouter(prefix="/celdas", tags=["Celdas"], dependencies=[Depends(requiere(CELDAS_VER))])
+Gestionar = [Depends(requiere(CELDAS_GESTIONAR))]
 DatabaseSession = Annotated[Session, Depends(get_session)]
 CellId = Annotated[int, Path(ge=1, le=9223372036854775807)]
 
 
-@router.post("", response_model=CeldaRespuesta, status_code=201)
+@router.post("", response_model=CeldaRespuesta, status_code=201, dependencies=Gestionar)
 def create(data: CeldaCrear, session: DatabaseSession):
     return service.create_cell(session, data)
 
@@ -31,12 +35,12 @@ def get_one(id: CellId, session: DatabaseSession):
     return service.get_cell(session, id)
 
 
-@router.patch("/{id}", response_model=CeldaRespuesta)
+@router.patch("/{id}", response_model=CeldaRespuesta, dependencies=Gestionar)
 def update(id: CellId, data: CeldaActualizar, session: DatabaseSession):
     return service.update_cell(session, id, data)
 
 
-@router.delete("/{id}", status_code=204)
+@router.delete("/{id}", status_code=204, dependencies=Gestionar)
 def delete(id: CellId, session: DatabaseSession) -> Response:
     service.delete_cell(session, id)
     return Response(status_code=204)

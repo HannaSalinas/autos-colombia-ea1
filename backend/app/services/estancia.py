@@ -105,14 +105,14 @@ class ServicioEstancia:
         )
 
     @transaccion
-    def entrada(self, data: EntradaCrear) -> MovimientoRespuesta:
+    def entrada(self, data: EntradaCrear, operador_id: int) -> MovimientoRespuesta:
         # FOR SHARE: mientras entra, nadie puede cambiar el tipo del vehículo (PATCH usa FOR UPDATE).
         vehiculo = self.session.scalar(
             select(Vehiculo).where(Vehiculo.placa == data.placa).with_for_update(read=True)
         )
         if vehiculo is None:
             raise EstanciaError(404, "Vehículo no encontrado.")
-        operador = self._operador(data.operador_id)
+        operador = self._operador(operador_id)
         hoy = hoy_bogota()
         # Misma regla que app.domain.reglas.mensualidad_vigente: inicio <= hoy <= fin.
         if not self.session.scalar(select(exists().where(
@@ -135,9 +135,9 @@ class ServicioEstancia:
         return self._movimiento(estancia, vehiculo, celda)
 
     @transaccion
-    def salida(self, data: SalidaCrear) -> MovimientoRespuesta:
+    def salida(self, data: SalidaCrear, operador_id: int) -> MovimientoRespuesta:
         vehiculo = self._vehiculo(data.placa)
-        operador = self._operador(data.operador_id)
+        operador = self._operador(operador_id)
         # PostgreSQL vuelve a evaluar salida IS NULL tras esperar el bloqueo.
         estancia = self.session.scalar(select(Estancia).where(
             Estancia.vehiculo_id == vehiculo.id, Estancia.salida.is_(None)
@@ -201,9 +201,9 @@ class ServicioEstancia:
         return [CeldaRespuesta.model_validate(c) for c in celdas]
 
     @transaccion
-    def corregir_celda(self, estancia_id: int, data: CorreccionCrear) -> CorreccionRespuesta:
+    def corregir_celda(self, estancia_id: int, data: CorreccionCrear, operador_id: int) -> CorreccionRespuesta:
         estancia = self._estancia(estancia_id, abierta=True, bloquear=True)
-        operador = self._operador(data.operador_id)
+        operador = self._operador(operador_id)
         # Bloquea la celda destino: una entrada simultánea (SKIP LOCKED) no la tomará.
         nueva = self.session.scalar(select(Celda).where(Celda.id == data.celda_id).with_for_update())
         if nueva is None:
@@ -242,9 +242,9 @@ class ServicioEstancia:
         return [self._correccion(c, c.celda_anterior, c.celda_nueva) for c in filas]
 
     @transaccion
-    def registrar_novedad(self, estancia_id: int, data: NovedadCrear) -> NovedadRespuesta:
+    def registrar_novedad(self, estancia_id: int, data: NovedadCrear, operador_id: int) -> NovedadRespuesta:
         estancia = self._estancia(estancia_id, abierta=True, bloquear=True)
-        operador = self._operador(data.operador_id)
+        operador = self._operador(operador_id)
         novedad = Novedad(estancia_id=estancia.id, operador_id=operador.id, tipo=data.tipo,
                           descripcion=data.descripcion, fecha=datetime.now(timezone.utc))
         self.session.add(novedad)

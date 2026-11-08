@@ -8,7 +8,7 @@ import pytest
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 
-from conftest import codigos_celda_libres, placa_aleatoria
+from conftest import autenticar, codigos_celda_libres, placa_aleatoria
 from app.domain.reglas import MOTIVO_MAXIMO, fin_de_mensualidad, hoy_bogota
 from app.models import Celda, Cliente, CorreccionCelda, Estancia, Mensualidad, Operador, Vehiculo
 
@@ -34,6 +34,9 @@ def escena(api_y_sesion):
     session.add(Mensualidad(vehiculo_id=carro.id, fecha_inicio=inicio, fecha_fin=fin_de_mensualidad(inicio)))
     estancia = Estancia(vehiculo_id=carro.id, celda_id=celdas["X"].id, operador_entrada_id=operador.id)
     session.add_all([estancia, Estancia(vehiculo_id=otro.id, celda_id=celdas["Z"].id, operador_entrada_id=operador.id)])
+    # Iteración 2: las solicitudes se hacen con la cuenta (rol Operador) de esa persona; ella queda
+    # como responsable sin enviarla en el cuerpo (D7).
+    autenticar(api, session, rol="OPERADOR", operador_id=operador.id)
     # El servicio de estancias abre su propia transacción (session.begin()): se cierra la de la
     # preparación. Con join_transaction_mode="create_savepoint" esto solo libera un savepoint;
     # todo se revierte igual al final de la prueba. Se devuelven ids y códigos (no objetos del
@@ -48,7 +51,7 @@ def escena(api_y_sesion):
 
 def corregir(api, d, destino, motivo="Parqueó en otra celda"):
     return api.post(f"/estancias/{d.estancia}/correccion-celda",
-                    json={"celda_id": d.celda[destino].id, "operador_id": d.operador, "motivo": motivo})
+                    json={"celda_id": d.celda[destino].id, "motivo": motivo})
 
 
 def test_celdas_disponibles_solo_libres_y_compatibles(escena):
@@ -94,12 +97,13 @@ def test_corregir_rechaza_celdas_no_validas(escena, destino, mensaje):
 
 @pytest.mark.parametrize("cambios,estado", [
     ({"motivo": "   "}, 422), ({"motivo": "a" * (MOTIVO_MAXIMO + 1)}, 422), ({"motivo": None}, 422),
-    ({"celda_id": 9223372036854775807}, 404), ({"operador_id": 9223372036854775807}, 404),
+    # Iteración 2: el operador ya no se envía; si se envía, se rechaza (422) en vez de buscarlo (404).
+    ({"celda_id": 9223372036854775807}, 404), ({"operador_id": 9223372036854775807}, 422),
     ({"fecha": "2026-01-01"}, 422),
 ])
 def test_corregir_valida_datos(escena, cambios, estado):
     api, _, d = escena
-    payload = {"celda_id": d.celda["Y"].id, "operador_id": d.operador, "motivo": "Motivo", **cambios}
+    payload = {"celda_id": d.celda["Y"].id, "motivo": "Motivo", **cambios}
     assert api.post(f"/estancias/{d.estancia}/correccion-celda", json=payload).status_code == estado
 
 
@@ -108,24 +112,25 @@ def test_novedades(escena):
     url = f"/estancias/{d.estancia}/novedades"
     assert api.get(url).json() == []
     for tipo, descripcion in [("RAYON", "Rayón en la puerta derecha"), ("OBJETO_OLVIDADO", " Celular  en la silla ")]:
-        creada = api.post(url, json={"tipo": tipo, "descripcion": descripcion, "operador_id": d.operador})
+        creada = api.post(url, json={"tipo": tipo, "descripcion": descripcion})
         assert creada.status_code == 201 and creada.json()["tipo"] == tipo
+        assert creada.json()["operador_id"] == d.operador   # responsable tomado de la sesión
     lista = api.get(url).json()
     assert [n["descripcion"] for n in lista] == ["Rayón en la puerta derecha", "Celular en la silla"]
     for invalido in ({"tipo": "CAMION"}, {"descripcion": " "}, {"descripcion": "a" * 501}, {"operador_id": 0}):
-        payload = {"tipo": "GOLPE", "descripcion": "Golpe", "operador_id": d.operador, **invalido}
+        payload = {"tipo": "GOLPE", "descripcion": "Golpe", **invalido}
         assert api.post(url, json=payload).status_code == 422
     assert api.post("/estancias/9223372036854775807/novedades",
-                    json={"tipo": "GOLPE", "descripcion": "x", "operador_id": d.operador}).status_code == 404
+                    json={"tipo": "GOLPE", "descripcion": "x"}).status_code == 404
 
 
 def test_estancia_cerrada_no_se_modifica_pero_conserva_historial(escena):
     api, _, d = escena
     url = f"/estancias/{d.estancia}/novedades"
-    assert api.post(url, json={"tipo": "GOLPE", "descripcion": "Golpe leve", "operador_id": d.operador}).status_code == 201
-    assert api.post("/estancias/salida", json={"placa": d.placa, "operador_id": d.operador}).status_code == 200
+    assert api.post(url, json={"tipo": "GOLPE", "descripcion": "Golpe leve"}).status_code == 201
+    assert api.post("/estancias/salida", json={"placa": d.placa}).status_code == 200
     assert corregir(api, d, "Y").json()["detail"].startswith("La estancia ya está cerrada")
-    cerrada = api.post(url, json={"tipo": "OTRO", "descripcion": "Tarde", "operador_id": d.operador})
+    cerrada = api.post(url, json={"tipo": "OTRO", "descripcion": "Tarde"})
     assert cerrada.status_code == 409
     assert len(api.get(url).json()) == 1
     assert api.get(f"/estancias/{d.estancia}/celdas-disponibles").status_code == 409
@@ -152,6 +157,7 @@ def test_restricciones_de_la_base(escena, sql):
 def test_no_cambia_el_tipo_de_una_celda_ocupada(escena):
     """Fase 4: la celda X tiene un automóvil dentro; su tipo no puede pasar a MOTO."""
     api, session, d = escena
+    autenticar(api, session)   # Iteración 2: editar celdas es del Administrador
     ocupada = api.patch(f"/celdas/{d.celda['X'].id}", json={"tipo": "MOTO"})
     assert ocupada.status_code == 409 and "ocupada" in ocupada.json()["detail"]
     assert api.get(f"/celdas/{d.celda['X'].id}").json()["tipo"] == "CARRO"

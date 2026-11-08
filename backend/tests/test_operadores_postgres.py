@@ -1,4 +1,8 @@
-"""CRUD en autos_colombia, sin DDL y con rollback de todos los datos nuevos."""
+"""Operadores (personas) en autos_colombia, sin DDL y con rollback de todos los datos nuevos.
+
+Iteración 2: la ruta quedó de solo consulta para el Administrador; la prueba conserva su estructura
+y sus casos, pero las escrituras ahora deben responder 405.
+"""
 import os
 from uuid import uuid4
 
@@ -7,9 +11,10 @@ from fastapi.testclient import TestClient
 from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session
 
-from conftest import ALEMBIC_HEAD
+from conftest import ALEMBIC_HEAD, autenticar
 from app.database import get_engine, get_session
 from app.main import app
+from app.models import Operador
 
 pytestmark = pytest.mark.skipif(
     os.getenv("RUN_POSTGRES_TESTS") != "1", reason="Requiere PostgreSQL local."
@@ -43,55 +48,47 @@ def test_operadores_structure_and_crud():
 
                 app.dependency_overrides[get_session] = override
                 with TestClient(app) as client:
+                    # Iteración 2: /operadores es de solo consulta y solo para el Administrador. Las
+                    # personas se crean con su cuenta; aquí se preparan directamente en la base.
+                    autenticar(client, session)
                     initial = client.get("/operadores").json()
                     assert initial["offset"] == 0 and initial["limit"] == 20
                     name = "TEST-OPERADOR-" + uuid4().hex
-                    payload = {"nombre": f" {name} ", "telefono": " +57 00123 "}
-                    created = client.post("/operadores", json=payload)
-                    assert created.status_code == 201
-                    item = created.json()
-                    assert item == {"id": item["id"], "nombre": name, "telefono": "+57 00123"}
-                    assert type(item["id"]) is int and item["id"] > 0
+                    personas = [Operador(nombre=f" {name} ", telefono=" +57 00123 ") for _ in range(2)]
+                    session.add_all(personas)
+                    session.flush()
+                    item = {"id": personas[0].id, "nombre": name, "telefono": "+57 00123"}
+                    duplicate_id = personas[1].id
+                    assert type(item["id"]) is int and item["id"] > 0 and duplicate_id != item["id"]
                     path = f"/operadores/{item['id']}"
                     assert client.get(path).json() == item
                     # Nombre y teléfono repetidos están permitidos.
-                    duplicate = client.post("/operadores", json=payload)
-                    assert duplicate.status_code == 201
-                    duplicate_id = duplicate.json()["id"]
-                    assert duplicate_id != item["id"]
                     page = client.get(f"/operadores?offset={initial['total']}&limit=2")
                     assert page.status_code == 200
-                    assert page.json() == {"items": [item, duplicate.json()],
+                    assert page.json() == {"items": [item, {**item, "id": duplicate_id}],
                                            "total": initial["total"] + 2,
                                            "offset": initial["total"], "limit": 2}
                     for query in ("limit=0", "limit=101", "offset=-1"):
                         assert client.get("/operadores?" + query).status_code == 422
                     for invalid_id in ("0", "-1", "9223372036854775808", "abc"):
                         assert client.get("/operadores/" + invalid_id).status_code == 422
+                    # Antes: crear, editar y borrar personas. Ahora esos métodos no existen (405)
+                    # y la persona queda igual (D4: nada se borra; D6: no se editan las cuentas).
                     for invalid in ({"nombre": None}, {"telefono": None},
-                                    {"nombre": " \t"}, {"telefono": ""}, {"id": 2}):
-                        assert client.patch(path, json=invalid).status_code == 422
-                    assert client.post("/operadores", json={}).status_code == 422
-                    assert client.patch(path, json={}).json() == item
-                    changed = client.patch(path, json={"telefono": " 00045 "})
-                    assert changed.status_code == 200
-                    item["telefono"] = "00045"
-                    assert changed.json() == item
-                    changed = client.patch(path, json={"nombre": " " + name + " editado "})
-                    assert changed.status_code == 200
-                    item["nombre"] = name + " editado"
-                    assert changed.json() == item
-                    assert client.get(path).json() == item
+                                    {"nombre": " \t"}, {"telefono": ""}, {"id": 2}, {"telefono": " 00045 "}):
+                        assert client.patch(path, json=invalid).status_code == 405
+                    assert client.post("/operadores", json={"nombre": name, "telefono": "1"}).status_code == 405
                     for new_id in (item["id"], duplicate_id):
-                        deleted = client.delete(f"/operadores/{new_id}")
-                        assert deleted.status_code == 204 and deleted.content == b""
-                    assert client.get(path).status_code == 404
-                    assert client.patch(path, json={"nombre": name}).status_code == 404
-                    assert client.delete(path).status_code == 404
-                    assert client.get("/operadores").json()["total"] == initial["total"]
+                        assert client.delete(f"/operadores/{new_id}").status_code == 405
+                    assert client.get(path).json() == item
+                    assert client.get("/operadores").json()["total"] == initial["total"] + 2
+                    assert client.get("/operadores/9223372036854775807").status_code == 404
                     assert client.get("/health").json() == {"status": "ok"}
                     assert client.get("/vehiculos?limit=1").status_code == 200
                     assert client.get("/celdas?limit=1").status_code == 200
+                    # El Operador no consulta personas.
+                    autenticar(client, session, rol="OPERADOR")
+                    assert client.get("/operadores").status_code == 403
         finally:
             app.dependency_overrides.pop(get_session, None)
             transaction.rollback()
