@@ -27,12 +27,15 @@ def test_operadores_structure_and_crud():
             assert set(columns) == {"id", "nombre", "telefono"}
             assert str(columns["id"]["type"]) == "BIGINT"
             assert columns["id"]["identity"]["always"] is True
-            assert all(not c["nullable"] for c in columns.values())
+            # Iteración 2 (0006): el teléfono es opcional; el formulario de cuentas no lo pide.
+            assert all(not c["nullable"] for n, c in columns.items() if n != "telefono")
+            assert columns["telefono"]["nullable"]
             assert str(columns["nombre"]["type"]) == str(columns["telefono"]["type"]) == "TEXT"
             assert inspector.get_pk_constraint("operador")["constrained_columns"] == ["id"]
             assert not inspector.get_unique_constraints("operador")
             assert {c["name"] for c in inspector.get_check_constraints("operador")} == {
-                "ck_operador_nombre_no_vacio", "ck_operador_telefono_no_vacio"
+                "ck_operador_nombre_no_vacio", "ck_operador_telefono_no_vacio",
+                "ck_operador_nombre_longitud",   # Iteración 2 (0006): de 3 a 80 caracteres
             }
             with Session(bind=connection, join_transaction_mode="create_savepoint") as session:
                 def override():

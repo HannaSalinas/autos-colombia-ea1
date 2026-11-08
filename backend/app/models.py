@@ -2,11 +2,15 @@
 
 from datetime import date, datetime, timezone
 
-from sqlalchemy import BigInteger, CheckConstraint, Date, DateTime, ForeignKey, Identity, Index, Integer, Text, UniqueConstraint, func, text
+from sqlalchemy import (
+    BigInteger, Boolean, CheckConstraint, Date, DateTime, ForeignKey, Identity, Index, Integer, Text, UniqueConstraint,
+    func, text, true,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, validates
 
 from app.domain.reglas import (
-    DESCRIPCION_MAXIMA, MODELO_MINIMO, MOTIVO_MAXIMO, TIPOS_NOVEDAD, TOTAL_CELDAS, normalizar_placa, required_text,
+    DESCRIPCION_MAXIMA, MODELO_MINIMO, MOTIVO_MAXIMO, NOMBRE_MAXIMO, NOMBRE_MINIMO, ROLES, TIPOS_NOVEDAD, TOTAL_CELDAS,
+    UBICACION_MAXIMA, USUARIO_MAXIMO, USUARIO_MINIMO, normalizar_placa, required_text,
 )
 
 TIPOS_CELDA = set(TOTAL_CELDAS)
@@ -98,6 +102,13 @@ class Celda(Base):
         # Agregados en la migración 0004. NOT VALID: no revisa celdas antiguas, sí las nuevas.
         CheckConstraint("tipo IN ('MOTO', 'CARRO')", name="ck_celda_tipo", postgresql_not_valid=True),
         Index("ix_celda_tipo_disponible", "tipo", "disponible_desde"),
+        # Agregados en la migración 0007.
+        CheckConstraint(f"ubicacion IS NULL OR (char_length(ubicacion) BETWEEN 1 AND {UBICACION_MAXIMA} "
+                        "AND ubicacion !~ '^[[:space:]]|[[:space:]]$')", name="ck_celda_ubicacion"),
+        CheckConstraint("(tipo = 'CARRO' AND codigo ~ '^C(0[1-9]|[1-9][0-9])$') OR "
+                        "(tipo = 'MOTO' AND codigo ~ '^M(0[1-9]|[1-9][0-9])$')",
+                        name="ck_celda_codigo_formato", postgresql_not_valid=True),
+        Index("uq_celda_codigo_ci", text("upper(codigo)"), unique=True),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
@@ -105,6 +116,9 @@ class Celda(Base):
     tipo: Mapped[str] = mapped_column(Text, nullable=False)
     # Momento en que quedó libre por última vez. NULL = nunca se ha usado (se asigna primero).
     disponible_desde: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Migración 0007. Una celda inhabilitada no se asigna; nunca se elimina (D4).
+    ubicacion: Mapped[str | None] = mapped_column(Text, nullable=True)
+    habilitada: Mapped[bool] = mapped_column(Boolean, server_default=true(), nullable=False)
 
     @validates("codigo", "tipo")
     def validate_text(self, key: str, value: str) -> str:
@@ -118,19 +132,82 @@ class Celda(Base):
 
 
 class Operador(Base):
+    """La persona. Desde la Iteración 2 su acceso al sistema es una CuentaUsuario (migración 0006)."""
     __tablename__ = "operador"
     __table_args__ = (
         CheckConstraint("nombre ~ '[^[:space:]]'", name="ck_operador_nombre_no_vacio"),
         CheckConstraint("telefono ~ '[^[:space:]]'", name="ck_operador_telefono_no_vacio"),
+        # Agregado en la migración 0006. NOT VALID: no revisa personas antiguas, sí las nuevas.
+        CheckConstraint(f"char_length(nombre) BETWEEN {NOMBRE_MINIMO} AND {NOMBRE_MAXIMO} "
+                        "AND nombre !~ '^[[:space:]]|[[:space:]]$'",
+                        name="ck_operador_nombre_longitud", postgresql_not_valid=True),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
     nombre: Mapped[str] = mapped_column(Text, nullable=False)
-    telefono: Mapped[str] = mapped_column(Text, nullable=False)
+    # Opcional desde la migración 0006: si no se asigna queda NULL; si se asigna, no puede estar vacío.
+    telefono: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     @validates("nombre", "telefono")
     def validate_text(self, key: str, value: str) -> str:
         return required_text(value, key)
+
+
+class CuentaUsuario(Base):
+    """Credenciales, rol y estado de acceso de una persona. Migración 0006.
+
+    La contraseña nunca se guarda: solo su hash bcrypt (costo >= 12, lo exige un CHECK).
+    version_sesion se incrementa al desactivar la cuenta o cerrar sesión: invalida los tokens viejos.
+    """
+    __tablename__ = "cuenta_usuario"
+    __table_args__ = (
+        UniqueConstraint("operador_id", name="uq_cuenta_usuario_operador"),
+        CheckConstraint(f"nombre_usuario ~ '^[a-z0-9._]{{{USUARIO_MINIMO},{USUARIO_MAXIMO}}}$'",
+                        name="ck_cuenta_usuario_nombre_formato"),
+        CheckConstraint("rol IN (" + ", ".join(f"'{r}'" for r in ROLES) + ")", name="ck_cuenta_usuario_rol"),
+        CheckConstraint(r"hash_contrasena ~ '^\$2[aby]\$(1[2-9]|[23][0-9])\$[./A-Za-z0-9]{53}$'",
+                        name="ck_cuenta_usuario_hash_bcrypt"),
+        CheckConstraint("version_sesion >= 0", name="ck_cuenta_usuario_version_sesion"),
+        # Único sin distinguir mayúsculas (RNF-17).
+        Index("uq_cuenta_usuario_nombre", text("lower(nombre_usuario)"), unique=True),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    operador_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("operador.id", name="fk_cuenta_usuario_operador", ondelete="RESTRICT"), nullable=False
+    )
+    nombre_usuario: Mapped[str] = mapped_column(Text, nullable=False)
+    hash_contrasena: Mapped[str] = mapped_column(Text, nullable=False)
+    rol: Mapped[str] = mapped_column(Text, nullable=False)
+    activa: Mapped[bool] = mapped_column(Boolean, server_default=true(), nullable=False)
+    version_sesion: Mapped[int] = mapped_column(Integer, server_default="0", nullable=False)
+    creada_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    persona: Mapped[Operador] = relationship()
+
+
+class AuditoriaCuenta(Base):
+    """Quién y cuándo creó, desactivó o reactivó una cuenta (RF-31). Migración 0006."""
+    __tablename__ = "auditoria_cuenta"
+    __table_args__ = (
+        CheckConstraint("accion IN ('CREAR', 'DESACTIVAR', 'REACTIVAR')", name="ck_auditoria_cuenta_accion"),
+        CheckConstraint("detalle IS NULL OR char_length(detalle) <= 500", name="ck_auditoria_cuenta_detalle"),
+        Index("ix_auditoria_cuenta_cuenta", "cuenta_id", "fecha"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    cuenta_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("cuenta_usuario.id", name="fk_auditoria_cuenta_cuenta", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    # NULL = lo hizo el sistema (semillas).
+    actor_cuenta_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("cuenta_usuario.id", name="fk_auditoria_cuenta_actor", ondelete="RESTRICT"),
+        nullable=True,
+    )
+    fecha: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    accion: Mapped[str] = mapped_column(Text, nullable=False)
+    detalle: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 class Estancia(Base):
@@ -146,6 +223,7 @@ class Estancia(Base):
         Index("uq_estancia_celda_abierta", "celda_id", unique=True,
               postgresql_where=text("salida IS NULL")),
         Index("ix_estancia_vehiculo_entrada", "vehiculo_id", "entrada"),
+        Index("ix_estancia_celda", "celda_id"),   # migración 0007: historial de la celda
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
@@ -215,6 +293,8 @@ class CorreccionCelda(Base):
         CheckConstraint(f"motivo ~ '[^[:space:]]' AND char_length(motivo) <= {MOTIVO_MAXIMO}",
                         name="ck_correccion_celda_motivo"),
         Index("ix_correccion_celda_estancia", "estancia_id"),
+        Index("ix_correccion_celda_anterior", "celda_anterior_id"),   # migración 0007
+        Index("ix_correccion_celda_nueva", "celda_nueva_id"),         # migración 0007
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
@@ -257,3 +337,27 @@ class Novedad(Base):
     fecha: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     tipo: Mapped[str] = mapped_column(Text, nullable=False)
     descripcion: Mapped[str] = mapped_column(Text, nullable=False)
+
+
+class AuditoriaCelda(Base):
+    """Quién y cuándo creó, editó, inhabilitó o rehabilitó una celda (RF-31). Migración 0007."""
+    __tablename__ = "auditoria_celda"
+    __table_args__ = (
+        CheckConstraint("accion IN ('CREAR', 'EDITAR', 'INHABILITAR', 'REHABILITAR')",
+                        name="ck_auditoria_celda_accion"),
+        CheckConstraint("detalle IS NULL OR char_length(detalle) <= 500", name="ck_auditoria_celda_detalle"),
+        Index("ix_auditoria_celda_celda", "celda_id", "fecha"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    celda_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("celda.id", name="fk_auditoria_celda_celda", ondelete="RESTRICT"), nullable=False
+    )
+    # NULL = lo hizo el sistema (semillas).
+    actor_cuenta_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("cuenta_usuario.id", name="fk_auditoria_celda_actor", ondelete="RESTRICT"),
+        nullable=True,
+    )
+    fecha: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    accion: Mapped[str] = mapped_column(Text, nullable=False)
+    detalle: Mapped[str | None] = mapped_column(Text, nullable=True)

@@ -15,7 +15,7 @@ import pytest
 from sqlalchemy import delete, event, func, select, text
 from sqlalchemy.orm import Session
 
-from conftest import ALEMBIC_HEAD, placa_aleatoria
+from conftest import ALEMBIC_HEAD, codigos_celda_libres, placa_aleatoria
 from app.database import get_engine
 from app.domain.reglas import fin_de_mensualidad, hoy_bogota
 from app.main import app
@@ -46,7 +46,8 @@ def datos(request):
         vehicles = [Vehiculo(placa=placa_aleatoria(t), color='Prueba', modelo=2026, marca='Prueba',
                              tipo=t, cliente_id=owner.id) for t in tipos]
         # Códigos ordenados (A, B, ...): sin uso previo se asigna primero por código.
-        cells = [Celda(codigo=f'{token}-{chr(65 + n)}', tipo='MOTO') for n in range(cantidad_celdas)]
+        # Iteración 2: los códigos deben tener formato válido (M01–M99, migración 0007).
+        cells = [Celda(codigo=codigo, tipo='MOTO') for codigo in codigos_celda_libres(s, 'MOTO', cantidad_celdas)]
         operators = [Operador(nombre=f'{token}-{n}', telefono='001') for n in range(2)]
         s.add_all(vehicles + cells + operators)
         s.flush()

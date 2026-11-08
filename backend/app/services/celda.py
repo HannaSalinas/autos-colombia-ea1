@@ -24,7 +24,8 @@ def database_operation(operation):
             session.rollback()
             code = getattr(error.orig, "sqlstate", None)
             constraint = getattr(getattr(error.orig, "diag", None), "constraint_name", None)
-            if code == "23505" and constraint == "uq_celda_codigo":
+            # uq_celda_codigo (0001) o uq_celda_codigo_ci (0007, sin distinguir mayúsculas).
+            if code == "23505" and constraint in {"uq_celda_codigo", "uq_celda_codigo_ci"}:
                 raise CeldaError(409, "Ya existe una celda con ese código.") from None
             if code == "23503":
                 raise CeldaError(409, "La celda tiene registros relacionados y no se puede eliminar.") from None

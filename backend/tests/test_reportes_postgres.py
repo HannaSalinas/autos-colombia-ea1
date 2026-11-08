@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import pytest
 
-from conftest import placa_aleatoria
+from conftest import codigos_celda_libres, placa_aleatoria
 from app.domain.reglas import ZONA_BOGOTA
 from app.models import Celda, Cliente, CorreccionCelda, Estancia, Novedad, Operador, Vehiculo
 
@@ -25,7 +25,7 @@ def datos(api_y_sesion):
     session.flush()
     moto = Vehiculo(placa=placa_aleatoria("MOTO"), color="Azul", modelo=2024, marca="M", tipo="MOTO",
                     cliente_id=cliente.id)
-    celdas = [Celda(codigo=f"T{token}-{n}", tipo="MOTO") for n in range(2)]
+    celdas = [Celda(codigo=codigo, tipo="MOTO") for codigo in codigos_celda_libres(session, "MOTO", 2)]
     entrada_op = Operador(nombre=f"Entrada {token}", telefono="1")
     salida_op = Operador(nombre=f"Salida {token}", telefono="2")
     session.add_all([moto, entrada_op, salida_op, *celdas])

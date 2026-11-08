@@ -96,8 +96,9 @@ def test_migracion_coincide_con_modelo_y_compila_sql(monkeypatch):
                       str(CreateTable(table).compile(dialect=dialect)).splitlines())
 
     assert ddl_parts(actual) == ddl_parts(expected)
+    # ix_estancia_celda lo agregó después la migración 0007 (historial de la celda); 0002 no lo crea.
     assert {str(CreateIndex(i).compile(dialect=dialect)) for i in actual.indexes} == {
-        str(CreateIndex(i).compile(dialect=dialect)) for i in expected.indexes
+        str(CreateIndex(i).compile(dialect=dialect)) for i in expected.indexes if i.name != "ix_estancia_celda"
     }
 
 

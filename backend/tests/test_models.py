@@ -59,17 +59,23 @@ def test_rejects_unknown_type_and_preserves_phone_text():
 def test_required_columns_and_identity():
     for name in ("vehiculo", "celda", "operador"):
         table = Base.metadata.tables[name]
-        # disponible_desde (0004) es la única columna opcional: NULL = celda nunca usada.
-        assert all(not column.nullable for column in table.columns if column.name != "disponible_desde")
+        # Opcionales: disponible_desde (0004, NULL = celda nunca usada), ubicacion de la celda (0007)
+        # y el teléfono de la persona (0006: el formulario de cuentas no lo pide).
+        opcionales = {"disponible_desde", "ubicacion", "telefono"}
+        assert all(not column.nullable for column in table.columns if column.name not in opcionales)
         assert isinstance(table.c.id.type, sa.BigInteger)
         assert table.c.id.identity.always is True
 
 
-# Columnas y CHECK que agregó después la migración 0003 (Iteración 1); 0001 no los crea.
+# Columnas y CHECK que agregaron después las migraciones 0003 y 0004 (Iteración 1) y 0006 y 0007
+# (Iteración 2); 0001 no los crea. "opcionales" son columnas que 0001 crea NOT NULL y una migración
+# posterior volvió opcionales.
 AGREGADO_EN_0003 = {
     "vehiculo": {"columnas": {"cliente_id"},
                  "checks": {"ck_vehiculo_placa_formato", "ck_vehiculo_modelo_minimo"}},
-    "celda": {"columnas": {"disponible_desde"}, "checks": {"ck_celda_tipo"}},  # migración 0004
+    "celda": {"columnas": {"disponible_desde", "ubicacion", "habilitada"},
+              "checks": {"ck_celda_tipo", "ck_celda_ubicacion", "ck_celda_codigo_formato"}},
+    "operador": {"columnas": set(), "checks": {"ck_operador_nombre_longitud"}, "opcionales": {"telefono"}},
 }
 
 
@@ -85,8 +91,10 @@ def test_migration_matches_models_without_connecting(monkeypatch):
     for name, table in metadata.tables.items():
         model_table = Base.metadata.tables[name]
         later = AGREGADO_EN_0003.get(name, {"columnas": set(), "checks": set()})
+        opcionales = later.get("opcionales", set())
         assert [(c.name, str(c.type), c.nullable) for c in table.columns] == [
-            (c.name, str(c.type), c.nullable) for c in model_table.columns if c.name not in later["columnas"]
+            (c.name, str(c.type), c.nullable and c.name not in opcionales)
+            for c in model_table.columns if c.name not in later["columnas"]
         ]
         def constraints(t):
             return {(c.name, str(c.sqltext)) for c in t.constraints

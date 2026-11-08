@@ -13,6 +13,22 @@ ALEMBIC_HEAD = ScriptDirectory.from_config(
 ).get_current_head()
 
 
+def codigos_celda_libres(sesion, tipo: str, cantidad: int = 1) -> list[str]:
+    """Códigos de celda válidos (C01–C99 o M01–M99, migración 0007) que aún no existen, en orden.
+
+    Se toman los más altos para no chocar con las 80 celdas sembradas (C01–C70, M01–M10).
+    `sesion` puede ser una Session o una Connection de SQLAlchemy.
+    """
+    from sqlalchemy import text as sql
+    prefijo = {"CARRO": "C", "MOTO": "M"}[tipo]
+    usados = set(sesion.execute(sql("SELECT codigo FROM celda")).scalars())
+    libres = [c for c in (f"{prefijo}{n:02d}" for n in range(1, 100)) if c not in usados]
+    if len(libres) < cantidad:
+        import pytest
+        pytest.skip(f"No quedan {cantidad} códigos libres de tipo {tipo} en esta base.")
+    return libres[-cantidad:]
+
+
 def placa_aleatoria(tipo: str = "AUTOMOVIL") -> str:
     """Placa válida al azar para no chocar con datos existentes (ABC123 o ABC12D)."""
     letras = "".join(random.choices(string.ascii_uppercase, k=3))

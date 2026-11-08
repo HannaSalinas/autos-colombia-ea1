@@ -8,7 +8,7 @@ import pytest
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 
-from conftest import placa_aleatoria
+from conftest import codigos_celda_libres, placa_aleatoria
 from app.domain.reglas import MOTIVO_MAXIMO, fin_de_mensualidad, hoy_bogota
 from app.models import Celda, Cliente, CorreccionCelda, Estancia, Mensualidad, Operador, Vehiculo
 
@@ -23,7 +23,10 @@ def escena(api_y_sesion):
     session.flush()
     carro, otro = (Vehiculo(placa=placa_aleatoria(), color="Rojo", modelo=2024, marca="M", tipo="AUTOMOVIL",
                             cliente_id=cliente.id) for _ in range(2))
-    celdas = {k: Celda(codigo=f"T{token}-{k}", tipo="MOTO" if k == "M" else "CARRO") for k in "XYZM"}
+    # Iteración 2: códigos con formato válido (migración 0007). X, Y y Z son de carro; M, de moto.
+    carro_x, carro_y, carro_z = codigos_celda_libres(session, "CARRO", 3)
+    codigos = {"X": carro_x, "Y": carro_y, "Z": carro_z, "M": codigos_celda_libres(session, "MOTO")[0]}
+    celdas = {k: Celda(codigo=codigos[k], tipo="MOTO" if k == "M" else "CARRO") for k in "XYZM"}
     operador = Operador(nombre=f"TEST-{token}", telefono="001")
     session.add_all([carro, otro, operador, *celdas.values()])
     session.flush()
@@ -148,10 +151,13 @@ def test_restricciones_de_la_base(escena, sql):
 
 def test_no_cambia_el_tipo_de_una_celda_ocupada(escena):
     """Fase 4: la celda X tiene un automóvil dentro; su tipo no puede pasar a MOTO."""
-    api, _, d = escena
+    api, session, d = escena
     ocupada = api.patch(f"/celdas/{d.celda['X'].id}", json={"tipo": "MOTO"})
     assert ocupada.status_code == 409 and "ocupada" in ocupada.json()["detail"]
     assert api.get(f"/celdas/{d.celda['X'].id}").json()["tipo"] == "CARRO"
     # El código sí se puede corregir, y la celda libre Y sí puede cambiar de tipo.
     assert api.patch(f"/celdas/{d.celda['X'].id}", json={"tipo": "CARRO"}).status_code == 200
-    assert api.patch(f"/celdas/{d.celda['Y'].id}", json={"tipo": "MOTO"}).json()["tipo"] == "MOTO"
+    # Iteración 2: el código debe empezar por la letra del tipo, así que cambian juntos.
+    codigo_moto = codigos_celda_libres(session, "MOTO")[0]
+    cambio = api.patch(f"/celdas/{d.celda['Y'].id}", json={"codigo": codigo_moto, "tipo": "MOTO"}).json()
+    assert cambio["tipo"] == "MOTO" and cambio["codigo"] == codigo_moto

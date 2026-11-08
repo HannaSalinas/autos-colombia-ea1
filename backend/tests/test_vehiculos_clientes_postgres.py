@@ -7,7 +7,7 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
-from conftest import placa_aleatoria
+from conftest import codigos_celda_libres, placa_aleatoria
 from app.domain.reglas import fin_de_mensualidad, hoy_bogota
 from app.models import Celda, Cliente, Estancia, Mensualidad, Operador
 
@@ -86,7 +86,7 @@ def test_patch_valida_placa_con_el_tipo_final(api_y_sesion):
 def test_no_cambia_tipo_de_vehiculo_dentro(api_y_sesion):
     api, session = api_y_sesion
     vehiculo = api.post("/vehiculos", json=carro(nuevo_cliente(session).id)).json()
-    celda = Celda(codigo=f"TEST-{uuid4().hex}", tipo="CARRO")
+    celda = Celda(codigo=codigos_celda_libres(session, "CARRO")[0], tipo="CARRO")
     operador = Operador(nombre="Prueba", telefono="001")
     session.add_all([celda, operador])
     session.flush()
