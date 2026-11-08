@@ -1,13 +1,12 @@
--- Modelo físico de la base de datos de Autos Colombia (EA1, Iteración 1).
--- Esquema real exportado del contenedor, con las migraciones 0001–0005 aplicadas:
+-- Modelo físico de la base de datos de Autos Colombia (Iteraciones 1 y 2).
+-- Esquema real exportado del contenedor, con las migraciones 0001–0007 aplicadas:
 --   docker compose exec -T db pg_dump --schema-only --no-owner --no-privileges > docs/modelo_fisico.sql
 -- Las líneas \restrict / \unrestrict las agrega pg_dump (PostgreSQL 17.6 o superior) como protección de psql.
-
 --
 -- PostgreSQL database dump
 --
 
-\restrict uf7CdsCYN5PxlAyeHNOdU3xFWed1r1Wkg1E7rDaTFu7ZZ0ufpNdDPqygDN7ewdo
+\restrict t9CqZpCp6n5OE3SGRYsK5hb60gnvHCvDZKMCAxoiGwf0dw7FfyUp0bkWxnxzVJI
 
 -- Dumped from database version 17.11
 -- Dumped by pg_dump version 17.11
@@ -38,6 +37,66 @@ CREATE TABLE public.alembic_version (
 
 
 --
+-- Name: auditoria_celda; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.auditoria_celda (
+    id bigint NOT NULL,
+    celda_id bigint NOT NULL,
+    actor_cuenta_id bigint,
+    fecha timestamp with time zone DEFAULT now() NOT NULL,
+    accion text NOT NULL,
+    detalle text,
+    CONSTRAINT ck_auditoria_celda_accion CHECK ((accion = ANY (ARRAY['CREAR'::text, 'EDITAR'::text, 'INHABILITAR'::text, 'REHABILITAR'::text]))),
+    CONSTRAINT ck_auditoria_celda_detalle CHECK (((detalle IS NULL) OR (char_length(detalle) <= 500)))
+);
+
+
+--
+-- Name: auditoria_celda_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.auditoria_celda ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.auditoria_celda_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: auditoria_cuenta; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.auditoria_cuenta (
+    id bigint NOT NULL,
+    cuenta_id bigint NOT NULL,
+    actor_cuenta_id bigint,
+    fecha timestamp with time zone DEFAULT now() NOT NULL,
+    accion text NOT NULL,
+    detalle text,
+    CONSTRAINT ck_auditoria_cuenta_accion CHECK ((accion = ANY (ARRAY['CREAR'::text, 'DESACTIVAR'::text, 'REACTIVAR'::text]))),
+    CONSTRAINT ck_auditoria_cuenta_detalle CHECK (((detalle IS NULL) OR (char_length(detalle) <= 500)))
+);
+
+
+--
+-- Name: auditoria_cuenta_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.auditoria_cuenta ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.auditoria_cuenta_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
 -- Name: celda; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -46,9 +105,12 @@ CREATE TABLE public.celda (
     codigo text NOT NULL,
     tipo text NOT NULL,
     disponible_desde timestamp with time zone,
+    ubicacion text,
+    habilitada boolean DEFAULT true NOT NULL,
     CONSTRAINT ck_celda_codigo_no_vacio CHECK ((codigo ~ '[^[:space:]]'::text)),
     CONSTRAINT ck_celda_codigo_normalizado CHECK ((codigo = upper(regexp_replace(codigo, '^[[:space:]]+|[[:space:]]+$'::text, ''::text, 'g'::text)))),
-    CONSTRAINT ck_celda_tipo_no_vacio CHECK ((tipo ~ '[^[:space:]]'::text))
+    CONSTRAINT ck_celda_tipo_no_vacio CHECK ((tipo ~ '[^[:space:]]'::text)),
+    CONSTRAINT ck_celda_ubicacion CHECK (((ubicacion IS NULL) OR (((char_length(ubicacion) >= 1) AND (char_length(ubicacion) <= 60)) AND (ubicacion !~ '^[[:space:]]|[[:space:]]$'::text))))
 );
 
 
@@ -120,6 +182,40 @@ CREATE TABLE public.correccion_celda (
 
 ALTER TABLE public.correccion_celda ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
     SEQUENCE NAME public.correccion_celda_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: cuenta_usuario; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.cuenta_usuario (
+    id bigint NOT NULL,
+    operador_id bigint NOT NULL,
+    nombre_usuario text NOT NULL,
+    hash_contrasena text NOT NULL,
+    rol text NOT NULL,
+    activa boolean DEFAULT true NOT NULL,
+    version_sesion integer DEFAULT 0 NOT NULL,
+    creada_en timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT ck_cuenta_usuario_hash_bcrypt CHECK ((hash_contrasena ~ '^\$2[aby]\$(1[2-9]|[23][0-9])\$[./A-Za-z0-9]{53}$'::text)),
+    CONSTRAINT ck_cuenta_usuario_nombre_formato CHECK ((nombre_usuario ~ '^[a-z0-9._]{4,30}$'::text)),
+    CONSTRAINT ck_cuenta_usuario_rol CHECK ((rol = ANY (ARRAY['ADMINISTRADOR'::text, 'OPERADOR'::text]))),
+    CONSTRAINT ck_cuenta_usuario_version_sesion CHECK ((version_sesion >= 0))
+);
+
+
+--
+-- Name: cuenta_usuario_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.cuenta_usuario ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.cuenta_usuario_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -223,7 +319,7 @@ ALTER TABLE public.novedad ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
 CREATE TABLE public.operador (
     id bigint NOT NULL,
     nombre text NOT NULL,
-    telefono text NOT NULL,
+    telefono text,
     CONSTRAINT ck_operador_nombre_no_vacio CHECK ((nombre ~ '[^[:space:]]'::text)),
     CONSTRAINT ck_operador_telefono_no_vacio CHECK ((telefono ~ '[^[:space:]]'::text))
 );
@@ -289,6 +385,22 @@ ALTER TABLE ONLY public.alembic_version
 
 
 --
+-- Name: auditoria_celda auditoria_celda_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.auditoria_celda
+    ADD CONSTRAINT auditoria_celda_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: auditoria_cuenta auditoria_cuenta_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.auditoria_cuenta
+    ADD CONSTRAINT auditoria_cuenta_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: celda celda_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -297,11 +409,27 @@ ALTER TABLE ONLY public.celda
 
 
 --
+-- Name: celda ck_celda_codigo_formato; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE public.celda
+    ADD CONSTRAINT ck_celda_codigo_formato CHECK ((((tipo = 'CARRO'::text) AND (codigo ~ '^C(0[1-9]|[1-9][0-9])$'::text)) OR ((tipo = 'MOTO'::text) AND (codigo ~ '^M(0[1-9]|[1-9][0-9])$'::text)))) NOT VALID;
+
+
+--
 -- Name: celda ck_celda_tipo; Type: CHECK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE public.celda
     ADD CONSTRAINT ck_celda_tipo CHECK ((tipo = ANY (ARRAY['MOTO'::text, 'CARRO'::text]))) NOT VALID;
+
+
+--
+-- Name: operador ck_operador_nombre_longitud; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE public.operador
+    ADD CONSTRAINT ck_operador_nombre_longitud CHECK ((((char_length(nombre) >= 3) AND (char_length(nombre) <= 80)) AND (nombre !~ '^[[:space:]]|[[:space:]]$'::text))) NOT VALID;
 
 
 --
@@ -318,6 +446,14 @@ ALTER TABLE ONLY public.cliente
 
 ALTER TABLE ONLY public.correccion_celda
     ADD CONSTRAINT correccion_celda_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: cuenta_usuario cuenta_usuario_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.cuenta_usuario
+    ADD CONSTRAINT cuenta_usuario_pkey PRIMARY KEY (id);
 
 
 --
@@ -369,6 +505,14 @@ ALTER TABLE ONLY public.cliente
 
 
 --
+-- Name: cuenta_usuario uq_cuenta_usuario_operador; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.cuenta_usuario
+    ADD CONSTRAINT uq_cuenta_usuario_operador UNIQUE (operador_id);
+
+
+--
 -- Name: vehiculo uq_vehiculo_placa; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -385,6 +529,20 @@ ALTER TABLE ONLY public.vehiculo
 
 
 --
+-- Name: ix_auditoria_celda_celda; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_auditoria_celda_celda ON public.auditoria_celda USING btree (celda_id, fecha);
+
+
+--
+-- Name: ix_auditoria_cuenta_cuenta; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_auditoria_cuenta_cuenta ON public.auditoria_cuenta USING btree (cuenta_id, fecha);
+
+
+--
 -- Name: ix_celda_tipo_disponible; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -392,10 +550,31 @@ CREATE INDEX ix_celda_tipo_disponible ON public.celda USING btree (tipo, disponi
 
 
 --
+-- Name: ix_correccion_celda_anterior; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_correccion_celda_anterior ON public.correccion_celda USING btree (celda_anterior_id);
+
+
+--
 -- Name: ix_correccion_celda_estancia; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX ix_correccion_celda_estancia ON public.correccion_celda USING btree (estancia_id);
+
+
+--
+-- Name: ix_correccion_celda_nueva; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_correccion_celda_nueva ON public.correccion_celda USING btree (celda_nueva_id);
+
+
+--
+-- Name: ix_estancia_celda; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_estancia_celda ON public.estancia USING btree (celda_id);
 
 
 --
@@ -427,6 +606,20 @@ CREATE INDEX ix_vehiculo_cliente ON public.vehiculo USING btree (cliente_id);
 
 
 --
+-- Name: uq_celda_codigo_ci; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_celda_codigo_ci ON public.celda USING btree (upper(codigo));
+
+
+--
+-- Name: uq_cuenta_usuario_nombre; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_cuenta_usuario_nombre ON public.cuenta_usuario USING btree (lower(nombre_usuario));
+
+
+--
 -- Name: uq_estancia_celda_abierta; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -438,6 +631,38 @@ CREATE UNIQUE INDEX uq_estancia_celda_abierta ON public.estancia USING btree (ce
 --
 
 CREATE UNIQUE INDEX uq_estancia_vehiculo_abierta ON public.estancia USING btree (vehiculo_id) WHERE (salida IS NULL);
+
+
+--
+-- Name: auditoria_celda fk_auditoria_celda_actor; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.auditoria_celda
+    ADD CONSTRAINT fk_auditoria_celda_actor FOREIGN KEY (actor_cuenta_id) REFERENCES public.cuenta_usuario(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: auditoria_celda fk_auditoria_celda_celda; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.auditoria_celda
+    ADD CONSTRAINT fk_auditoria_celda_celda FOREIGN KEY (celda_id) REFERENCES public.celda(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: auditoria_cuenta fk_auditoria_cuenta_actor; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.auditoria_cuenta
+    ADD CONSTRAINT fk_auditoria_cuenta_actor FOREIGN KEY (actor_cuenta_id) REFERENCES public.cuenta_usuario(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: auditoria_cuenta fk_auditoria_cuenta_cuenta; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.auditoria_cuenta
+    ADD CONSTRAINT fk_auditoria_cuenta_cuenta FOREIGN KEY (cuenta_id) REFERENCES public.cuenta_usuario(id) ON DELETE RESTRICT;
 
 
 --
@@ -470,6 +695,14 @@ ALTER TABLE ONLY public.correccion_celda
 
 ALTER TABLE ONLY public.correccion_celda
     ADD CONSTRAINT fk_correccion_celda_operador FOREIGN KEY (operador_id) REFERENCES public.operador(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: cuenta_usuario fk_cuenta_usuario_operador; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.cuenta_usuario
+    ADD CONSTRAINT fk_cuenta_usuario_operador FOREIGN KEY (operador_id) REFERENCES public.operador(id) ON DELETE RESTRICT;
 
 
 --
@@ -540,5 +773,5 @@ ALTER TABLE ONLY public.vehiculo
 -- PostgreSQL database dump complete
 --
 
-\unrestrict uf7CdsCYN5PxlAyeHNOdU3xFWed1r1Wkg1E7rDaTFu7ZZ0ufpNdDPqygDN7ewdo
+\unrestrict t9CqZpCp6n5OE3SGRYsK5hb60gnvHCvDZKMCAxoiGwf0dw7FfyUp0bkWxnxzVJI
 
