@@ -184,3 +184,17 @@ def test_rango_abierto_y_utc():
 def test_desde_posterior_a_hasta():
     with pytest.raises(ValueError):
         rango_bogota(date(2026, 10, 24), date(2026, 10, 23))
+
+
+# --- Iteración 2: required_text pasó de models.py al dominio ---
+
+def test_required_text_quita_espacios_exteriores():
+    from app.domain.reglas import required_text
+    assert required_text("  Marta Úsuga \n", "nombre") == "Marta Úsuga"
+
+
+@pytest.mark.parametrize("valor", ["", " \t\n", None, 7, True, []])
+def test_required_text_rechaza_vacios_y_no_texto(valor):
+    from app.domain.reglas import required_text
+    with pytest.raises(ValueError, match="nombre debe ser texto no vacío"):
+        required_text(valor, "nombre")

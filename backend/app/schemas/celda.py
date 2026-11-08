@@ -3,7 +3,7 @@ from typing import Annotated, Literal
 
 from pydantic import AfterValidator, BaseModel, BeforeValidator, ConfigDict, field_validator
 
-from app.models import required_text
+from app.domain.reglas import required_text
 
 Texto = Annotated[str, BeforeValidator(lambda value: required_text(value, "El campo"))]
 Codigo = Annotated[Texto, AfterValidator(str.upper)]

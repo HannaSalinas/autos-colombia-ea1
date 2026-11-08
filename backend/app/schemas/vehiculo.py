@@ -3,8 +3,7 @@ from typing import Annotated, Literal
 
 from pydantic import AfterValidator, BaseModel, BeforeValidator, ConfigDict, Field, field_validator, model_validator
 
-from app.domain.reglas import MODELO_MINIMO, hoy_bogota, normalizar_placa, validar_modelo, validar_placa
-from app.models import required_text
+from app.domain.reglas import MODELO_MINIMO, hoy_bogota, normalizar_placa, required_text, validar_modelo, validar_placa
 from app.schemas.comun import Identificador
 
 

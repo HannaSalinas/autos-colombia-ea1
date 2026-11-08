@@ -13,6 +13,16 @@ PLACA_CARRO = re.compile(r"[A-Z]{3}[0-9]{3}")
 PLACA_MOTO = re.compile(r"[A-Z]{3}[0-9]{2}[A-Z]")
 
 
+def required_text(value: str, attribute: str) -> str:
+    """Texto obligatorio: rechaza lo que no es texto o está vacío y quita los espacios exteriores.
+
+    Vive en el dominio porque lo usan los modelos, los schemas y los servicios.
+    """
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{attribute} debe ser texto no vacío.")
+    return value.strip()
+
+
 def hoy_bogota() -> date:
     """Fecha de hoy en Colombia, sin importar la zona horaria del servidor."""
     return datetime.now(ZONA_BOGOTA).date()

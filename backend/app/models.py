@@ -6,7 +6,7 @@ from sqlalchemy import BigInteger, CheckConstraint, Date, DateTime, ForeignKey, 
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, validates
 
 from app.domain.reglas import (
-    DESCRIPCION_MAXIMA, MODELO_MINIMO, MOTIVO_MAXIMO, TIPOS_NOVEDAD, TOTAL_CELDAS, normalizar_placa,
+    DESCRIPCION_MAXIMA, MODELO_MINIMO, MOTIVO_MAXIMO, TIPOS_NOVEDAD, TOTAL_CELDAS, normalizar_placa, required_text,
 )
 
 TIPOS_CELDA = set(TOTAL_CELDAS)
@@ -14,12 +14,6 @@ TIPOS_CELDA = set(TOTAL_CELDAS)
 
 class Base(DeclarativeBase):
     pass
-
-
-def required_text(value: str, attribute: str) -> str:
-    if not isinstance(value, str) or not value.strip():
-        raise ValueError(f"{attribute} debe ser texto no vacío.")
-    return value.strip()
 
 
 class Cliente(Base):

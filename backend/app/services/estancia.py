@@ -6,9 +6,10 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.domain.reglas import (
-    formatear_permanencia, hoy_bogota, permanencia_segundos, tipo_celda_para, validar_celda_compatible,
+    formatear_permanencia, hoy_bogota, permanencia_segundos, required_text, tipo_celda_para,
+    validar_celda_compatible,
 )
-from app.models import Celda, CorreccionCelda, Estancia, Mensualidad, Novedad, Operador, Vehiculo, required_text
+from app.models import Celda, CorreccionCelda, Estancia, Mensualidad, Novedad, Operador, Vehiculo
 from app.schemas.celda import CeldaRespuesta
 from app.schemas.estancia import (
     EntradaCrear, SalidaCrear, EstanciaRespuesta, EstanciaAbiertaRespuesta,
