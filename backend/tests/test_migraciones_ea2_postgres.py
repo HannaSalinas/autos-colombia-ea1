@@ -162,11 +162,13 @@ def test_celda_ubicacion_habilitada_y_formato(conexion):
 
 def test_restricciones_nuevas_no_revisan_datos_antiguos(conexion):
     # NOT VALID: las filas que ya existían no se revisan; las nuevas y las modificadas, sí.
-    no_validadas = set(conexion.scalars(text(
-        "SELECT conname FROM pg_constraint WHERE NOT convalidated AND conname IN "
-        "('ck_celda_codigo_formato', 'ck_operador_nombre_longitud', 'ck_celda_ubicacion')"
-    )))
-    assert no_validadas == {"ck_celda_codigo_formato", "ck_operador_nombre_longitud"}
+    # El nombre de la persona queda siempre NOT VALID. Los CHECK de celda los valida la 0008 cuando
+    # todos los datos cumplen (test_migracion_0008_postgres.py); ubicacion nació validado (0007).
+    estado = dict(conexion.execute(text(
+        "SELECT conname, convalidated FROM pg_constraint WHERE conname IN "
+        "('ck_operador_nombre_longitud', 'ck_celda_ubicacion')"
+    )).all())
+    assert estado == {"ck_operador_nombre_longitud": False, "ck_celda_ubicacion": True}
 
 
 def test_auditoria_restricciones(conexion):
@@ -195,6 +197,10 @@ def test_auditoria_restricciones(conexion):
 @con_postgres
 def test_0006_y_0007_se_aplican_sobre_datos_de_la_ea1():
     engine = get_engine()
+    with engine.connect() as c:
+        if c.scalar(text("SELECT count(*) FROM celda")):
+            pytest.skip("Baja y sube migraciones: requiere la base de pruebas vacía "
+                        "(docker compose run --rm backend-tests).")
     config = Config(ALEMBIC_INI)
     ids: dict[str, int] = {}
     try:
@@ -247,6 +253,11 @@ def test_0006_y_0007_se_aplican_sobre_datos_de_la_ea1():
             celdas = c.execute(text("SELECT codigo, habilitada, ubicacion FROM celda WHERE id IN (:a, :b) "
                                     "ORDER BY id"), {"a": ids["vieja"], "b": ids["nueva"]}).all()
             assert [tuple(f) for f in celdas] == [("ZONA-A", True, None), ("C98", True, None)]
+            # 0008: por 'ZONA-A' el formato del código queda NOT VALID; el tipo sí se valida.
+            assert dict(c.execute(text(
+                "SELECT conname, convalidated FROM pg_constraint "
+                "WHERE conname IN ('ck_celda_tipo', 'ck_celda_codigo_formato')"
+            )).all()) == {"ck_celda_tipo": True, "ck_celda_codigo_formato": False}
 
         # Ida y vuelta: la bajada también funciona con datos, y la subida se puede repetir.
         command.downgrade(config, "0005")
@@ -260,4 +271,8 @@ def test_0006_y_0007_se_aplican_sobre_datos_de_la_ea1():
                                  ("operador", "marta"), ("operador", "diego")):
                 if clave in ids:
                     c.execute(text(f"DELETE FROM {tabla} WHERE id = :i"), {"i": ids[clave]})
+        # Sin las celdas antiguas, pasar otra vez por la 0008 deja los CHECK de celda validados.
+        command.downgrade(config, "0007")
+        command.upgrade(config, "head")
+        with engine.connect() as c:
             assert c.scalar(text("SELECT version_num FROM alembic_version")) == ALEMBIC_HEAD

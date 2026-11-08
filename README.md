@@ -482,7 +482,7 @@ AutosColombia/
 │   │   ├── schemas/ services/ routers/
 │   │   ├── seed.py             # (nuestro) semillas
 │   │   └── demo.py             # (nuestro) datos de demostración opcionales
-│   ├── migrations/versions/    # 0001–0002 del profesor; 0003–0007 nuestras
+│   ├── migrations/versions/    # 0001–0002 del profesor; 0003–0008 nuestras
 │   └── tests/
 └── frontend/
     ├── Dockerfile              # (nuestro) compila Angular y lo sirve con nginx
@@ -506,6 +506,7 @@ lo reenvía al backend, así que no hace falta CORS. Las pantallas usan rutas `/
 | 0005 | Nuestra | `correccion_celda` y `novedad` |
 | 0006 | Nuestra (Iteración 2) | `cuenta_usuario` (usuario único sin distinguir mayúsculas, hash bcrypt de costo ≥ 12, rol, estado) y `auditoria_cuenta`; `operador.telefono` opcional; nombre de 3 a 80 (`NOT VALID`) |
 | 0007 | Nuestra (Iteración 2) | `celda.ubicacion` y `celda.habilitada`, formato del código según el tipo (`NOT VALID`), único `upper(codigo)`, índices de historial y `auditoria_celda` |
+| 0008 | Nuestra (Iteración 2) | Valida en toda la tabla `ck_celda_tipo` y `ck_celda_codigo_formato` si todas las celdas los cumplen; si no, los deja `NOT VALID` y avisa qué códigos fallan |
 
 No se modificó ninguna migración existente. Las migraciones 0006 y 0007 se aplican sobre una
 base con datos de la EA1 sin perder la autoría de las estancias, correcciones y novedades (lo

@@ -1,6 +1,6 @@
 # Diccionario de datos — Autos Colombia (Iteraciones 1 y 2)
 
-Base de datos PostgreSQL 17, esquema `public`, con las migraciones Alembic **0001–0007**
+Base de datos PostgreSQL 17, esquema `public`, con las migraciones Alembic **0001–0008**
 aplicadas. Se armó a partir del esquema real exportado en [`modelo_fisico.sql`](modelo_fisico.sql)
 (`pg_dump --schema-only`).
 
@@ -16,9 +16,12 @@ Convenciones:
 - Todas las FK usan `ON DELETE RESTRICT`: no se puede borrar una fila que otra tabla esté usando.
 - La columna **Origen** indica qué migración creó la tabla o la restricción. Las 0001 y 0002
   son del profesor; de la 0003 a la 0005 son nuestras (Iteración 1) y la 0006 y la 0007
-  también (Iteración 2).
+  también (Iteración 2), igual que la 0008.
 - `NOT VALID` significa que la restricción se aplica a las filas nuevas y modificadas, pero
-  no revisa las que ya existían cuando se creó.
+  no revisa las que ya existían cuando se creó. La migración 0008 valida los CHECK de celda
+  (`ck_celda_tipo` y `ck_celda_codigo_formato`) en toda la tabla cuando todas las celdas los
+  cumplen; si alguna no los cumple, quedan `NOT VALID` y la migración avisa qué códigos fallan.
+  En esta base las 80 celdas cumplen, así que los dos están validados.
 
 ## Relaciones
 
@@ -47,7 +50,7 @@ cliente 1 ──< N vehiculo 1 ──< N mensualidad
 | `estancia` | Una entrada y su salida (abierta mientras el vehículo está dentro) | 0002 |
 | `correccion_celda` | Cambio de celda de una estancia abierta, con motivo | 0005 |
 | `novedad` | Hecho registrado durante una estancia (rayón, golpe, …) | 0005 |
-| `alembic_version` | Versión de migración aplicada (`0007`); la usa Alembic | Alembic |
+| `alembic_version` | Versión de migración aplicada (`0008`); la usa Alembic | Alembic |
 
 ## cliente
 
@@ -134,10 +137,10 @@ Una mensualidad está vigente si `fecha_inicio <= hoy <= fecha_fin`, con "hoy" e
 | `ck_celda_codigo_no_vacio` | CHECK | `codigo` no vacío | 0001 |
 | `ck_celda_codigo_normalizado` | CHECK | `codigo` en mayúsculas y sin espacios al inicio ni al final | 0001 |
 | `ck_celda_tipo_no_vacio` | CHECK | `tipo` no vacío | 0001 |
-| `ck_celda_tipo` | CHECK `NOT VALID` | `tipo` en (`MOTO`, `CARRO`). Se aplica a filas nuevas y modificadas sin revisar celdas antiguas | 0004 |
+| `ck_celda_tipo` | CHECK (`NOT VALID` hasta la 0008) | `tipo` en (`MOTO`, `CARRO`). La 0008 lo valida si todas las celdas cumplen | 0004 (+ 0008) |
 | `ix_celda_tipo_disponible` | Índice | (`tipo`, `disponible_desde`): elegir la celda para asignar | 0004 |
 | `ck_celda_ubicacion` | CHECK | `ubicacion` NULL, o de 1 a 60 caracteres sin espacios al inicio ni al final | 0007 |
-| `ck_celda_codigo_formato` | CHECK `NOT VALID` | `CARRO` con código `C01`–`C99`; `MOTO` con `M01`–`M99` | 0007 |
+| `ck_celda_codigo_formato` | CHECK (`NOT VALID` hasta la 0008) | `CARRO` con código `C01`–`C99`; `MOTO` con `M01`–`M99`. La 0008 lo valida si todas las celdas cumplen | 0007 (+ 0008) |
 | `uq_celda_codigo_ci` | Índice único | `upper(codigo)`: único sin distinguir mayúsculas | 0007 |
 
 El estado que ve el usuario se calcula: **inhabilitada** si `habilitada = false`; **ocupada**
@@ -303,7 +306,7 @@ novedades de la EA1 sigan apuntando a la misma fila y conserven su responsable.
 
 | Columna | Tipo | Nulo | Llave | Descripción |
 | --- | --- | --- | --- | --- |
-| `version_num` | varchar(32) | No | PK (`alembic_version_pkc`) | Última migración aplicada: `0007` |
+| `version_num` | varchar(32) | No | PK (`alembic_version_pkc`) | Última migración aplicada: `0008` |
 
 ## Reglas que no están en la base
 

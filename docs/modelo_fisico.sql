@@ -1,12 +1,12 @@
 -- Modelo físico de la base de datos de Autos Colombia (Iteraciones 1 y 2).
--- Esquema real exportado del contenedor, con las migraciones 0001–0007 aplicadas:
+-- Esquema real exportado del contenedor, con las migraciones 0001–0008 aplicadas:
 --   docker compose exec -T db pg_dump --schema-only --no-owner --no-privileges > docs/modelo_fisico.sql
 -- Las líneas \restrict / \unrestrict las agrega pg_dump (PostgreSQL 17.6 o superior) como protección de psql.
 --
 -- PostgreSQL database dump
 --
 
-\restrict t9CqZpCp6n5OE3SGRYsK5hb60gnvHCvDZKMCAxoiGwf0dw7FfyUp0bkWxnxzVJI
+\restrict yD8mmha9kEpJHvgSSiPv5x42oggpjPbGR1UdVpcLzDyjZ6P7GXidSc4chVJpiCb
 
 -- Dumped from database version 17.11
 -- Dumped by pg_dump version 17.11
@@ -107,8 +107,10 @@ CREATE TABLE public.celda (
     disponible_desde timestamp with time zone,
     ubicacion text,
     habilitada boolean DEFAULT true NOT NULL,
+    CONSTRAINT ck_celda_codigo_formato CHECK ((((tipo = 'CARRO'::text) AND (codigo ~ '^C(0[1-9]|[1-9][0-9])$'::text)) OR ((tipo = 'MOTO'::text) AND (codigo ~ '^M(0[1-9]|[1-9][0-9])$'::text)))),
     CONSTRAINT ck_celda_codigo_no_vacio CHECK ((codigo ~ '[^[:space:]]'::text)),
     CONSTRAINT ck_celda_codigo_normalizado CHECK ((codigo = upper(regexp_replace(codigo, '^[[:space:]]+|[[:space:]]+$'::text, ''::text, 'g'::text)))),
+    CONSTRAINT ck_celda_tipo CHECK ((tipo = ANY (ARRAY['MOTO'::text, 'CARRO'::text]))),
     CONSTRAINT ck_celda_tipo_no_vacio CHECK ((tipo ~ '[^[:space:]]'::text)),
     CONSTRAINT ck_celda_ubicacion CHECK (((ubicacion IS NULL) OR (((char_length(ubicacion) >= 1) AND (char_length(ubicacion) <= 60)) AND (ubicacion !~ '^[[:space:]]|[[:space:]]$'::text))))
 );
@@ -406,22 +408,6 @@ ALTER TABLE ONLY public.auditoria_cuenta
 
 ALTER TABLE ONLY public.celda
     ADD CONSTRAINT celda_pkey PRIMARY KEY (id);
-
-
---
--- Name: celda ck_celda_codigo_formato; Type: CHECK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE public.celda
-    ADD CONSTRAINT ck_celda_codigo_formato CHECK ((((tipo = 'CARRO'::text) AND (codigo ~ '^C(0[1-9]|[1-9][0-9])$'::text)) OR ((tipo = 'MOTO'::text) AND (codigo ~ '^M(0[1-9]|[1-9][0-9])$'::text)))) NOT VALID;
-
-
---
--- Name: celda ck_celda_tipo; Type: CHECK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE public.celda
-    ADD CONSTRAINT ck_celda_tipo CHECK ((tipo = ANY (ARRAY['MOTO'::text, 'CARRO'::text]))) NOT VALID;
 
 
 --
@@ -773,5 +759,5 @@ ALTER TABLE ONLY public.vehiculo
 -- PostgreSQL database dump complete
 --
 
-\unrestrict t9CqZpCp6n5OE3SGRYsK5hb60gnvHCvDZKMCAxoiGwf0dw7FfyUp0bkWxnxzVJI
+\unrestrict yD8mmha9kEpJHvgSSiPv5x42oggpjPbGR1UdVpcLzDyjZ6P7GXidSc4chVJpiCb
 

@@ -100,6 +100,7 @@ class Celda(Base):
         CheckConstraint("codigo = upper(regexp_replace(codigo, '^[[:space:]]+|[[:space:]]+$', '', 'g'))", name="ck_celda_codigo_normalizado"),
         CheckConstraint("tipo ~ '[^[:space:]]'", name="ck_celda_tipo_no_vacio"),
         # Agregados en la migración 0004. NOT VALID: no revisa celdas antiguas, sí las nuevas.
+        # La 0008 valida ck_celda_tipo y ck_celda_codigo_formato si todas las celdas existentes cumplen.
         CheckConstraint("tipo IN ('MOTO', 'CARRO')", name="ck_celda_tipo", postgresql_not_valid=True),
         Index("ix_celda_tipo_disponible", "tipo", "disponible_desde"),
         # Agregados en la migración 0007.
