@@ -5,9 +5,11 @@
       <h1 id="vehicles-title">Vehículos</h1>
       <p>Consulta y administra los vehículos de Autos Colombia.</p>
     </div>
-    <button type="button" class="primary" (click)="newVehicle()" [disabled]="busy()">
-      Nuevo vehículo
-    </button>
+    @if (puedeGestionar()) {
+      <button type="button" class="primary" (click)="newVehicle()" [disabled]="busy()">
+        Nuevo vehículo
+      </button>
+    }
   </header>
 
   @if (success()) {
@@ -165,7 +167,9 @@
               <th scope="col">Tipo</th>
               <th scope="col">Cliente</th>
               <th scope="col">Mensualidad</th>
-              <th scope="col">Acciones</th>
+              @if (puedeGestionar()) {
+                <th scope="col">Acciones</th>
+              }
             </tr>
           </thead>
           <tbody>
@@ -188,24 +192,26 @@
                     >{{ mensualidad(vehicle) }}</span
                   >
                 </td>
-                <td class="row-actions">
-                  <button
-                    type="button"
-                    (click)="edit(vehicle)"
-                    [disabled]="busy()"
-                    [attr.aria-label]="'Editar ' + vehicle.placa"
-                  >
-                    Editar</button
-                  ><button
-                    type="button"
-                    class="delete-link"
-                    (click)="confirmDelete(vehicle)"
-                    [disabled]="busy()"
-                    [attr.aria-label]="'Eliminar ' + vehicle.placa"
-                  >
-                    Eliminar
-                  </button>
-                </td>
+                @if (puedeGestionar()) {
+                  <td class="row-actions">
+                    <button
+                      type="button"
+                      (click)="edit(vehicle)"
+                      [disabled]="busy()"
+                      [attr.aria-label]="'Editar ' + vehicle.placa"
+                    >
+                      Editar</button
+                    ><button
+                      type="button"
+                      class="delete-link"
+                      (click)="confirmDelete(vehicle)"
+                      [disabled]="busy()"
+                      [attr.aria-label]="'Eliminar ' + vehicle.placa"
+                    >
+                      Eliminar
+                    </button>
+                  </td>
+                }
               </tr>
             }
           </tbody>

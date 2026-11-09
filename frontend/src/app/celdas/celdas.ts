@@ -1,6 +1,8 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { AuthService } from '../auth/auth.service';
+import { PERMISOS } from '../models/auth';
 import { FormBuilder, ReactiveFormsModule, ValidatorFn } from '@angular/forms';
 import { CeldasService } from '../services/celdas.service';
 import { Celda, CeldaCrear, TIPOS_CELDA, TipoCelda } from '../models/celda';
@@ -17,6 +19,9 @@ type Field = keyof CeldaCrear;
   styleUrl: './celdas.css',
 })
 export class Celdas {
+  /** Iteración 2: el Operador solo consulta; crear, editar y eliminar son del Administrador. */
+  private readonly auth = inject(AuthService);
+  readonly puedeGestionar = computed(() => this.auth.tiene(PERMISOS.celdasGestionar));
   private readonly api = inject(CeldasService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly fb = inject(FormBuilder);

@@ -1,6 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { AuthService } from '../auth/auth.service';
 import { Vehiculos, modeloMaximo } from './vehiculos';
 import { Vehiculo } from '../models/vehiculo';
 
@@ -291,5 +292,38 @@ describe('Gestión de vehículos', () => {
     expect(component.actionError()).toBe(detail);
     expect(component.fieldError('tipo')).toBe(detail);
     expect(component.fieldError('placa')).toBe('');
+  });
+
+  // Iteración 2: el Operador solo consulta; crear, editar y eliminar son del Administrador.
+  it('el Operador ve el listado sin acciones y el Administrador con acciones', () => {
+    flushList([vehicle]);
+    const auth = TestBed.inject(AuthService);
+    const botones = () =>
+      [...(fixture.nativeElement as HTMLElement).querySelectorAll('button')].map((b) =>
+        b.textContent?.trim(),
+      );
+    auth.cuenta.set({
+      id: 2,
+      nombre_usuario: 'marta.usuga',
+      nombre: 'Marta',
+      rol: 'OPERADOR',
+      permisos: ['celdas:ver', 'consultas', 'estancias', 'vehiculos:ver'],
+    });
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('ABC123');
+    expect(botones()).not.toContain('Nuevo vehículo');
+    expect(botones()).not.toContain('Editar');
+    expect(botones()).not.toContain('Eliminar');
+    expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('Acciones');
+    auth.cuenta.set({
+      id: 1,
+      nombre_usuario: 'admin',
+      nombre: 'Admin',
+      rol: 'ADMINISTRADOR',
+      permisos: ['vehiculos:gestionar', 'celdas:ver', 'vehiculos:ver'],
+    });
+    fixture.detectChanges();
+    expect(botones()).toContain('Nuevo vehículo');
+    expect(botones()).toContain('Editar');
   });
 });

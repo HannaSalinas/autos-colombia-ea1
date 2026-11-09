@@ -1,6 +1,8 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { AuthService } from '../auth/auth.service';
+import { PERMISOS } from '../models/auth';
 import { FormBuilder, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms';
 import { Cliente } from '../models/cliente';
 import { ApiService } from '../services/api.service';
@@ -46,6 +48,9 @@ type Field = keyof VehiculoCrear;
   styleUrl: './vehiculos.css',
 })
 export class Vehiculos {
+  /** Iteración 2: el Operador solo consulta; crear, editar y eliminar son del Administrador. */
+  private readonly auth = inject(AuthService);
+  readonly puedeGestionar = computed(() => this.auth.tiene(PERMISOS.vehiculosGestionar));
   private readonly api = inject(ApiService);
   private readonly clientsApi = inject(ClientesService);
   private readonly destroyRef = inject(DestroyRef);

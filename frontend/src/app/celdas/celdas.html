@@ -5,9 +5,11 @@
       <h1 id="cells-title">Celdas</h1>
       <p>Administra los espacios de Autos Colombia.</p>
     </div>
-    <button class="primary" type="button" (click)="newCell()" [disabled]="busy()">
-      Nueva celda
-    </button>
+    @if (puedeGestionar()) {
+      <button class="primary" type="button" (click)="newCell()" [disabled]="busy()">
+        Nueva celda
+      </button>
+    }
   </header>
   @if (success()) {
     <p class="notice success" role="status">{{ success() }}</p>
@@ -113,7 +115,9 @@
             <tr>
               <th scope="col">Código</th>
               <th scope="col">Tipo</th>
-              <th scope="col">Acciones</th>
+              @if (puedeGestionar()) {
+                <th scope="col">Acciones</th>
+              }
             </tr>
           </thead>
           <tbody>
@@ -121,24 +125,26 @@
               <tr>
                 <th scope="row">{{ cell.codigo }}</th>
                 <td>{{ cell.tipo }}</td>
-                <td class="row-actions">
-                  <button
-                    type="button"
-                    (click)="edit(cell)"
-                    [disabled]="busy()"
-                    [attr.aria-label]="'Editar ' + cell.codigo"
-                  >
-                    Editar</button
-                  ><button
-                    type="button"
-                    class="delete-link"
-                    (click)="confirmDelete(cell)"
-                    [disabled]="busy()"
-                    [attr.aria-label]="'Eliminar ' + cell.codigo"
-                  >
-                    Eliminar
-                  </button>
-                </td>
+                @if (puedeGestionar()) {
+                  <td class="row-actions">
+                    <button
+                      type="button"
+                      (click)="edit(cell)"
+                      [disabled]="busy()"
+                      [attr.aria-label]="'Editar ' + cell.codigo"
+                    >
+                      Editar</button
+                    ><button
+                      type="button"
+                      class="delete-link"
+                      (click)="confirmDelete(cell)"
+                      [disabled]="busy()"
+                      [attr.aria-label]="'Eliminar ' + cell.codigo"
+                    >
+                      Eliminar
+                    </button>
+                  </td>
+                }
               </tr>
             }
           </tbody>
