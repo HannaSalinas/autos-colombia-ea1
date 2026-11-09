@@ -104,6 +104,11 @@ docker compose down -v && docker compose up --build -d
 ```
 
 Los dos operadores son **Marta Úsuga (Portería 1)** y **Diego Arango (Portería 2)**.
+**Iteración 2:** el sistema pide ingresar. Marta entra con `marta.usuga`, Diego con
+`diego.arango` y el Administrador con `ADMIN_USUARIO` (por defecto `admin`); las contraseñas
+están en tu `.env`. Los pasos de **Vehículos** (HU-14 y HU-03) se hacen con la cuenta del
+Administrador, porque el Operador solo consulta ese listado. En los pasos de portería, "con
+Marta" o "con Diego" significa con la sesión de esa cuenta: el responsable ya no se elige.
 Las fechas se muestran en hora de Bogotá y las asigna el servidor. Los pasos siguen el
 orden de una demostración real: primero se registra un vehículo, luego entra, se consulta,
 se corrige y sale. Cada paso lleva el número de su historia de usuario. Los requerimientos
@@ -138,13 +143,16 @@ en HU-02).
 
 ### HU-01 · Identificar operador
 
-1. Abre **Control de acceso**. El panel de catálogos muestra "2 operadores".
-2. En **Registrar entrada**, escribe `ABC123` y pulsa *Registrar entrada* sin elegir
-   operador: no se envía y aparece "Selecciona un operador.". La salida, la corrección y la
-   novedad también exigen operador.
-3. En `/docs`, `POST /estancias/entrada` con `"operador_id": 999` responde **404**
-   "Operador no encontrado.".
-4. Cada movimiento guarda quién lo hizo. Se ve en Ocupación (HU-12) y en el Historial
+**Iteración 2:** el operador se identifica al ingresar con su cuenta (HU-15) y ya no se
+elige en un selector (HU-18).
+
+1. Cierra sesión e ingresa con `marta.usuga`. Abre **Control de acceso**: el panel superior
+   dice "Responsable de las operaciones: **Marta Úsuga (Portería 1)**" y no hay selector de
+   operador.
+2. En `/docs`, `POST /estancias/entrada` con `"operador_id": 2` responde **422**: el
+   responsable no se puede enviar, lo pone el servidor con la sesión. Sin token responde
+   **401**.
+3. Cada movimiento guarda quién lo hizo. Se ve en Ocupación (HU-12) y en el Historial
    (HU-13).
 
 ### HU-04 · Validar vehículo registrado y mensualidad vigente
@@ -186,8 +194,9 @@ mismo vehículo.
 
    Regla: celda libre del tipo del vehículo; primero las nunca usadas y luego la que lleva
    **más tiempo libre**. Esto se comprueba en HU-08.
-2. **Dos porterías al mismo tiempo:** abre Control de acceso en **dos ventanas**, una con
-   Marta (Portería 1) y otra con Diego (Portería 2). Escribe `JKL321` en las dos y pulsa
+2. **Dos porterías al mismo tiempo:** abre el sistema en **dos pestañas** y en cada una
+   ingresa con una cuenta distinta (la sesión es por pestaña): Marta (Portería 1) en una y
+   Diego (Portería 2) en la otra. Abre Control de acceso en ambas. Escribe `JKL321` en las dos y pulsa
    *Registrar entrada* en ambas. Una registra la entrada (celda **C03**) y la otra responde
    "El vehículo ya está dentro.". Nunca se repite celda ni se abren dos entradas.
 3. **No hay celdas:** cuando no queda ninguna libre del tipo, la entrada responde "No hay
@@ -210,8 +219,8 @@ La mensualidad de cada vehículo se consulta en **Vehículos** (HU-04).
 
 ### HU-07 · Registrar salida con tiempo de permanencia
 
-Con `ABC123` consultado, elige a **Diego Arango** como operador y pulsa **Confirmar
-salida**. Se muestra en grande el **tiempo de permanencia** (por ejemplo "4 min"), que
+Cierra sesión, ingresa con `diego.arango` (Portería 2), consulta `ABC123` y pulsa
+**Confirmar salida**: queda a nombre de Diego. Se muestra en grande el **tiempo de permanencia** (por ejemplo "4 min"), que
 calcula el servidor con sus propias horas de entrada y salida.
 
 ### HU-08 · Liberar celda
@@ -636,6 +645,11 @@ y su guía `AGENTS.md` también se conserva.
 | `backend/app/schemas/estancia.py`, `services/estancia.py`, `schemas/operador.py` (Iteración 2) | Entrada, salida, corrección y novedad ya no reciben `operador_id`: lo da la sesión. La respuesta de operador acepta teléfono vacío. |
 | `backend/tests/test_operadores.py`, `test_operadores_postgres.py` (Iteración 2) | **Cambiaron de propósito:** probaban crear, editar y borrar operadores; ahora prueban que `POST`, `PATCH` y `DELETE` responden 405 sin escribir nada, que la consulta sigue funcionando y que el Operador recibe 403. Se conservaron todos los casos. |
 | `backend/tests/test_estancias_postgres.py`, `test_correccion_novedad_postgres.py`, `test_estancias_api.py`, `test_vehiculos_postgres.py`, `test_celdas_postgres.py` (Iteración 2) | Hacen las solicitudes con una sesión. Cada portería usa la cuenta de su persona y el responsable se comprueba sin enviarlo. **Cambió el propósito de un caso:** enviar `operador_id` antes buscaba el operador (404 si no existía) y ahora se rechaza siempre (422), porque el responsable sale de la sesión. |
+| `frontend/src/app/app.*`, `app.routes.ts`, `app.config.ts` (Iteración 2) | Menú armado con la lista de permisos de la cuenta, nombre y rol de la sesión, botón *Cerrar sesión*, rutas protegidas con `accesoGuard` (cada una declara su permiso) e interceptor del token. La ruta `/gestion/operadores` se quitó del menú y de las rutas. |
+| `frontend/src/app/operadores/*` (Iteración 2) | **Sin cambios y sin ruta:** la pantalla ya no se usa porque `/operadores` quedó solo de consulta. Se conservan el componente y sus 10 pruebas (siguen pasando con respuestas simuladas). |
+| `frontend/src/app/control-acceso/*`, `estancia-acciones/*` (Iteración 2) | Sin selector de operador: se muestra al responsable de la sesión y no se envía `operador_id`. **Cambió el propósito de una prueba** de `estancia-acciones.spec.ts`: "exige elegir el operador en la consulta" ahora comprueba que la corrección y la novedad se envían sin `operador_id`. En `control-acceso.spec.ts` el caso 404 "Operador no encontrado." pasó a "Vehículo no encontrado.", porque ya no se envía operador. |
+| `frontend/src/app/vehiculos/*`, `celdas/*` (Iteración 2) | El Operador ve los listados sin botones de crear, editar ni eliminar. |
+| `frontend/nginx/default.conf`, `frontend/proxy.conf.json` (Iteración 2) | Ruta `/auth` hacia el backend. `index.html` se sirve con `Cache-Control: no-store`. |
 | `frontend/src/app/control-acceso/*` | Sin selector de celda; celda asignada y permanencia; componente de corrección y novedades; etiqueta del operador. |
 | `frontend/src/app/vehiculos/*`, `celdas/*` | Selector de cliente, validaciones, columna de mensualidad; tipo de celda MOTO o CARRO. |
 | `frontend/src/app/models/*.ts`, `services/estancias.service.ts` | Contratos y llamadas nuevas. |
@@ -647,6 +661,14 @@ y su guía `AGENTS.md` también se conserva.
   pantalla de gestión de clientes (Iteración 2); pagos y pantalla de mensualidades
   (Iteración 3). En la Iteración 1 el operador se elegía en cada formulario, como en el
   proyecto base; desde la Iteración 2 el responsable es la persona de la cuenta con sesión.
+- **Iteración 2 (sesión en el navegador):** el token se guarda en `sessionStorage`, no en
+  `localStorage`: si se cierra la pestaña del equipo de la portería, la sesión no queda
+  abierta. Un interceptor agrega el token a cada solicitud y, ante un 401, borra la sesión y
+  lleva a *Ingresar* con el aviso "Tu sesión venció o fue cerrada". El guard vuelve a revisar
+  la sesión en cada navegación, también con el botón "atrás". Además, si el navegador
+  restaura una página desde su caché de atrás/adelante (bfcache), la sesión se vuelve a
+  comprobar con el servidor, e `index.html` se sirve con `Cache-Control: no-store`. El menú
+  no decide permisos: muestra solo las opciones de la lista de permisos que envía el backend.
 - **Iteración 2 (sesión):** bcrypt 5.0.0 con costo 12 para las contraseñas y PyJWT 2.15.1
   para el token firmado (HS256, 8 horas, clave `JWT_SECRETO` de `.env` con 32 caracteres o
   más). El rol nunca va en el token: se lee de la base en cada solicitud. Desactivar una
