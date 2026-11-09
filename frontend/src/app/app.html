@@ -3,33 +3,24 @@
     <a class="brand" routerLink="/" aria-label="Autos Colombia, inicio">
       <span class="brand-mark" aria-hidden="true">AC</span><span>Autos Colombia</span>
     </a>
-    <nav aria-label="Navegación principal">
-      <a routerLink="/control-acceso" routerLinkActive="active" ariaCurrentWhenActive="page"
-        >Control de acceso</a
-      >
-      <a routerLink="/consultas/ocupacion" routerLinkActive="active" ariaCurrentWhenActive="page"
-        >Ocupación</a
-      >
-      <a routerLink="/consultas/historial" routerLinkActive="active" ariaCurrentWhenActive="page"
-        >Historial</a
-      >
-      <a routerLink="/gestion/operadores" routerLinkActive="active" ariaCurrentWhenActive="page"
-        >Operadores</a
-      >
-      <a routerLink="/gestion/celdas" routerLinkActive="active" ariaCurrentWhenActive="page"
-        >Celdas</a
-      >
-      <a
-        routerLink="/"
-        routerLinkActive="active"
-        [routerLinkActiveOptions]="{ exact: true }"
-        ariaCurrentWhenActive="page"
-        >Inicio</a
-      >
-      <a routerLink="/gestion/vehiculos" routerLinkActive="active" ariaCurrentWhenActive="page"
-        >Vehículos</a
-      >
-    </nav>
+    @if (auth.cuenta(); as cuenta) {
+      <nav aria-label="Navegación principal">
+        @for (opcion of menu(); track opcion.ruta) {
+          <a
+            [routerLink]="opcion.ruta"
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{ exact: !!opcion.exacta }"
+            ariaCurrentWhenActive="page"
+            >{{ opcion.etiqueta }}</a
+          >
+        }
+      </nav>
+      <div class="cuenta" aria-label="Sesión">
+        <span class="cuenta-nombre">{{ cuenta.nombre }}</span>
+        <span class="cuenta-rol">{{ rol() }} · {{ cuenta.nombre_usuario }}</span>
+        <button type="button" class="salir" (click)="cerrarSesion()">Cerrar sesión</button>
+      </div>
+    }
   </header>
   <main><router-outlet /></main>
   <footer><span>Autos Colombia</span><span>Control vehicular con claridad.</span></footer>

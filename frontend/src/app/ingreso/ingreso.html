@@ -1,0 +1,53 @@
+<section class="ingreso" aria-labelledby="ingreso-titulo">
+  <div class="panel">
+    <span class="eyebrow">AUTOS COLOMBIA</span>
+    <h1 id="ingreso-titulo">Ingresar</h1>
+    <p>Usa la cuenta que te asignó el administrador.</p>
+    @if (aviso()) {
+      <p class="notice info" role="status">{{ aviso() }}</p>
+    }
+    <form [formGroup]="form" (ngSubmit)="ingresar()" novalidate>
+      <fieldset [disabled]="enviando()">
+        <legend class="sr-only">Credenciales</legend>
+        <div class="field">
+          <label for="usuario">Usuario</label>
+          <input
+            id="usuario"
+            type="text"
+            formControlName="usuario"
+            autocomplete="username"
+            autocapitalize="none"
+            spellcheck="false"
+            [attr.aria-invalid]="campoInvalido('usuario')"
+            aria-describedby="usuario-error"
+          />
+          <span id="usuario-error" class="field-error">
+            @if (campoInvalido('usuario')) {
+              Escribe tu usuario.
+            }
+          </span>
+        </div>
+        <div class="field">
+          <label for="contrasena">Contraseña</label>
+          <input
+            id="contrasena"
+            type="password"
+            formControlName="contrasena"
+            autocomplete="current-password"
+            [attr.aria-invalid]="campoInvalido('contrasena')"
+            aria-describedby="contrasena-error"
+          />
+          <span id="contrasena-error" class="field-error">
+            @if (campoInvalido('contrasena')) {
+              Escribe tu contraseña.
+            }
+          </span>
+        </div>
+        <button class="primary" type="submit">{{ enviando() ? 'Ingresando…' : 'Ingresar' }}</button>
+      </fieldset>
+    </form>
+    @if (error()) {
+      <p class="notice error" role="alert">{{ error() }}</p>
+    }
+  </div>
+</section>

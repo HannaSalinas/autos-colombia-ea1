@@ -69,3 +69,38 @@ footer {
     flex-wrap: wrap;
   }
 }
+
+/* Iteración 2: cuenta con sesión y cierre de sesión. */
+.cuenta {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  column-gap: 12px;
+  font-size: 13px;
+}
+.cuenta-nombre {
+  font-weight: 600;
+  color: #203a33;
+}
+.cuenta-rol {
+  grid-row: 2;
+  color: #627168;
+}
+.salir {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  font: inherit;
+  padding: 8px 12px;
+  border: 1px solid #c9d7ce;
+  border-radius: 8px;
+  background: #fff;
+  color: #214c43;
+  cursor: pointer;
+}
+.salir:hover {
+  background: #eef3ee;
+}
+.salir:focus-visible {
+  outline: 3px solid #aa7b2e;
+  outline-offset: 3px;
+}
