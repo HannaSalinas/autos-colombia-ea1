@@ -250,3 +250,9 @@ thead th {
   line-height: 1.1;
   color: #1f3d33;
 }
+
+/* Iteración 2: responsable tomado de la sesión. */
+.responsable {
+  margin: 0 0 6px;
+  color: #203a33;
+}

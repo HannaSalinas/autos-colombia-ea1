@@ -1,11 +1,13 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { AuthService } from '../auth/auth.service';
 import { ControlAcceso } from './control-acceso';
 
 describe('Control de acceso', () => {
   let http: HttpTestingController;
   let c: ControlAcceso;
+  let fixture: ComponentFixture<ControlAcceso>;
   const celda = { id: 2, codigo: 'M01', tipo: 'MOTO' };
   const stay = {
     id: 3,
@@ -34,37 +36,39 @@ describe('Control de acceso', () => {
       providers: [provideHttpClient(), provideHttpClientTesting()],
     });
     http = TestBed.inject(HttpTestingController);
-    c = TestBed.createComponent(ControlAcceso).componentInstance;
-    // Iteración 1: ya no se cargan celdas; solo operadores (la celda la asigna el sistema).
-    http.expectOne('/operadores?offset=0&limit=100').flush({
-      items: [{ id: 4, nombre: 'Prueba', telefono: '001' }],
-      total: 1,
-      offset: 0,
-      limit: 100,
+    // Iteración 2: hay una cuenta con sesión y no se carga ningún catálogo de operadores.
+    TestBed.inject(AuthService).cuenta.set({
+      id: 4,
+      nombre_usuario: 'marta.usuga',
+      nombre: 'Marta Úsuga (Portería 1)',
+      rol: 'OPERADOR',
+      permisos: ['estancias'],
     });
+    fixture = TestBed.createComponent(ControlAcceso);
+    c = fixture.componentInstance;
   });
   afterEach(() => http.verify());
 
   it('registra entrada con placa normalizada, sin celda ni fecha y sin doble envío', () => {
-    c.entrada.setValue({ placa: ' klm-45d ', operador_id: 4 });
+    c.entrada.setValue({ placa: ' klm-45d ' });
     c.registrarEntrada();
     c.registrarEntrada();
     const req = http.expectOne('/estancias/entrada');
-    expect(req.request.body).toEqual({ placa: 'KLM45D', operador_id: 4 });
+    expect(req.request.body).toEqual({ placa: 'KLM45D' });
     req.flush({ ...stay, placa: 'KLM45D', celda, duracion_segundos: null, permanencia: null });
     expect(c.exitoEntrada()).toContain('M01');
     expect(c.exitoEntrada()).toContain('Bogotá');
     expect(c.ultimaEntrada()?.celda.codigo).toBe('M01');
   });
   it('rechaza blancos y muestra los conflictos de ocupación y referencias', () => {
-    c.entrada.setValue({ placa: ' ', operador_id: 4 });
+    c.entrada.setValue({ placa: ' ' });
     c.registrarEntrada();
     http.expectNone('/estancias/entrada');
     for (const [status, detail] of [
       [409, 'El vehículo ya está dentro.'],
       [409, 'El vehículo no tiene mensualidad vigente. No puede ingresar.'],
       [409, 'No hay celdas disponibles para motos.'],
-      [404, 'Operador no encontrado.'],
+      [404, 'Vehículo no encontrado.'],
     ] as const) {
       c.entrada.controls.placa.setValue('KLM45D');
       c.registrarEntrada();
@@ -75,7 +79,7 @@ describe('Control de acceso', () => {
     }
   });
   it('descarta respuestas antiguas y no permite salida al cambiar de placa', () => {
-    c.consulta.setValue({ placa: 'KLM45D', operador_id: 4 });
+    c.consulta.setValue({ placa: 'KLM45D' });
     c.buscar();
     c.consulta.controls.placa.setValue('XYZ12A');
     http.expectOne('/estancias/vehiculo/KLM45D').flush(state);
@@ -88,14 +92,14 @@ describe('Control de acceso', () => {
     c.consulta.controls.placa.setValue('XYZ12A');
     expect(c.estado()).toBeNull();
   });
-  it('consulta antes de salir, envía solo placa y operador y consulta fuera tras cerrar', () => {
-    c.consulta.setValue({ placa: 'klm-45d', operador_id: 4 });
+  it('consulta antes de salir, envía solo la placa y consulta fuera tras cerrar', () => {
+    c.consulta.setValue({ placa: 'klm-45d' });
     c.buscar();
     http.expectOne('/estancias/vehiculo/KLM45D').flush(state);
     c.registrarSalida();
     c.registrarSalida();
     const req = http.expectOne('/estancias/salida');
-    expect(req.request.body).toEqual({ placa: 'KLM45D', operador_id: 4 });
+    expect(req.request.body).toEqual({ placa: 'KLM45D' });
     req.flush({
       ...stay,
       salida: '2026-10-19T16:00:00Z',
@@ -113,7 +117,7 @@ describe('Control de acceso', () => {
     expect(c.ultimaSalida()?.permanencia).toBe('1 h 00 min');
   });
   it('distingue no registrado y conexión fallida e invalida salida rechazada', () => {
-    c.consulta.setValue({ placa: 'KLM45D', operador_id: 4 });
+    c.consulta.setValue({ placa: 'KLM45D' });
     c.buscar();
     http
       .expectOne('/estancias/vehiculo/KLM45D')
@@ -137,7 +141,7 @@ describe('Control de acceso', () => {
   });
 
   it('tras corregir la celda muestra el cambio y vuelve a consultar el vehículo', () => {
-    c.consulta.setValue({ placa: 'KLM45D', operador_id: 4 });
+    c.consulta.setValue({ placa: 'KLM45D' });
     c.buscar();
     http.expectOne('/estancias/vehiculo/KLM45D').flush(state);
     c.alCorregir({
@@ -157,5 +161,16 @@ describe('Control de acceso', () => {
     c.registrarSalida();
     expect(c.exitoCorreccion()).toBe('');
     http.expectOne('/estancias/salida').flush({}, { status: 409, statusText: 'Conflict' });
+  });
+
+  it('muestra al responsable de la sesión y no tiene selector de operador (Iteración 2)', () => {
+    fixture.detectChanges();
+    const pagina = fixture.nativeElement as HTMLElement;
+    expect(pagina.textContent).toContain(
+      'Responsable de las operaciones: Marta Úsuga (Portería 1)',
+    );
+    expect(pagina.querySelector('select')).toBeNull();
+    expect(pagina.textContent).not.toContain('Selecciona un operador');
+    http.expectNone((r) => r.url.startsWith('/operadores'));
   });
 });

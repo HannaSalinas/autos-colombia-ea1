@@ -6,22 +6,13 @@
       <p>Registra entradas, consulta vehículos y confirma salidas.</p>
     </div>
   </header>
-  <section class="panel" aria-label="Catálogos">
-    <button type="button" (click)="cargarCatalogos()" [disabled]="catalogLoading() || saving()">
-      Actualizar catálogos
-    </button>
-    @if (catalogLoading()) {
-      <p role="status">Cargando operadores…</p>
-    }
-    @if (catalogError()) {
-      <p role="alert" class="notice error">{{ catalogError() }}</p>
-    }
-    @if (!catalogLoading() && !catalogError()) {
-      <p>{{ operadores().length }} operadores.</p>
-      @if (!operadores().length) {
-        <p>Registra operadores desde su gestión para poder seleccionarlos.</p>
-      }
-    }
+  <section class="panel" aria-label="Responsable">
+    <p class="responsable">
+      Responsable de las operaciones: <strong>{{ auth.cuenta()?.nombre }}</strong>
+    </p>
+    <p class="hint">
+      Las entradas, salidas, correcciones y novedades quedan a nombre de la cuenta con sesión.
+    </p>
     <p class="hint">
       La celda la asigna el sistema al registrar la entrada: una libre del tipo del vehículo (moto o
       carro), la que lleva más tiempo sin uso. Solo entran vehículos con mensualidad vigente.
@@ -30,7 +21,7 @@
   <section class="panel" aria-labelledby="entry-title">
     <h2 id="entry-title">Registrar entrada</h2>
     <form [formGroup]="entrada" (ngSubmit)="registrarEntrada()">
-      <fieldset [disabled]="busy() || catalogLoading() || !!catalogError()">
+      <fieldset [disabled]="busy()">
         <legend class="sr-only">Datos de entrada</legend>
         <div class="form-grid">
           <div class="field">
@@ -44,20 +35,6 @@
             <span id="entry-plate-error" class="field-error">
               @if (entrada.controls.placa.touched && entrada.controls.placa.invalid) {
                 La placa es obligatoria y no puede estar vacía.
-              }
-            </span>
-          </div>
-          <div class="field">
-            <label for="entry-operator">Operador de entrada</label
-            ><select id="entry-operator" formControlName="operador_id">
-              <option [ngValue]="null">Selecciona un operador</option>
-              @for (o of operadores(); track o.id) {
-                <option [ngValue]="o.id">{{ o.nombre }} · #{{ o.id }}</option>
-              }
-            </select>
-            <span class="field-error">
-              @if (entrada.controls.operador_id.touched && entrada.controls.operador_id.invalid) {
-                Selecciona un operador.
               }
             </span>
           </div>
@@ -94,20 +71,6 @@
               }
             </span>
           </div>
-          <div class="field">
-            <label for="exit-operator">Operador (salida, corrección o novedad)</label
-            ><select id="exit-operator" formControlName="operador_id">
-              <option [ngValue]="null">Selecciona un operador</option>
-              @for (o of operadores(); track o.id) {
-                <option [ngValue]="o.id">{{ o.nombre }} · #{{ o.id }}</option>
-              }
-            </select>
-            <span class="field-error">
-              @if (consulta.controls.operador_id.touched && consulta.controls.operador_id.invalid) {
-                Selecciona un operador para confirmar la salida.
-              }
-            </span>
-          </div>
         </div>
         <button type="submit" [disabled]="busy()">Consultar vehículo</button>
       </fieldset>
@@ -124,19 +87,13 @@
         <p>{{ state.vehiculo.marca }} · {{ state.vehiculo.color }}</p>
         @if (state.estancia; as stay) {
           <p>Celda {{ stay.celda.codigo }} · Entrada {{ fecha(stay.entrada) }}</p>
-          <p>Confirma la salida de este vehículo con el operador seleccionado.</p>
-          <button
-            type="button"
-            class="primary"
-            (click)="registrarSalida()"
-            [disabled]="busy() || catalogLoading() || !!catalogError()"
-          >
+          <p>Confirma la salida de este vehículo. Quedará a tu nombre.</p>
+          <button type="button" class="primary" (click)="registrarSalida()" [disabled]="busy()">
             Confirmar salida
           </button>
           <app-estancia-acciones
             [estanciaId]="stay.id"
             [celdaActual]="stay.celda.codigo"
-            [operadorId]="consulta.controls.operador_id.value"
             (corregida)="alCorregir($event)"
           />
         } @else {

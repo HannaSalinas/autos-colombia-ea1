@@ -31,7 +31,7 @@ const limpiar = (texto: string) => texto.split(/\s+/).filter(Boolean).join(' ');
  * Iteración 1, Fase 3: acciones sobre una estancia abierta.
  * - Corregir la celda cuando el conductor parqueó en otra (solo libre y compatible, con motivo).
  * - Registrar novedades del vehículo (rayón, golpe, objeto olvidado, otro).
- * El operador es el que se eligió en la consulta de Control de acceso.
+ * Iteración 2: el responsable es la persona de la cuenta con sesión; ya no se elige (D7).
  */
 @Component({
   selector: 'app-estancia-acciones',
@@ -46,7 +46,6 @@ export class EstanciaAcciones implements OnInit {
 
   readonly estanciaId = input.required<number>();
   readonly celdaActual = input.required<string>();
-  readonly operadorId = input<number | null>(null);
   /** Avisa al padre para que vuelva a consultar el vehículo con la celda nueva. */
   readonly corregida = output<Correccion>();
 
@@ -107,11 +106,6 @@ export class EstanciaAcciones implements OnInit {
   corregir(): void {
     if (this.busy()) return;
     this.correccion.markAllAsTouched();
-    const operador = this.operadorId();
-    if (operador === null) {
-      this.errorCorreccion.set('Selecciona el operador en la consulta antes de corregir la celda.');
-      return;
-    }
     if (this.correccion.invalid) return;
     const raw = this.correccion.getRawValue();
     this.saving.set(true);
@@ -119,7 +113,6 @@ export class EstanciaAcciones implements OnInit {
     this.api
       .corregirCelda(this.estanciaId(), {
         celda_id: raw.celda_id!,
-        operador_id: operador,
         motivo: limpiar(raw.motivo),
       })
       .pipe(takeUntilDestroyed(this.destroy))
@@ -140,11 +133,6 @@ export class EstanciaAcciones implements OnInit {
   registrarNovedad(): void {
     if (this.busy()) return;
     this.novedad.markAllAsTouched();
-    const operador = this.operadorId();
-    if (operador === null) {
-      this.errorNovedad.set('Selecciona el operador en la consulta antes de registrar la novedad.');
-      return;
-    }
     if (this.novedad.invalid) return;
     const raw = this.novedad.getRawValue();
     this.saving.set(true);
@@ -154,7 +142,6 @@ export class EstanciaAcciones implements OnInit {
       .registrarNovedad(this.estanciaId(), {
         tipo: raw.tipo as TipoNovedad,
         descripcion: limpiar(raw.descripcion),
-        operador_id: operador,
       })
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe({

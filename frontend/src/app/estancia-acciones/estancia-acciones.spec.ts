@@ -19,10 +19,9 @@ describe('Acciones sobre la estancia (corrección de celda y novedades)', () => 
     descripcion: 'Rayón en la puerta',
   };
 
-  const iniciar = (operadorId: number | null = 4) => {
+  const iniciar = () => {
     fixture.componentRef.setInput('estanciaId', 3);
     fixture.componentRef.setInput('celdaActual', 'C01');
-    fixture.componentRef.setInput('operadorId', operadorId);
     fixture.detectChanges();
     http.expectOne('/estancias/3/celdas-disponibles').flush([c05]);
     http.expectOne('/estancias/3/correcciones').flush([]);
@@ -60,7 +59,7 @@ describe('Acciones sobre la estancia (corrección de celda y novedades)', () => 
     c.corregir();
     c.corregir();
     const req = http.expectOne('/estancias/3/correccion-celda');
-    expect(req.request.body).toEqual({ celda_id: 5, operador_id: 4, motivo: 'Parqueó en la C05' });
+    expect(req.request.body).toEqual({ celda_id: 5, motivo: 'Parqueó en la C05' });
     const respuesta = {
       id: 1,
       estancia_id: 3,
@@ -88,15 +87,28 @@ describe('Acciones sobre la estancia (corrección de celda y novedades)', () => 
     expect(c.disponibles()).toEqual([]);
   });
 
-  it('exige elegir el operador en la consulta', () => {
-    iniciar(null);
+  // Iteración 2: antes exigía elegir el operador en la consulta. Ya no hay selector: el
+  // responsable lo pone el servidor con la sesión, así que no se envía operador_id.
+  it('no pide operador: corrige y registra la novedad sin enviar operador_id', () => {
+    iniciar();
     c.correccion.setValue({ celda_id: 5, motivo: 'Motivo' });
     c.corregir();
+    const correccion = http.expectOne('/estancias/3/correccion-celda');
+    expect(correccion.request.body).toEqual({ celda_id: 5, motivo: 'Motivo' });
+    expect(c.errorCorreccion()).toBe('');
+    correccion.flush(
+      { detail: 'La celda C05 está ocupada.' },
+      { status: 409, statusText: 'Conflict' },
+    );
+    http.expectOne('/estancias/3/celdas-disponibles').flush([c05]);
+    http.expectOne('/estancias/3/correcciones').flush([]);
+    http.expectOne('/estancias/3/novedades').flush([novedad]);
     c.novedad.setValue({ tipo: 'GOLPE', descripcion: 'Golpe' });
     c.registrarNovedad();
-    http.expectNone((r) => r.method === 'POST');
-    expect(c.errorCorreccion()).toContain('operador');
-    expect(c.errorNovedad()).toContain('operador');
+    const nueva = http.expectOne({ method: 'POST', url: '/estancias/3/novedades' });
+    expect(nueva.request.body).toEqual({ tipo: 'GOLPE', descripcion: 'Golpe' });
+    expect(c.errorNovedad()).toBe('');
+    nueva.flush({ ...novedad, id: 11, tipo: 'GOLPE', descripcion: 'Golpe' });
   });
 
   it('registra una novedad y la agrega a la lista', () => {
@@ -110,7 +122,6 @@ describe('Acciones sobre la estancia (corrección de celda y novedades)', () => 
     expect(req.request.body).toEqual({
       tipo: 'OBJETO_OLVIDADO',
       descripcion: 'Celular en la silla',
-      operador_id: 4,
     });
     req.flush({ ...novedad, id: 10, tipo: 'OBJETO_OLVIDADO', descripcion: 'Celular en la silla' });
     expect(c.novedades().length).toBe(2);

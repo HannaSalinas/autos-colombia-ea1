@@ -1,14 +1,13 @@
 import { Celda } from './celda';
 import { Vehiculo } from './vehiculo';
 
-/** Iteración 1: el operador no elige la celda; la asigna el sistema. */
+/** Iteración 1: el operador no elige la celda; la asigna el sistema.
+ *  Iteración 2: tampoco envía el operador; el responsable es la persona de la sesión. */
 export interface EntradaCrear {
   placa: string;
-  operador_id: number;
 }
 export interface SalidaCrear {
   placa: string;
-  operador_id: number;
 }
 export interface Estancia {
   id: number;
@@ -47,7 +46,6 @@ export const DESCRIPCION_MAXIMA = 500;
 
 export interface CorreccionCrear {
   celda_id: number;
-  operador_id: number;
   motivo: string;
 }
 export interface Correccion {
@@ -62,7 +60,6 @@ export interface Correccion {
 export interface NovedadCrear {
   tipo: TipoNovedad;
   descripcion: string;
-  operador_id: number;
 }
 export interface Novedad {
   id: number;

@@ -1,8 +1,8 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormBuilder, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms';
-import { Operador } from '../models/operador';
+import { FormBuilder, ReactiveFormsModule, ValidatorFn } from '@angular/forms';
+import { AuthService } from '../auth/auth.service';
 import { Correccion, EstadoVehiculo, Movimiento } from '../models/estancia';
 import { EstanciaAcciones } from '../estancia-acciones/estancia-acciones';
 import { EstanciasService } from '../services/estancias.service';
@@ -20,20 +20,17 @@ const placa = normalizarPlaca;
 })
 export class ControlAcceso {
   private readonly api = inject(EstanciasService);
+  /** Iteración 2: el responsable es la persona de la cuenta con sesión (D7); ya no se elige. */
+  protected readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
   private readonly destroy = inject(DestroyRef);
   private version = 0;
   readonly entrada = this.fb.group({
     placa: this.fb.nonNullable.control('', nonBlank),
-    operador_id: this.fb.control<number | null>(null, Validators.required),
   });
   readonly consulta = this.fb.group({
     placa: this.fb.nonNullable.control('', nonBlank),
-    operador_id: this.fb.control<number | null>(null, Validators.required),
   });
-  readonly operadores = signal<Operador[]>([]);
-  readonly catalogLoading = signal(false);
-  readonly catalogError = signal('');
   readonly saving = signal(false);
   readonly querying = signal(false);
   readonly busy = computed(() => this.saving() || this.querying());
@@ -60,39 +57,14 @@ export class ControlAcceso {
         this.ultimaSalida.set(null);
         this.exitoCorreccion.set('');
       });
-    this.cargarCatalogos();
-  }
-
-  cargarCatalogos(): void {
-    if (this.catalogLoading() || this.saving()) return;
-    this.catalogLoading.set(true);
-    this.catalogError.set('');
-    this.entrada.controls.operador_id.reset();
-    this.consulta.controls.operador_id.reset();
-    this.api
-      .operadores()
-      .pipe(takeUntilDestroyed(this.destroy))
-      .subscribe({
-        next: (operadores) => {
-          this.operadores.set(operadores);
-          this.catalogLoading.set(false);
-        },
-        error: () => {
-          this.catalogLoading.set(false);
-          this.operadores.set([]);
-          this.catalogError.set(
-            'No se pudieron cargar todas las opciones. Reintenta actualizar catálogos.',
-          );
-        },
-      });
   }
 
   registrarEntrada(): void {
-    if (this.busy() || this.catalogLoading() || this.catalogError()) return;
+    if (this.busy()) return;
     this.entrada.markAllAsTouched();
     if (this.entrada.invalid) return;
     const raw = this.entrada.getRawValue();
-    const data = { placa: placa(raw.placa), operador_id: raw.operador_id! };
+    const data = { placa: placa(raw.placa) };
     this.entrada.controls.placa.setValue(data.placa);
     this.saving.set(true);
     this.errorEntrada.set('');
@@ -147,7 +119,7 @@ export class ControlAcceso {
   }
 
   registrarSalida(): void {
-    if (this.busy() || this.catalogLoading() || this.catalogError()) return;
+    if (this.busy()) return;
     this.consulta.markAllAsTouched();
     const state = this.estado();
     const value = placa(this.consulta.controls.placa.value);
@@ -165,7 +137,7 @@ export class ControlAcceso {
     this.ultimaSalida.set(null);
     this.exitoCorreccion.set('');
     this.api
-      .salida({ placa: value, operador_id: this.consulta.controls.operador_id.value! })
+      .salida({ placa: value })
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe({
         next: (result) => {
@@ -210,7 +182,8 @@ export class ControlAcceso {
   private mensaje(error: HttpErrorResponse): string {
     if ([404, 409].includes(error.status) && typeof error.error?.detail === 'string')
       return error.error.detail;
-    if (error.status === 422) return 'Datos inválidos. Revisa la placa y selecciona un operador.';
+    if (error.status === 403) return 'Tu cuenta no tiene permiso para esta operación.';
+    if (error.status === 422) return 'Datos inválidos. Revisa la placa.';
     return 'No se pudo conectar con el servicio. Consulta el vehículo antes de reintentar: la operación podría haberse completado.';
   }
 }
