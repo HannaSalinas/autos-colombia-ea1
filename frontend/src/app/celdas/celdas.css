@@ -231,3 +231,62 @@ thead th {
     padding-top: 28px;
   }
 }
+
+/* Iteración 2: estado, filtros, aviso de código fijo y auditoría. */
+.status-tag {
+  font-size: 11px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.status-tag.ok {
+  background: #e3f4e8;
+  color: #1d6b35;
+}
+.status-tag.busy {
+  background: #fdf3dc;
+  color: #7a5200;
+}
+.status-tag.off {
+  background: #fde8e8;
+  color: #9b1c1c;
+}
+.placa {
+  margin-left: 8px;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+.warning {
+  background: #fdf3dc;
+  color: #7a5200;
+}
+.form-grid.tres {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.filtros {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr auto;
+  gap: 16px;
+  align-items: end;
+}
+.row-actions .hint {
+  font-size: 12px;
+  color: #627168;
+  margin: 0 6px;
+}
+h3 {
+  font-size: 16px;
+  margin: 18px 0 8px;
+}
+@media (max-width: 760px) {
+  .filtros,
+  .form-grid.tres {
+    grid-template-columns: 1fr;
+  }
+}
+input:disabled,
+select:disabled {
+  background: #f1f3f0;
+  color: #6b7b71;
+  cursor: not-allowed;
+}
