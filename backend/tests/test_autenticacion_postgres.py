@@ -94,7 +94,8 @@ PUBLICAS = {("POST", "/auth/login"), ("GET", "/health")}
 # Lo que solo puede hacer el Administrador (RF-20, D2). Todo lo demás es operativo: ambos roles.
 ADMINISTRATIVAS = {
     ("POST", "/vehiculos"), ("PATCH", "/vehiculos/{id}"), ("DELETE", "/vehiculos/{id}"),
-    ("POST", "/celdas"), ("PATCH", "/celdas/{id}"), ("DELETE", "/celdas/{id}"),
+    ("POST", "/celdas"), ("PATCH", "/celdas/{id}"),
+    ("POST", "/celdas/{id}/inhabilitar"), ("POST", "/celdas/{id}/rehabilitar"),
     ("GET", "/operadores"), ("GET", "/operadores/{id}"),
     ("GET", "/cuentas"), ("POST", "/cuentas"), ("GET", "/cuentas/{id}"),
     ("POST", "/cuentas/{id}/desactivar"), ("POST", "/cuentas/{id}/reactivar"),

@@ -68,7 +68,9 @@ def test_crud_celdas(connection):
                 item = result.json()
                 assert item['codigo'] == code and item['tipo'] == 'CARRO'
                 path = f"/celdas/{item['id']}"
-                assert client.get(path).json() == item
+                # Iteración 2: el detalle trae además la auditoría (RF-31).
+                detalle = client.get(path).json()
+                assert {k: detalle[k] for k in item} == item and detalle['auditoria'][0]['accion'] == 'CREAR'
                 assert client.post('/celdas', json=payload).status_code == 409
                 page = client.get('/celdas?offset=0&limit=1')
                 assert page.status_code == 200 and len(page.json()['items']) == 1
@@ -80,11 +82,13 @@ def test_crud_celdas(connection):
                 moto = codigos_celda_libres(session, 'MOTO')[0]
                 changed = client.patch(path, json={'codigo': moto, 'tipo':'moto'})
                 assert changed.status_code == 200 and changed.json()['tipo'] == 'MOTO'
-                deleted = client.delete(path)
-                assert deleted.status_code == 204 and deleted.content == b''
-                assert client.get(path).status_code == 404
-                assert client.patch(path, json={'tipo':'CARRO'}).status_code == 404
-                assert client.delete(path).status_code == 404
+                # Iteración 2 (cambió el propósito): antes se eliminaba la celda; ahora las celdas nunca
+                # se borran (D4, RNF-18): DELETE responde 405 y la celda sigue existiendo. Una celda que
+                # no existe sigue respondiendo 404.
+                assert client.delete(path).status_code == 405
+                assert client.get(path).status_code == 200
+                assert client.patch('/celdas/9223372036854775807', json={'tipo':'CARRO'}).status_code == 404
+                assert client.get('/celdas/9223372036854775807').status_code == 404
                 assert client.get('/health').json() == {'status':'ok'}
         finally:
             app.dependency_overrides.pop(get_session, None)
