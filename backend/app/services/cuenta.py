@@ -105,8 +105,13 @@ def listar(session: Session, buscar: str | None, rol: str | None, activa: bool |
                          limit=limit)
 
 
+# FOR NO KEY UPDATE (no FOR UPDATE): bloquea la fila frente a otras modificaciones, pero no frente a
+# quien solo la referencia con una llave foránea (por ejemplo, la auditoría que guarda al actor).
+NO_KEY_UPDATE = {"key_share": True}
+
+
 def _buscar(session: Session, cuenta_id: int, bloquear: bool = False) -> CuentaUsuario:
-    cuenta = session.get(CuentaUsuario, cuenta_id, with_for_update=bloquear)
+    cuenta = session.get(CuentaUsuario, cuenta_id, with_for_update=NO_KEY_UPDATE if bloquear else None)
     if cuenta is None:
         raise CuentaError(404, "Cuenta no encontrada.")
     return cuenta
@@ -142,17 +147,25 @@ def _actor_vigente(session: Session, actor: SesionActual) -> None:
 def desactivar(session: Session, cuenta_id: int, actor: SesionActual) -> CuentaRespuesta:
     """HU-21. Nadie puede desactivar su propia cuenta ni dejar el sistema sin administradores activos.
 
-    Bloqueos: primero las filas de TODOS los administradores activos (siempre en el mismo orden, por
-    id) y después la cuenta a desactivar. Si dos administradores intentan desactivarse el uno al otro
+    Bloqueos al desactivar a un administrador: primero las filas de TODOS los administradores activos
+    (siempre en el mismo orden, por id) y después la cuenta a desactivar. Si dos administradores intentan desactivarse el uno al otro
     al mismo tiempo, el segundo espera al primero y, al continuar, ve que solo queda un
     administrador activo: no se pueden quedar en cero.
     """
     if cuenta_id == actor.cuenta_id:
         raise CuentaError(409, PROPIA_CUENTA)
-    administradores = list(session.scalars(
-        select(CuentaUsuario.id).where(CuentaUsuario.rol == "ADMINISTRADOR", CuentaUsuario.activa.is_(True))
-        .order_by(CuentaUsuario.id).with_for_update()
-    ))
+    # El rol de una cuenta nunca cambia (no hay edición de cuentas, D6), así que se puede leer sin
+    # bloqueo para decidir qué bloquear. Solo al desactivar a un administrador hace falta bloquear a
+    # todos los administradores activos; desactivar operadores no se pone en fila detrás de ellos.
+    rol = session.scalar(select(CuentaUsuario.rol).where(CuentaUsuario.id == cuenta_id))
+    if rol is None:
+        raise CuentaError(404, "Cuenta no encontrada.")
+    administradores: list[int] = []
+    if rol == "ADMINISTRADOR":
+        administradores = list(session.scalars(
+            select(CuentaUsuario.id).where(CuentaUsuario.rol == "ADMINISTRADOR", CuentaUsuario.activa.is_(True))
+            .order_by(CuentaUsuario.id).with_for_update(key_share=True)
+        ))
     cuenta = _buscar(session, cuenta_id, bloquear=True)
     if not cuenta.activa:
         raise CuentaError(409, "La cuenta ya está desactivada.")

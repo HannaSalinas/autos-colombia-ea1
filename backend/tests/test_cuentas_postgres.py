@@ -219,10 +219,12 @@ def en_paralelo(solicitudes, marca):
     """Envía dos solicitudes a la vez; ambas esperan juntas justo antes de la sentencia marcada."""
     barrera = Barrier(2, timeout=15)
     local = threading.local()
+    sincronizadas: list[bool] = []
 
     def sincronizar(conn, cursor, statement, parameters, context, executemany):
         if marca(statement) and not getattr(local, "listo", False):
             local.listo = True
+            sincronizadas.append(True)
             barrera.wait()
 
     def enviar(item):
@@ -234,9 +236,12 @@ def en_paralelo(solicitudes, marca):
     event.listen(engine, "before_cursor_execute", sincronizar)
     try:
         with ThreadPoolExecutor(max_workers=2) as pool:
-            return list(pool.map(enviar, solicitudes))
+            respuestas = list(pool.map(enviar, solicitudes))
     finally:
         event.remove(engine, "before_cursor_execute", sincronizar)
+    # Las dos solicitudes llegaron a la sentencia marcada al mismo tiempo: la prueba sí es concurrente.
+    assert len(sincronizadas) == 2, "La barrera no sincronizó las dos solicitudes"
+    return respuestas
 
 
 @pytest.fixture
@@ -294,7 +299,7 @@ def test_dos_administradores_que_se_desactivan_mutuamente_no_dejan_cero(admins_c
     a, b = d["ids"]
     respuestas = en_paralelo([("POST", f"/cuentas/{b}/desactivar", None, d["auth"][0]),
                               ("POST", f"/cuentas/{a}/desactivar", None, d["auth"][1])],
-                             lambda st: "FROM cuenta_usuario" in st and "FOR UPDATE" in st)
+                             lambda st: "FROM cuenta_usuario" in st and "FOR NO KEY UPDATE" in st)
     # El primero gana; el segundo espera el bloqueo y, al continuar, ve que solo queda un
     # administrador activo. Nunca responden los dos 200.
     assert sorted(r.status_code for r in respuestas) == [200, 409]
@@ -303,3 +308,39 @@ def test_dos_administradores_que_se_desactivan_mutuamente_no_dejan_cero(admins_c
     with Session(get_engine()) as s:
         assert s.scalar(select(func.count()).select_from(CuentaUsuario).where(
             CuentaUsuario.id.in_([a, b]), CuentaUsuario.activa.is_(True))) == 1
+
+
+@con_postgres
+def test_desactivar_un_operador_no_espera_los_bloqueos_de_los_administradores(admins_confirmados):
+    """Solo al desactivar a un administrador se bloquean las filas de todos los administradores; un
+    operador se desactiva sin ponerse en fila detrás de esa operación (RNF-19)."""
+    import time
+    from sqlalchemy import text
+    d = admins_confirmados
+    engine = get_engine()
+    with Session(engine) as s, s.begin():
+        operador = crear_cuenta(s, rol="OPERADOR")
+        d["creados"].append(operador.nombre_usuario)
+        operador_id = operador.id
+    conexion = engine.connect()
+    transaccion = conexion.begin()
+    # Otra transacción tiene bloqueadas las filas de los administradores, igual que una desactivación de
+    # un administrador en curso (FOR NO KEY UPDATE). La auditoría del operador referencia al actor con
+    # una llave foránea, lo que toma FOR KEY SHARE: con FOR UPDATE esperaría; con FOR NO KEY UPDATE, no.
+    conexion.execute(text("SELECT id FROM cuenta_usuario WHERE rol = 'ADMINISTRADOR' AND activa FOR NO KEY UPDATE"))
+    try:
+        inicio = time.monotonic()
+        # Tiempo máximo para que la prueba falle en vez de quedarse esperando si vuelve a bloquearse.
+        conexion.execute(text("SELECT 1"))
+        with TestClient(app, headers=d["auth"][0]) as cliente:
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                futuro = pool.submit(cliente.post, f"/cuentas/{operador_id}/desactivar")
+                try:
+                    respuesta = futuro.result(timeout=10)
+                finally:
+                    transaccion.rollback()   # si estaba esperando, la libera para que la prueba termine
+        assert respuesta.status_code == 200 and time.monotonic() - inicio < 5
+    finally:
+        if transaccion.is_active:
+            transaccion.rollback()
+        conexion.close()
