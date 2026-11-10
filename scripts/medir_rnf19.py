@@ -294,7 +294,7 @@ cuenta sin simultaneidad, medido aparte con el mismo método (20 muestras), dio 
 def escribir_reporte(filas: list[dict], datos_equipo: dict, args) -> None:
     SALIDA.mkdir(parents=True, exist_ok=True)
     with open(SALIDA / "rnf19.csv", "w", newline="", encoding="utf-8") as archivo:
-        escritor = csv.DictWriter(archivo, fieldnames=list(filas[0]))
+        escritor = csv.DictWriter(archivo, fieldnames=list(filas[0]), lineterminator="\n")
         escritor.writeheader()
         escritor.writerows(filas)
     ahora = datetime.now(ZoneInfo("America/Bogota")).strftime("%Y-%m-%d %H:%M")
