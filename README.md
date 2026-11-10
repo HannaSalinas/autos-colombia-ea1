@@ -396,13 +396,17 @@ la sesión no se haya cerrado. Qué puede hacer cada rol se define en un solo lu
 | `vehiculos:ver` | ✔ | ✔ | `GET /vehiculos...`, `GET /clientes...` |
 | `celdas:gestionar` | | ✔ | `POST`, `PATCH` y `DELETE` de `/celdas` |
 | `vehiculos:gestionar` | | ✔ | `POST`, `PATCH` y `DELETE` de `/vehiculos` |
-| `cuentas:gestionar` | | ✔ | `GET /operadores`, `GET /operadores/{id}` |
+| `cuentas:gestionar` | | ✔ | `/cuentas/...`, `GET /operadores`, `GET /operadores/{id}` |
 
 | Método y ruta | Descripción |
 | --- | --- |
 | `POST /auth/login` | `usuario` y `contrasena` → `token`, `expira_en` y la cuenta (`nombre`, `rol`, `permisos`). 401 "Usuario o contraseña inválidos." si falla cualquiera de los dos; 403 si la cuenta está desactivada (solo con la contraseña correcta) |
 | `GET /auth/yo` | Cuenta con sesión y su lista de permisos (con ella el frontend arma el menú) |
 | `POST /auth/cerrar-sesion` | 204. El token deja de valer (sube la versión de sesión de la cuenta) |
+| `POST /cuentas` | `nombre`, `nombre_usuario`, `contrasena`, `rol` → 201, cuenta activa. El usuario se normaliza (espacios exteriores y minúsculas) antes de validar; si ya existe, 409 "Ese nombre de usuario ya está en uso." La respuesta nunca incluye la contraseña ni su hash |
+| `GET /cuentas?buscar&rol&estado&offset&limit` | Listado con nombre completo, usuario, rol, estado y fecha de creación; `buscar` por nombre o usuario; `estado` = `ACTIVA` o `INACTIVA` |
+| `GET /cuentas/{id}` | Detalle con la auditoría: quién y cuándo creó, desactivó o reactivó la cuenta |
+| `POST /cuentas/{id}/desactivar`, `POST /cuentas/{id}/reactivar` | 409 si es la propia cuenta, si es el último administrador activo o si ya estaba en ese estado. Desactivar revoca las sesiones abiertas de esa cuenta |
 
 | Método y ruta | Descripción |
 | --- | --- |
@@ -649,7 +653,7 @@ y su guía `AGENTS.md` también se conserva.
 | `frontend/src/app/operadores/*`, `services/operadores.service.ts`, `models/operador.ts` (Iteración 2) | **Eliminados** con autorización expresa, junto con las **8 pruebas** de `operadores.spec.ts`. La pantalla del profesor creaba, editaba y borraba operadores; por la decisión de alcance de la Iteración 2, las personas se crean con su cuenta y `/operadores` quedó solo de consulta para el Administrador, así que la pantalla no tenía ruta y era código muerto. Su historial sigue en git (tag `ea1`). |
 | `frontend/src/app/control-acceso/*`, `estancia-acciones/*` (Iteración 2) | Sin selector de operador: se muestra al responsable de la sesión y no se envía `operador_id`. **Cambió el propósito de una prueba** de `estancia-acciones.spec.ts`: "exige elegir el operador en la consulta" ahora comprueba que la corrección y la novedad se envían sin `operador_id`. En `control-acceso.spec.ts` el caso 404 "Operador no encontrado." pasó a "Vehículo no encontrado.", porque ya no se envía operador. |
 | `frontend/src/app/vehiculos/*`, `celdas/*` (Iteración 2) | El Operador ve los listados sin botones de crear, editar ni eliminar. |
-| `frontend/nginx/default.conf`, `frontend/proxy.conf.json` (Iteración 2) | Ruta `/auth` hacia el backend. `index.html` se sirve con `Cache-Control: no-store`. |
+| `frontend/nginx/default.conf`, `frontend/proxy.conf.json` (Iteración 2) | Rutas `/auth` y `/cuentas` hacia el backend. `index.html` se sirve con `Cache-Control: no-store`. |
 | `frontend/src/app/control-acceso/*` | Sin selector de celda; celda asignada y permanencia; componente de corrección y novedades; etiqueta del operador. |
 | `frontend/src/app/vehiculos/*`, `celdas/*` | Selector de cliente, validaciones, columna de mensualidad; tipo de celda MOTO o CARRO. |
 | `frontend/src/app/models/*.ts`, `services/estancias.service.ts` | Contratos y llamadas nuevas. |
@@ -669,6 +673,18 @@ y su guía `AGENTS.md` también se conserva.
   restaura una página desde su caché de atrás/adelante (bfcache), la sesión se vuelve a
   comprobar con el servidor, e `index.html` se sirve con `Cache-Control: no-store`. El menú
   no decide permisos: muestra solo las opciones de la lista de permisos que envía el backend.
+- **Iteración 2 (cuentas):** no se editan los datos de una cuenta ni se borran (D4, D6): se
+  crean, se consultan y se desactivan o reactivan. Al crear una cuenta se crea también su
+  persona. Desactivar bloquea primero las filas de todos los administradores activos (siempre
+  en el mismo orden) y después la cuenta. Como quien desactiva es un administrador activo y no
+  puede desactivarse a sí mismo, la regla del "último administrador" solo se activa cuando dos
+  administradores se desactivan mutuamente al mismo tiempo; el segundo recibe 409 y nunca
+  quedan cero (lo prueba `test_dos_administradores_que_se_desactivan_mutuamente_no_dejan_cero`).
+  Las fechas de auditoría y de creación se toman en Python con la hora del servidor, porque
+  `now()` de PostgreSQL devuelve la hora en que empezó la transacción.
+- **Semillas y cambios en `.env`:** las semillas solo crean lo que falta; nunca modifican una
+  cuenta ni una persona que ya existe. Si cambias `ADMIN_NOMBRE` o una contraseña en `.env`
+  después de la primera carga, el cambio se aplica al recrear la base (`docker compose down -v`).
 - **Iteración 2 (sesión):** bcrypt 5.0.0 con costo 12 para las contraseñas y PyJWT 2.15.1
   para el token firmado (HS256, 8 horas, clave `JWT_SECRETO` de `.env` con 32 caracteres o
   más). El rol nunca va en el token: se lee de la base en cada solicitud. Desactivar una
