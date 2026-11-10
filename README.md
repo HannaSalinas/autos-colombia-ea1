@@ -469,8 +469,44 @@ Todas las llaves, restricciones e índices están en [`docs/modelo_fisico.sql`](
 | RNF-16 Validación en tres niveles | Formatos, longitudes y unicidad en Angular (`utils/reglas.ts`), API (`app/domain/reglas.py`) y base (CHECK e índices únicos). Las reglas de estado, en Angular y en la API con bloqueo de filas | `reglas.spec.ts`, `test_reglas_cuentas_celdas.py`, `test_migraciones_ea2_postgres.py` |
 | RNF-17 Concurrencia e integridad | Índices únicos `lower(nombre_usuario)` y `upper(codigo)`; inhabilitar con `FOR UPDATE` frente a la asignación con `SKIP LOCKED`; desactivar administradores con bloqueo ordenado | Pruebas de concurrencia en `test_cuentas_postgres.py` y `test_gestion_celdas_postgres.py` |
 | RNF-18 Conservación de datos | Sin `DELETE` de cuentas ni de celdas en la API; llaves foráneas `ON DELETE RESTRICT` | `DELETE /celdas/{id}` responde 405 (`test_celdas_postgres.py`) |
+| RNF-19 Tiempo de respuesta | Medido con `scripts/medir_rnf19.py` sobre Docker. **No se cumple por completo:** crear cuenta con 4 simultáneas supera 1 s (ver abajo) | [`docs/evidencias/rnf19.md`](docs/evidencias/rnf19.md) |
 | RNF-20 Compatibilidad | Pantallas sin dependencias propias de un navegador | Capturas en Chrome, Edge y Firefox (ver abajo) |
 | RNF-21 Confirmación de acciones sensibles | Componente `confirmacion`: nombra a la persona o la celda y no actúa hasta confirmar | Guion HU-21 y HU-25; `confirmacion.spec.ts` |
+
+### RNF-19 · Tiempo de respuesta medido
+
+La medición es automática y reproducible. Como nada se borra (D4), deja cuentas `rnf19.*` y
+celdas nuevas, así que se hace sobre una base limpia y después se vuelve a recrear:
+
+```bash
+docker compose down -v && docker compose up --build -d
+backend/.venv/bin/python scripts/medir_rnf19.py      # genera docs/evidencias/rnf19.md y .csv
+docker compose down -v && docker compose up --build -d
+```
+
+Resultado de la medición versionada (commit `62bcd05`, equipo con Intel Celeron N4020 de 2
+núcleos a 1,1 GHz y 7,5 GiB de RAM):
+
+| Escenario | Límite (p95) | Medido (p95) | ¿Cumple? |
+| --- | --- | --- | --- |
+| Gestión de cuentas y celdas, 4 simultáneas: listar, buscar, detalle, desactivar, reactivar, crear, editar, inhabilitar y rehabilitar celdas | ≤ 1000 ms | de 96 a 699 ms | Sí |
+| **Crear cuenta, 4 simultáneas** | ≤ 1000 ms | **1215 ms** | **No** |
+| Iniciar sesión sin simultaneidad | ≤ 1000 ms | 341 ms | Sí |
+| Iniciar sesión, 4 simultáneos | ≤ 2000 ms | 1322 ms | Sí |
+
+**RNF-19 no se cumple por completo.** Crear una cuenta calcula el hash bcrypt de la contraseña
+con costo 12 (RNF-13), unos 0,5 s de CPU en este equipo; con 4 creaciones a la vez en 2 núcleos
+cada una espera a las otras. El costo no se reduce, porque es lo que protege las contraseñas.
+Como contexto: solo el Administrador crea cuentas, y de una en una tarda p95 689 ms. Entre
+ejecuciones hay una variación de unos ±200 ms en las operaciones con bcrypt (por ejemplo, el
+inicio de sesión con 4 simultáneos dio 952, 1184 y 1322 ms en tres ejecuciones).
+
+**Lo que la medición ayudó a corregir:** en la primera ejecución, desactivar cuenta con 4
+simultáneas daba p95 1257 ms. Cada desactivación bloqueaba las filas de todos los
+administradores, aun cuando la cuenta era de un Operador, y ese bloqueo además hacía esperar a la
+auditoría, que referencia al actor con una llave foránea. Ahora el bloqueo solo se toma al
+desactivar a un administrador y con `FOR NO KEY UPDATE`: el p95 bajó de 1257 a 404 ms (612 ms en
+la medición versionada). El detalle está en el historial del reporte.
 
 **Capturas para RNF-20** (una por navegador, en sus versiones actuales): *Ingresar* con el
 mensaje de credenciales inválidas, el menú del Operador, *Cuentas de usuario* con la
@@ -657,6 +693,8 @@ AutosColombia/
 ├── docs/README-profesor.md     # (profesor) README original sin cambios
 ├── docs/modelo_fisico.sql      # (nuestro) esquema real exportado con pg_dump
 ├── docs/diccionario_datos.md   # (nuestro) tablas, columnas, tipos, llaves y restricciones
+├── docs/evidencias/rnf19.md    # (nuestro) evidencia de RNF-19 (y rnf19.csv con los datos crudos)
+├── scripts/medir_rnf19.py      # (nuestro) medición automática de RNF-19
 ├── backend/
 │   ├── Dockerfile              # (nuestro) migra, carga semillas e inicia la API
 │   ├── app/
