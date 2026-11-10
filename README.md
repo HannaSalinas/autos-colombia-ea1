@@ -17,15 +17,16 @@ ocupación e historial.
 1. [Inicio rápido](#inicio-rápido)
 2. [Capturas](#capturas)
 3. [Guion de demostración (HU-01 a HU-14)](#guion-de-demostración-hu-01-a-hu-14)
-4. [Verificación de requerimientos no funcionales](#verificación-de-requerimientos-no-funcionales)
-5. [Reglas implementadas](#reglas-implementadas)
-6. [API](#api)
-7. [Datos de demostración](#datos-de-demostración)
-8. [Pruebas](#pruebas)
-9. [Arquitectura y estructura](#arquitectura-y-estructura)
-10. [Instalación sin Docker](#instalación-sin-docker)
-11. [Crédito: qué viene del profesor y qué agregamos](#crédito-qué-viene-del-profesor-y-qué-agregamos)
-12. [Decisiones y supuestos](#decisiones-y-supuestos)
+4. [Guion de demostración de la Iteración 2 (HU-15 a HU-25)](#guion-de-demostración-de-la-iteración-2-hu-15-a-hu-25)
+5. [Verificación de requerimientos no funcionales](#verificación-de-requerimientos-no-funcionales)
+6. [Reglas implementadas](#reglas-implementadas)
+7. [API](#api)
+8. [Datos de demostración](#datos-de-demostración)
+9. [Pruebas](#pruebas)
+10. [Arquitectura y estructura](#arquitectura-y-estructura)
+11. [Instalación sin Docker](#instalación-sin-docker)
+12. [Crédito: qué viene del profesor y qué agregamos](#crédito-qué-viene-del-profesor-y-qué-agregamos)
+13. [Decisiones y supuestos](#decisiones-y-supuestos)
 
 ## Inicio rápido
 
@@ -263,6 +264,112 @@ de 70** carros y **9 libres de 10** motos.
 
 Para capturas con más datos, ver [Datos de demostración](#datos-de-demostración).
 
+## Guion de demostración de la Iteración 2 (HU-15 a HU-25)
+
+Continúa el guion anterior, sobre la misma base (después de HU-13). Todos los valores de
+este guion se comprobaron sobre una base limpia: entrada de ABC123 en C01, salida por Diego,
+GHI789 corregida a C10 y, dentro, KLM45D (M01), JKL321 (C03), STU852 (C04) y GHI789 (C10).
+
+**Orden recomendado antes del video:** si vas a medir RNF-19, hazlo primero (deja datos de
+prueba); luego `docker compose down -v && docker compose up --build -d` y recorre el guion de
+la Iteración 1 y después este.
+
+### HU-15 · Iniciar sesión
+
+1. Cierra sesión. En *Ingresar*, pulsa **Ingresar** con los campos vacíos: "Escribe tu
+   usuario." y "Escribe tu contraseña.".
+2. `marta.usuga` con una contraseña equivocada, y luego `nadie.aqui`: en los dos casos
+   "Usuario o contraseña inválidos." (en `/docs`, los dos responden 401 con el mismo cuerpo).
+3. No hay selector de rol: el rol llega con la cuenta (D1).
+
+### HU-16 · Ver solo lo que mi rol permite
+
+1. Ingresa con `marta.usuga`: el menú muestra Inicio, Control de acceso, Ocupación,
+   Historial, Vehículos y Celdas (estas dos solo para consultar). No aparece "Cuentas de
+   usuario". Escribir `/gestion/cuentas` en la barra devuelve al inicio.
+2. En `/docs`, con el token de Marta, `GET /cuentas` y `POST /celdas` responden **403** "No
+   tienes permiso para esta operación." y no cambian nada.
+3. Ingresa con la cuenta del Administrador: ve también **Cuentas de usuario** y los botones
+   de gestión en Vehículos y Celdas.
+
+### HU-18 · Quedar registrado como responsable
+
+Ya se vio en el guion anterior: no hay selector de operador, la entrada de ABC123 quedó a
+nombre de Marta y su salida a nombre de Diego (Historial). Las estancias de la Iteración 1
+conservan su responsable (lo comprueba `test_0006_y_0007_se_aplican_sobre_datos_de_la_ea1`).
+
+### HU-19 · Crear cuenta de usuario
+
+Con el Administrador, en **Cuentas de usuario → Nueva cuenta**:
+
+1. Usuario `abc` o contraseña `clave12`: mensajes de límite junto a cada campo.
+2. Usuario ` MARTA.USUGA `: "Ese nombre de usuario ya está en uso." (se normaliza antes de
+   validar).
+3. Nombre "Laura Restrepo", usuario ` Laura.Restrepo `, contraseña `turno2026`, rol
+   Operador: "Cuenta de Laura Restrepo (laura.restrepo) creada y activa." La contraseña no se
+   vuelve a mostrar.
+
+### HU-20 · Consultar cuentas de usuario
+
+1. Busca `restrepo`: aparece solo laura.restrepo, con nombre, usuario, rol, estado y fecha de
+   creación.
+2. Filtra por rol **Operador**: marta.usuga, diego.arango y laura.restrepo.
+3. Busca `zzz`: "No hay cuentas que coincidan".
+
+### HU-21 · Desactivar o reactivar una cuenta
+
+1. Abre una pestaña nueva, ingresa con `laura.restrepo` y deja la sesión abierta.
+2. En la pestaña del Administrador, **Desactivar** a Laura: la confirmación dice "¿Desactivar
+   la cuenta de Laura Restrepo (laura.restrepo)?…". Confirma.
+3. En la pestaña de Laura, cualquier acción la devuelve a *Ingresar* con "Tu sesión venció o
+   fue cerrada". Si intenta ingresar: "Tu cuenta está desactivada. Contacta al
+   administrador.".
+4. En la fila del Administrador aparece "Tu cuenta", sin botón de desactivar (en `/docs`:
+   409 "No puedes desactivar tu propia cuenta.").
+5. **Reactivar** a Laura: vuelve a ingresar. **Detalle** muestra la auditoría: Creó,
+   Desactivó y Reactivó la cuenta, con fecha y el nombre del Administrador.
+6. El último administrador activo no se puede desactivar ni siquiera con dos administradores
+   desactivándose al mismo tiempo: lo prueba
+   `test_dos_administradores_que_se_desactivan_mutuamente_no_dejan_cero`.
+
+### HU-22 · Consultar celdas
+
+1. Con Marta, en **Celdas**, filtra por estado **Ocupada**: M01 (KLM45D), C03 (JKL321), C04
+   (STU852) y C10 (GHI789), cada una con su placa. No hay botones de gestión.
+2. Busca `c0` o filtra por tipo MOTO: la búsqueda y los filtros se combinan.
+
+### HU-23 · Registrar celda
+
+Con el Administrador, en **Celdas → Nueva celda**:
+
+1. `M05` con tipo CARRO: "Una celda de tipo CARRO debe tener un código que empiece por C.";
+   `C00` y `C100`: "dos dígitos del 01 al 99".
+2. ` c01 `: "Ya existe una celda con ese código.".
+3. ` c71 `, tipo CARRO, ubicación "Ampliación norte": "Celda C71 registrada", libre.
+
+### HU-24 · Editar celda
+
+1. **Editar** C71: cambia el código a `C72` (todavía no tiene movimientos).
+2. **Editar** C01: el código y el tipo aparecen bloqueados con "La celda C01 ya tuvo
+   movimientos: su código y su tipo quedan fijos…". La ubicación sí se puede cambiar
+   ("Entrada principal").
+
+### HU-25 · Inhabilitar o rehabilitar celda
+
+1. En la fila de C03 (ocupada) no hay botón de inhabilitar: "Ocupada: primero debe salir el
+   vehículo" (en `/docs`: 409 con ese mensaje).
+2. **Inhabilitar** C02 (libre, con historial): la confirmación nombra la celda. Confirma.
+3. **Ocupación** muestra carros: 67 libres de 71 · 3 ocupadas · 1 inhabilitada. C02 ya no se
+   asigna ni aparece para corregir celda.
+4. **Detalle** de C02 sigue disponible. **Rehabilitar**: vuelve a "Libre" y su tiempo libre
+   cuenta desde ahora.
+5. **Detalle** de C72: Creó y Editó la celda, con quién y cuándo (RF-31).
+
+### HU-17 · Cerrar sesión
+
+Pulsa **Cerrar sesión**: vuelve a *Ingresar* con "Cerraste sesión.". El botón "atrás" no
+devuelve a ninguna pantalla protegida, y el token anterior responde 401 en `/docs`.
+
 ## Verificación de requerimientos no funcionales
 
 ### RNF-03 · Concurrencia
@@ -351,6 +458,23 @@ Todas las llaves, restricciones e índices están en [`docs/modelo_fisico.sql`](
    base de datos, y se prueban solas (ver [Arquitectura](#arquitectura-y-estructura)).
 3. Cada cambio de esquema es una migración Alembic nueva, y una prueba comprueba que las
    migraciones coinciden con los modelos.
+
+### Iteración 2 · RNF-13 a RNF-21
+
+| RNF | Cómo se cumple | Cómo verificarlo |
+| --- | --- | --- |
+| RNF-13 Contraseñas seguras | Solo hash bcrypt de costo 12; un CHECK de la base rechaza cualquier otro valor; las respuestas nunca incluyen la contraseña ni el hash; las de las semillas salen de `.env` | `docker compose exec db psql -c "select nombre_usuario, left(hash_contrasena, 7) from cuenta_usuario"` muestra `$2b$12$`; `test_seguridad.py`, `test_cuentas_postgres.py` |
+| RNF-14 Sesión con vencimiento | Token HS256 de 8 horas; en cada solicitud se revisan firma, vencimiento, cuenta activa y versión de sesión | `test_seguridad.py` (vencido, alterado, sin firma, otra clave), `test_sesion_vencida_manipulada_o_revocada_da_401` |
+| RNF-15 Mensajes comprensibles | 401 sin sesión, 403 sin permiso, 409 conflictos, siempre con mensaje en español; la pantalla traduce cualquier otro código a un mensaje sin detalles técnicos | Guion HU-15, HU-16 y HU-21; `ingreso.spec.ts` ("nunca muestra un error técnico") |
+| RNF-16 Validación en tres niveles | Formatos, longitudes y unicidad en Angular (`utils/reglas.ts`), API (`app/domain/reglas.py`) y base (CHECK e índices únicos). Las reglas de estado, en Angular y en la API con bloqueo de filas | `reglas.spec.ts`, `test_reglas_cuentas_celdas.py`, `test_migraciones_ea2_postgres.py` |
+| RNF-17 Concurrencia e integridad | Índices únicos `lower(nombre_usuario)` y `upper(codigo)`; inhabilitar con `FOR UPDATE` frente a la asignación con `SKIP LOCKED`; desactivar administradores con bloqueo ordenado | Pruebas de concurrencia en `test_cuentas_postgres.py` y `test_gestion_celdas_postgres.py` |
+| RNF-18 Conservación de datos | Sin `DELETE` de cuentas ni de celdas en la API; llaves foráneas `ON DELETE RESTRICT` | `DELETE /celdas/{id}` responde 405 (`test_celdas_postgres.py`) |
+| RNF-20 Compatibilidad | Pantallas sin dependencias propias de un navegador | Capturas en Chrome, Edge y Firefox (ver abajo) |
+| RNF-21 Confirmación de acciones sensibles | Componente `confirmacion`: nombra a la persona o la celda y no actúa hasta confirmar | Guion HU-21 y HU-25; `confirmacion.spec.ts` |
+
+**Capturas para RNF-20** (una por navegador, en sus versiones actuales): *Ingresar* con el
+mensaje de credenciales inválidas, el menú del Operador, *Cuentas de usuario* con la
+confirmación de desactivar y *Celdas* con la confirmación de inhabilitar.
 
 ## Reglas implementadas
 
@@ -495,8 +619,9 @@ cd frontend && npm ci && npm test -- --watch=false   # frontend (Vitest); requie
 ```
 
 `backend-tests` usa un PostgreSQL **aparte** (`db-test`, en memoria): las pruebas nunca
-tocan los datos de la demostración. Resultado al cerrar la iteración: **244 pruebas de
-backend** y **58 de frontend** aprobadas.
+tocan los datos de la demostración. Resultado al cerrar la Iteración 1: 244 pruebas de
+backend y 58 de frontend. **Al cerrar la Iteración 2: 474 de backend y 112 de frontend**,
+todas aprobadas.
 
 | Tipo | Archivos | Qué comprueban |
 | --- | --- | --- |
@@ -506,6 +631,10 @@ backend** y **58 de frontend** aprobadas.
 | Esquema | `tests/test_models.py`, `test_estancia.py`, `test_esquema_postgres.py` | Migraciones iguales a los modelos y SQL de cada migración |
 | Datos | `tests/test_seed_postgres.py`, `test_demo_postgres.py` | Semillas sin duplicados; datos de demostración que respetan las reglas |
 | Frontend | `src/app/**/*.spec.ts` | Formularios, validaciones, llamadas HTTP y mensajes de cada pantalla |
+| Iteración 2 · reglas y seguridad | `tests/test_reglas_cuentas_celdas.py`, `test_seguridad.py`, `src/app/utils/reglas.spec.ts` | Valores límite de usuario, nombre, contraseña (incluido el límite de 72 bytes), código y ubicación; hash bcrypt de costo 12; tokens vencidos, alterados, sin firma o con otra clave; mapa de permisos |
+| Iteración 2 · sesión y permisos | `tests/test_autenticacion_postgres.py`, `src/app/auth/auth.spec.ts`, `ingreso/ingreso.spec.ts`, `app.spec.ts` | Login (mismo 401 para usuario inexistente y contraseña mala, 403 de cuenta desactivada), **todas** las rutas exigen sesión, 403 exactamente en lo que el rol no puede hacer, revocación, interceptor, guards y botón "atrás" (bfcache) |
+| Iteración 2 · gestión | `tests/test_cuentas_postgres.py`, `test_gestion_celdas_postgres.py`, `cuentas/*.spec.ts`, `celdas/*.spec.ts` | HU-19 a HU-25 con sus valores límite, auditoría, y concurrencia: mismo usuario o mismo código creados a la vez, dos administradores que se desactivan mutuamente, inhabilitar frente a una entrada en curso |
+| Iteración 2 · migraciones | `tests/test_migraciones_ea2_postgres.py`, `test_migracion_0008_postgres.py` | Restricciones de 0006–0008 y su aplicación sobre datos de la EA1 sin perder la autoría; validación de los CHECK solo si los datos los cumplen |
 
 ## Arquitectura y estructura
 
