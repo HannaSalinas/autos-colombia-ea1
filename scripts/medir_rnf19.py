@@ -277,7 +277,7 @@ def main() -> None:
 # Mediciones anteriores, conservadas como evidencia de cómo se llegó al resultado final.
 HISTORIAL = """## Historial de la medición
 
-Primera ejecución (10-nov-2026, commit `1eed2db`, mismo equipo y base limpia): fallaban dos
+Primera ejecución (9-nov-2026, commit `1eed2db`, mismo equipo y base limpia): fallaban dos
 operaciones con 4 simultáneas.
 
 | Operación (4 simultáneas) | p95 primera ejecución | Causa | Corrección | p95 después |
@@ -361,8 +361,8 @@ def escribir_reporte(filas: list[dict], datos_equipo: dict, args) -> None:
         "- Las escrituras tardan unos 200 ms aun de una en una en este equipo (procesador de bajo consumo y",
         "  confirmación en disco de PostgreSQL); con 4 simultáneas se reparten los 2 núcleos.",
         "- Entre ejecuciones hay una variación de unos ±200 ms en las operaciones con bcrypt (por ejemplo,",
-        "  el inicio de sesión con 4 simultáneos dio 952 ms en una ejecución y 1184 ms en otra). En un",
-        "  equipo con más núcleos los tiempos con simultaneidad bajan, pero la causa no cambia.",
+        "  el inicio de sesión con 4 simultáneos dio 952, 1184 y 1322 ms en tres ejecuciones el 9-nov-2026).",
+        "  En un equipo con más núcleos los tiempos con simultaneidad bajan, pero la causa no cambia.",
         "",
         HISTORIAL,
         "Datos crudos de esta ejecución: [`rnf19.csv`](rnf19.csv).",
