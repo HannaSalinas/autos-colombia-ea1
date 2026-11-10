@@ -1,0 +1,296 @@
+<section class="management" aria-labelledby="cuentas-titulo">
+  <header class="heading">
+    <div>
+      <span class="eyebrow">ADMINISTRACIÓN</span>
+      <h1 id="cuentas-titulo">Cuentas de usuario</h1>
+      <p>Crea cuentas, consulta quién tiene acceso y desactiva o reactiva cuentas.</p>
+    </div>
+    <button class="primary" type="button" (click)="nueva()" [disabled]="ocupado()">
+      Nueva cuenta
+    </button>
+  </header>
+
+  @if (exito()) {
+    <p class="notice success" role="status">{{ exito() }}</p>
+  }
+  @if (errorAccion()) {
+    <p class="notice error" role="alert">{{ errorAccion() }}</p>
+  }
+
+  @if (mostrarFormulario()) {
+    <section class="panel" aria-labelledby="form-titulo">
+      <h2 id="form-titulo">Crear cuenta</h2>
+      <p class="hint">
+        La cuenta se crea activa. La contraseña inicial no se vuelve a mostrar después de guardarla.
+      </p>
+      <form [formGroup]="form" (ngSubmit)="crear()" novalidate>
+        <fieldset [disabled]="guardando()">
+          <legend class="sr-only">Datos de la cuenta</legend>
+          <div class="form-grid">
+            <div class="field">
+              <label for="nombre">Nombre completo</label>
+              <input
+                id="nombre"
+                type="text"
+                formControlName="nombre"
+                [attr.maxlength]="maximos.nombre + 20"
+                [attr.aria-invalid]="!!error('nombre')"
+                aria-describedby="nombre-error"
+              />
+              <span id="nombre-error" class="field-error">{{ error('nombre') }}</span>
+            </div>
+            <div class="field">
+              <label for="nombre_usuario">Nombre de usuario</label>
+              <input
+                id="nombre_usuario"
+                type="text"
+                formControlName="nombre_usuario"
+                autocomplete="off"
+                autocapitalize="none"
+                spellcheck="false"
+                [attr.aria-invalid]="!!error('nombre_usuario')"
+                aria-describedby="usuario-ayuda usuario-error"
+              />
+              <span id="usuario-ayuda" class="hint"
+                >Minúsculas, dígitos, punto o guion bajo (4 a {{ maximos.usuario }}).</span
+              >
+              <span id="usuario-error" class="field-error">{{ error('nombre_usuario') }}</span>
+            </div>
+            <div class="field">
+              <label for="contrasena">Contraseña inicial</label>
+              <input
+                id="contrasena"
+                type="password"
+                formControlName="contrasena"
+                autocomplete="new-password"
+                [attr.aria-invalid]="!!error('contrasena')"
+                aria-describedby="contrasena-ayuda contrasena-error"
+              />
+              <span id="contrasena-ayuda" class="hint"
+                >De 8 a {{ maximos.contrasena }} caracteres, con al menos una letra y un
+                número.</span
+              >
+              <span id="contrasena-error" class="field-error">{{ error('contrasena') }}</span>
+            </div>
+            <div class="field">
+              <label for="rol">Rol</label>
+              <select
+                id="rol"
+                formControlName="rol"
+                [attr.aria-invalid]="!!error('rol')"
+                aria-describedby="rol-error"
+              >
+                <option value="">Selecciona un rol</option>
+                <option value="OPERADOR">Operador</option>
+                <option value="ADMINISTRADOR">Administrador</option>
+              </select>
+              <span id="rol-error" class="field-error">{{ error('rol') }}</span>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="primary" type="submit">
+              {{ guardando() ? 'Guardando…' : 'Crear cuenta' }}</button
+            ><button type="button" (click)="cancelar()">Cancelar</button>
+          </div>
+        </fieldset>
+      </form>
+    </section>
+  }
+
+  @if (porDesactivar(); as cuenta) {
+    <app-confirmacion
+      titulo="Desactivar cuenta"
+      [mensaje]="
+        '¿Desactivar la cuenta de ' +
+        cuenta.nombre +
+        ' (' +
+        cuenta.nombre_usuario +
+        ')? No podrá ingresar y su sesión abierta se cerrará. Sus movimientos seguirán a su nombre.'
+      "
+      textoConfirmar="Sí, desactivar"
+      [ocupado]="guardando()"
+      (confirmar)="desactivar()"
+      (cancelar)="porDesactivar.set(null)"
+    />
+  }
+
+  <section class="panel" aria-label="Buscar cuentas">
+    <form [formGroup]="filtros" (ngSubmit)="buscar()" class="filtros">
+      <div class="field">
+        <label for="buscar">Buscar por nombre o usuario</label>
+        <input id="buscar" type="search" formControlName="buscar" maxlength="80" />
+      </div>
+      <div class="field">
+        <label for="filtro-rol">Rol</label>
+        <select id="filtro-rol" formControlName="rol">
+          <option value="">Todos</option>
+          <option value="OPERADOR">Operador</option>
+          <option value="ADMINISTRADOR">Administrador</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="filtro-estado">Estado</label>
+        <select id="filtro-estado" formControlName="estado">
+          <option value="">Todos</option>
+          <option value="ACTIVA">Activa</option>
+          <option value="INACTIVA">Desactivada</option>
+        </select>
+      </div>
+      <div class="actions">
+        <button type="submit" [disabled]="cargando()">Buscar</button
+        ><button type="button" (click)="limpiarFiltros()" [disabled]="cargando()">Limpiar</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel list" aria-label="Listado de cuentas" [attr.aria-busy]="cargando()">
+    <div class="list-heading">
+      <h2>
+        Cuentas <span class="count">{{ total() }}</span>
+      </h2>
+      <button type="button" (click)="cargar()" [disabled]="ocupado()">Actualizar listado</button>
+    </div>
+    @if (cargando()) {
+      <p class="empty" role="status">Cargando cuentas…</p>
+    } @else if (errorLista()) {
+      <p class="notice error" role="alert">{{ errorLista() }}</p>
+    } @else if (!items().length) {
+      <p class="empty" role="status">No hay cuentas que coincidan.</p>
+    } @else {
+      <div class="table-scroll">
+        <table>
+          <caption class="sr-only">
+            Cuentas de usuario, página
+            {{
+              pagina()
+            }}
+            de
+            {{
+              paginas()
+            }}
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Nombre completo</th>
+              <th scope="col">Usuario</th>
+              <th scope="col">Rol</th>
+              <th scope="col">Estado</th>
+              <th scope="col">Creada</th>
+              <th scope="col">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (cuenta of items(); track cuenta.id) {
+              <tr>
+                <th scope="row">{{ cuenta.nombre }}</th>
+                <td>{{ cuenta.nombre_usuario }}</td>
+                <td>{{ rol(cuenta.rol) }}</td>
+                <td>
+                  <span
+                    class="status-tag"
+                    [class.ok]="cuenta.activa"
+                    [class.off]="!cuenta.activa"
+                    >{{ cuenta.activa ? 'Activa' : 'Desactivada' }}</span
+                  >
+                </td>
+                <td>{{ fecha(cuenta.creada_en) }}</td>
+                <td class="row-actions">
+                  <button
+                    type="button"
+                    (click)="verDetalle(cuenta)"
+                    [attr.aria-label]="'Ver detalle de ' + cuenta.nombre"
+                  >
+                    Detalle
+                  </button>
+                  @if (cuenta.activa) {
+                    @if (esMiCuenta(cuenta)) {
+                      <span class="hint">Tu cuenta</span>
+                    } @else {
+                      <button
+                        type="button"
+                        class="delete-link"
+                        (click)="pedirDesactivar(cuenta)"
+                        [disabled]="ocupado()"
+                        [attr.aria-label]="'Desactivar la cuenta de ' + cuenta.nombre"
+                      >
+                        Desactivar
+                      </button>
+                    }
+                  } @else {
+                    <button
+                      type="button"
+                      (click)="reactivar(cuenta)"
+                      [disabled]="ocupado()"
+                      [attr.aria-label]="'Reactivar la cuenta de ' + cuenta.nombre"
+                    >
+                      Reactivar
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <nav class="pagination" aria-label="Paginación de cuentas">
+        <button
+          type="button"
+          (click)="cargar(offset() - limit)"
+          [disabled]="ocupado() || offset() === 0"
+        >
+          Anterior</button
+        ><span>Página {{ pagina() }} de {{ paginas() }}</span
+        ><button
+          type="button"
+          (click)="cargar(offset() + limit)"
+          [disabled]="ocupado() || offset() + limit >= total()"
+        >
+          Siguiente
+        </button>
+      </nav>
+    }
+  </section>
+
+  @if (detalle(); as d) {
+    <section class="panel" aria-labelledby="detalle-titulo">
+      <div class="list-heading">
+        <h2 id="detalle-titulo">Detalle de {{ d.nombre }}</h2>
+        <button type="button" (click)="detalle.set(null)">Cerrar detalle</button>
+      </div>
+      <p>
+        Usuario <strong>{{ d.nombre_usuario }}</strong> · {{ rol(d.rol) }} ·
+        {{ d.activa ? 'Activa' : 'Desactivada' }} · creada el {{ fecha(d.creada_en) }} (Bogotá)
+      </p>
+      <h3>Auditoría</h3>
+      @if (!d.auditoria.length) {
+        <p class="hint">Sin registros de auditoría.</p>
+      } @else {
+        <div class="table-scroll">
+          <table>
+            <caption class="sr-only">
+              Auditoría de la cuenta
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Fecha (Bogotá)</th>
+                <th scope="col">Acción</th>
+                <th scope="col">Quién</th>
+                <th scope="col">Detalle</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (evento of d.auditoria; track $index) {
+                <tr>
+                  <td>{{ fecha(evento.fecha) }}</td>
+                  <td>{{ accion(evento.accion) }}</td>
+                  <td>{{ evento.actor ?? 'Sistema (semillas)' }}</td>
+                  <td>{{ evento.detalle ?? '—' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  }
+</section>

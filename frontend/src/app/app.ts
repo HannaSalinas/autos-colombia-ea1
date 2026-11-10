@@ -21,6 +21,7 @@ export const MENU: readonly OpcionMenu[] = [
   { ruta: '/consultas/historial', etiqueta: 'Historial', permiso: PERMISOS.consultas },
   { ruta: '/gestion/vehiculos', etiqueta: 'Vehículos', permiso: PERMISOS.vehiculosVer },
   { ruta: '/gestion/celdas', etiqueta: 'Celdas', permiso: PERMISOS.celdasVer },
+  { ruta: '/gestion/cuentas', etiqueta: 'Cuentas de usuario', permiso: PERMISOS.cuentasGestionar },
 ];
 
 const ROLES: Record<string, string> = { ADMINISTRADOR: 'Administrador', OPERADOR: 'Operador' };

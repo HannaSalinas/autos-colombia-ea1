@@ -17,7 +17,7 @@ const OPERADOR: CuentaSesion = {
 const ADMINISTRADOR: CuentaSesion = {
   id: 1,
   nombre_usuario: 'admin',
-  nombre: 'Administrador del parqueadero',
+  nombre: 'Sandra Patiño',
   rol: 'ADMINISTRADOR',
   permisos: [
     'celdas:gestionar',
@@ -76,14 +76,22 @@ describe('Navegación', () => {
       'Celdas',
     ]);
     expect(el.textContent).not.toContain('Operadores');
+    expect(el.textContent).not.toContain('Cuentas de usuario'); // HU-16.1
     expect(el.textContent).toContain('Marta Úsuga (Portería 1)');
     expect(el.textContent).toContain('Operador · marta.usuga');
   });
 
   it('el Administrador ve todas las opciones', () => {
     const el = montar(ADMINISTRADOR).nativeElement as HTMLElement;
-    expect(enlaces(el)).toContain('Control de acceso');
-    expect(enlaces(el)).toContain('Celdas');
+    expect(enlaces(el)).toEqual([
+      'Inicio',
+      'Control de acceso',
+      'Ocupación',
+      'Historial',
+      'Vehículos',
+      'Celdas',
+      'Cuentas de usuario',
+    ]);
     expect(el.textContent).toContain('Administrador · admin');
   });
 

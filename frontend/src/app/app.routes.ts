@@ -55,5 +55,12 @@ export const routes: Routes = [
     data: { permiso: PERMISOS.consultas },
     loadComponent: () => import('./historial/historial').then((m) => m.Historial),
   },
+  {
+    path: 'gestion/cuentas',
+    title: 'Cuentas de usuario | Autos Colombia',
+    canActivate: [accesoGuard],
+    data: { permiso: PERMISOS.cuentasGestionar },
+    loadComponent: () => import('./cuentas/cuentas').then((m) => m.Cuentas),
+  },
   { path: '**', redirectTo: '' },
 ];
