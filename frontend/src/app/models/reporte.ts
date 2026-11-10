@@ -2,6 +2,8 @@ export interface CeldasPorTipo {
   tipo: 'CARRO' | 'MOTO';
   total: number;
   ocupadas: number;
+  /** Iteración 2: fuera de servicio; no cuentan como libres. */
+  inhabilitadas?: number;
   libres: number;
 }
 export interface VehiculoDentro {

@@ -21,7 +21,12 @@
         <article class="panel tarjeta">
           <span class="eyebrow">{{ nombreTipo(c.tipo) }}</span>
           <strong>{{ c.libres }}</strong>
-          <span>libres de {{ c.total }} · {{ c.ocupadas }} ocupadas</span>
+          <span
+            >libres de {{ c.total }} · {{ c.ocupadas }} ocupadas
+            @if (c.inhabilitadas) {
+              · {{ c.inhabilitadas }} inhabilitadas
+            }
+          </span>
           <div
             class="barra"
             role="meter"

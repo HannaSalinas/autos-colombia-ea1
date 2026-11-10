@@ -49,6 +49,21 @@ describe('Reporte de ocupación', () => {
     expect(fixture.componentInstance.porcentaje(4, 70)).toBe(6);
   });
 
+  it('muestra las celdas inhabilitadas aparte de las libres (Iteración 2)', () => {
+    http.expectOne('/reportes/ocupacion').flush({
+      ...reporte,
+      celdas: [
+        { tipo: 'CARRO', total: 70, ocupadas: 4, inhabilitadas: 2, libres: 64 },
+        { tipo: 'MOTO', total: 10, ocupadas: 1, inhabilitadas: 0, libres: 9 },
+      ],
+    });
+    fixture.detectChanges();
+    const text = (fixture.nativeElement as HTMLElement).textContent!;
+    expect(text).toContain('64');
+    expect(text).toContain('2 inhabilitadas');
+    expect(text).not.toContain('0 inhabilitadas');
+  });
+
   it('muestra un mensaje si no hay vehículos y permite actualizar', () => {
     http.expectOne('/reportes/ocupacion').flush({ ...reporte, dentro: [] });
     fixture.detectChanges();
