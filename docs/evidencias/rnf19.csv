@@ -1,0 +1,14 @@
+operacion,simultaneas,muestras,mediana_ms,p95_ms,maximo_ms,limite_ms,cumple
+Crear cuenta,4,40,791,1215,1223,1000,False
+Listar y buscar cuentas,4,40,57,129,131,1000,True
+Detalle de cuenta,4,40,65,107,132,1000,True
+Desactivar cuenta,4,40,379,612,780,1000,True
+Reactivar cuenta,4,40,359,507,639,1000,True
+Crear celda,4,40,404,579,595,1000,True
+Listar y filtrar celdas,4,40,63,96,108,1000,True
+Editar celda,4,40,328,544,555,1000,True
+Inhabilitar celda,4,40,332,406,412,1000,True
+Rehabilitar celda,4,40,345,699,708,1000,True
+"Crear cuenta (sin simultaneidad, referencia)",1,30,539,689,717,,
+Iniciar sesión (sin simultaneidad),1,30,308,341,373,1000,True
+Iniciar sesión (4 simultáneos),4,30,769,1322,1342,2000,True
