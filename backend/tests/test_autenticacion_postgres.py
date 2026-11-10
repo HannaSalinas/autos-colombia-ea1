@@ -96,6 +96,8 @@ ADMINISTRATIVAS = {
     ("POST", "/vehiculos"), ("PATCH", "/vehiculos/{id}"), ("DELETE", "/vehiculos/{id}"),
     ("POST", "/celdas"), ("PATCH", "/celdas/{id}"), ("DELETE", "/celdas/{id}"),
     ("GET", "/operadores"), ("GET", "/operadores/{id}"),
+    ("GET", "/cuentas"), ("POST", "/cuentas"), ("GET", "/cuentas/{id}"),
+    ("POST", "/cuentas/{id}/desactivar"), ("POST", "/cuentas/{id}/reactivar"),
 }
 
 
