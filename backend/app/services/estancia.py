@@ -78,7 +78,8 @@ class ServicioEstancia:
         descartadas: list[int] = []
         while True:
             consulta = (
-                select(Celda).where(Celda.tipo == tipo, ~abierta)
+                # Iteración 2: solo celdas habilitadas (una inhabilitada no se asigna, RF-30).
+                select(Celda).where(Celda.tipo == tipo, Celda.habilitada.is_(True), ~abierta)
                 .order_by(Celda.disponible_desde.asc().nulls_first(), Celda.codigo)
                 .limit(1).with_for_update(skip_locked=True)
             )
@@ -195,7 +196,8 @@ class ServicioEstancia:
         estancia = self._estancia(estancia_id, abierta=True)
         abierta = exists().where(Estancia.celda_id == Celda.id, Estancia.salida.is_(None))
         celdas = self.session.scalars(
-            select(Celda).where(Celda.tipo == tipo_celda_para(estancia.vehiculo.tipo), ~abierta)
+            select(Celda).where(Celda.tipo == tipo_celda_para(estancia.vehiculo.tipo), Celda.habilitada.is_(True),
+                                ~abierta)
             .order_by(Celda.codigo)
         )
         return [CeldaRespuesta.model_validate(c) for c in celdas]
@@ -208,6 +210,9 @@ class ServicioEstancia:
         nueva = self.session.scalar(select(Celda).where(Celda.id == data.celda_id).with_for_update())
         if nueva is None:
             raise EstanciaError(404, "Celda no encontrada.")
+        # Se mira con el bloqueo tomado: si se estaba inhabilitando, ya se ve el resultado.
+        if not nueva.habilitada:
+            raise EstanciaError(409, f"La celda {nueva.codigo} está inhabilitada.")
         if nueva.id == estancia.celda_id:
             raise EstanciaError(409, f"El vehículo ya está registrado en la celda {nueva.codigo}.")
         try:

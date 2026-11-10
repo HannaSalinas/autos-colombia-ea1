@@ -11,6 +11,7 @@ class CeldasPorTipo(BaseModel):
     tipo: str
     total: int
     ocupadas: int
+    inhabilitadas: int = 0   # Iteración 2: fuera de servicio; no cuentan como libres
     libres: int
 
 

@@ -39,15 +39,18 @@ def ocupacion(session: Session) -> OcupacionRespuesta:
     abierta = Estancia.salida.is_(None)
     # Celdas por tipo: total y ocupadas (con una estancia abierta). Solo MOTO y CARRO.
     filas = session.execute(
-        select(Celda.tipo, func.count(Celda.id), func.count(Estancia.id))
+        select(Celda.tipo, func.count(Celda.id), func.count(Estancia.id),
+               # Iteración 2: las inhabilitadas libres no se asignan, así que no cuentan como libres.
+               func.count(Celda.id).filter(Celda.habilitada.is_(False), Estancia.id.is_(None)))
         .outerjoin(Estancia, (Estancia.celda_id == Celda.id) & abierta)
         .where(Celda.tipo.in_(TOTAL_CELDAS)).group_by(Celda.tipo)
     ).all()
-    conteo = {tipo: (total, ocupadas) for tipo, total, ocupadas in filas}
+    conteo = {tipo: (total, ocupadas, inhabilitadas) for tipo, total, ocupadas, inhabilitadas in filas}
     celdas = []
     for tipo in ("CARRO", "MOTO"):
-        total, ocupadas = conteo.get(tipo, (0, 0))
-        celdas.append(CeldasPorTipo(tipo=tipo, total=total, ocupadas=ocupadas, libres=total - ocupadas))
+        total, ocupadas, inhabilitadas = conteo.get(tipo, (0, 0, 0))
+        celdas.append(CeldasPorTipo(tipo=tipo, total=total, ocupadas=ocupadas, inhabilitadas=inhabilitadas,
+                                    libres=total - ocupadas - inhabilitadas))
     dentro = session.execute(
         select(Estancia, Vehiculo.placa, Vehiculo.tipo, Celda.codigo, Operador.nombre)
         .join(Vehiculo, Vehiculo.id == Estancia.vehiculo_id).join(Celda, Celda.id == Estancia.celda_id)
