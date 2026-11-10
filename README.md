@@ -394,7 +394,7 @@ la sesión no se haya cerrado. Qué puede hacer cada rol se define en un solo lu
 | `consultas` | ✔ | ✔ | `/reportes/ocupacion`, `/reportes/historial` |
 | `celdas:ver` | ✔ | ✔ | `GET /celdas`, `GET /celdas/{id}` |
 | `vehiculos:ver` | ✔ | ✔ | `GET /vehiculos...`, `GET /clientes...` |
-| `celdas:gestionar` | | ✔ | `POST`, `PATCH` y `DELETE` de `/celdas` |
+| `celdas:gestionar` | | ✔ | `POST /celdas`, `PATCH /celdas/{id}`, `POST /celdas/{id}/inhabilitar` y `/rehabilitar` |
 | `vehiculos:gestionar` | | ✔ | `POST`, `PATCH` y `DELETE` de `/vehiculos` |
 | `cuentas:gestionar` | | ✔ | `/cuentas/...`, `GET /operadores`, `GET /operadores/{id}` |
 
@@ -403,6 +403,10 @@ la sesión no se haya cerrado. Qué puede hacer cada rol se define en un solo lu
 | `POST /auth/login` | `usuario` y `contrasena` → `token`, `expira_en` y la cuenta (`nombre`, `rol`, `permisos`). 401 "Usuario o contraseña inválidos." si falla cualquiera de los dos; 403 si la cuenta está desactivada (solo con la contraseña correcta) |
 | `GET /auth/yo` | Cuenta con sesión y su lista de permisos (con ella el frontend arma el menú) |
 | `POST /auth/cerrar-sesion` | 204. El token deja de valer (sube la versión de sesión de la cuenta) |
+| `GET /celdas?buscar&tipo&estado&offset&limit` | **Cambió (Iteración 2):** cada celda trae `ubicacion`, `estado` (`LIBRE`, `OCUPADA` o `INHABILITADA`, calculado), `placa` si está ocupada y `tiene_historial`. Ambos roles |
+| `GET /celdas/{id}` | Detalle con la auditoría: quién y cuándo creó, editó, inhabilitó o rehabilitó la celda |
+| `POST /celdas`, `PATCH /celdas/{id}` | `codigo` (`C01`–`C99` para CARRO, `M01`–`M99` para MOTO; se normaliza a mayúsculas sin espacios), `tipo`, `ubicacion` opcional (hasta 60). El código y el tipo solo cambian si la celda está libre y nunca tuvo movimientos (409 si no); la ubicación, siempre |
+| `POST /celdas/{id}/inhabilitar`, `POST /celdas/{id}/rehabilitar` | Inhabilitar solo una celda libre (409 si está ocupada); deja de asignarse. Rehabilitar pone `disponible_desde` en la hora de la rehabilitación. **No hay `DELETE`** (D4, RNF-18) |
 | `POST /cuentas` | `nombre`, `nombre_usuario`, `contrasena`, `rol` → 201, cuenta activa. El usuario se normaliza (espacios exteriores y minúsculas) antes de validar; si ya existe, 409 "Ese nombre de usuario ya está en uso." La respuesta nunca incluye la contraseña ni su hash |
 | `GET /cuentas?buscar&rol&estado&offset&limit` | Listado con nombre completo, usuario, rol, estado y fecha de creación; `buscar` por nombre o usuario; `estado` = `ACTIVA` o `INACTIVA` |
 | `GET /cuentas/{id}` | Detalle con la auditoría: quién y cuándo creó, desactivó o reactivó la cuenta |
@@ -646,6 +650,9 @@ y su guía `AGENTS.md` también se conserva.
 | `backend/app/schemas/celda.py`, `schemas/operador.py`, `schemas/vehiculo.py` (Iteración 2) | Importan `required_text` desde el dominio. |
 | `backend/tests/test_celdas_postgres.py`, `test_operadores_postgres.py`, `test_models.py`, `test_estancia.py` (Iteración 2) | Mismo propósito. Reconocen las columnas y restricciones de las migraciones 0006 y 0007 (teléfono opcional, `ubicacion` y `habilitada`, índice `ix_estancia_celda`). Las celdas de prueba usan códigos con el formato nuevo (`C01`–`C99`, `M01`–`M99`), que da el ayudante `codigos_celda_libres` de `conftest.py`. Para cambiar una celda de tipo se cambia también su código. |
 | `backend/app/routers/*.py`, `backend/app/main.py` (Iteración 2) | Cada router exige sesión y declara su permiso con `requiere(...)`; router `/auth` y manejo de 401/403. `/operadores` quedó solo con `GET` para el Administrador (se quitaron `POST`, `PATCH` y `DELETE`, y del servicio las funciones de escritura). |
+| `backend/app/services/celda.py`, `routers/celdas.py`, `schemas/celda.py` (Iteración 2) | Ubicación, estado calculado, búsqueda y filtros, edición de código y tipo solo sin historial (D8), inhabilitar y rehabilitar con `FOR UPDATE`, auditoría. Se quitó `DELETE /celdas/{id}` y la función de borrado del servicio. La asignación de celda y la corrección ignoran las inhabilitadas, y el reporte de ocupación las cuenta aparte. |
+| `backend/tests/test_celdas_postgres.py` (Iteración 2) | **Cambió el propósito de un tramo:** antes borraba la celda y comprobaba el 404; ahora comprueba que `DELETE` responde 405 y la celda sigue existiendo. El detalle trae además la auditoría. |
+| `frontend/src/app/celdas/*` (Iteración 2) | Reescrita con ubicación, estado y placa, filtros, código y tipo bloqueados con la explicación cuando hay historial, inhabilitar con confirmación, rehabilitar y detalle con auditoría. **Cambió el propósito de una prueba:** "requiere confirmación y permite cancelar antes de eliminar" pasó a "… antes de inhabilitar", porque las celdas ya no se eliminan. Las otras cinco pruebas del profesor se conservan con códigos del formato nuevo. |
 | `backend/app/schemas/estancia.py`, `services/estancia.py`, `schemas/operador.py` (Iteración 2) | Entrada, salida, corrección y novedad ya no reciben `operador_id`: lo da la sesión. La respuesta de operador acepta teléfono vacío. |
 | `backend/tests/test_operadores.py`, `test_operadores_postgres.py` (Iteración 2) | **Cambiaron de propósito:** probaban crear, editar y borrar operadores; ahora prueban que `POST`, `PATCH` y `DELETE` responden 405 sin escribir nada, que la consulta sigue funcionando y que el Operador recibe 403. Se conservaron todos los casos. |
 | `backend/tests/test_estancias_postgres.py`, `test_correccion_novedad_postgres.py`, `test_estancias_api.py`, `test_vehiculos_postgres.py`, `test_celdas_postgres.py` (Iteración 2) | Hacen las solicitudes con una sesión. Cada portería usa la cuenta de su persona y el responsable se comprueba sin enviarlo. **Cambió el propósito de un caso:** enviar `operador_id` antes buscaba el operador (404 si no existía) y ahora se rechaza siempre (422), porque el responsable sale de la sesión. |
@@ -682,6 +689,16 @@ y su guía `AGENTS.md` también se conserva.
   quedan cero (lo prueba `test_dos_administradores_que_se_desactivan_mutuamente_no_dejan_cero`).
   Las fechas de auditoría y de creación se toman en Python con la hora del servidor, porque
   `now()` de PostgreSQL devuelve la hora en que empezó la transacción.
+- **Iteración 2 (celdas):** el estado (libre, ocupada o inhabilitada) se calcula en cada
+  consulta y nunca se guarda, para que no pueda desincronizarse. Una celda "tiene historial"
+  si aparece en alguna estancia **o** en alguna corrección: al corregir se sobrescribe
+  `estancia.celda_id`, así que la celda anterior solo queda registrada en `correccion_celda`.
+  Inhabilitar usa `FOR UPDATE` (espera) y la asignación usa `FOR UPDATE SKIP LOCKED` (salta):
+  si una portería está asignando la celda, inhabilitar espera y ve la estancia (409); si
+  inhabilitar llega primero, la entrada toma otra celda. Lo prueban
+  `test_inhabilitar_espera_a_la_entrada_en_curso_y_ve_la_celda_ocupada` y
+  `test_la_entrada_salta_la_celda_que_se_esta_inhabilitando`. Una celda nueva queda con
+  `disponible_desde` nulo (nunca usada), así que se asigna primero.
 - **Semillas y cambios en `.env`:** las semillas solo crean lo que falta; nunca modifican una
   cuenta ni una persona que ya existe. Si cambias `ADMIN_NOMBRE` o una contraseña en `.env`
   después de la primera carga, el cambio se aplica al recrear la base (`docker compose down -v`).
