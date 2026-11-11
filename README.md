@@ -470,7 +470,7 @@ Todas las llaves, restricciones e índices están en [`docs/modelo_fisico.sql`](
 | RNF-17 Concurrencia e integridad | Índices únicos `lower(nombre_usuario)` y `upper(codigo)`; inhabilitar con `FOR UPDATE` frente a la asignación con `SKIP LOCKED`; desactivar administradores con bloqueo ordenado | Pruebas de concurrencia en `test_cuentas_postgres.py` y `test_gestion_celdas_postgres.py` |
 | RNF-18 Conservación de datos | Sin `DELETE` de cuentas ni de celdas en la API; llaves foráneas `ON DELETE RESTRICT` | `DELETE /celdas/{id}` responde 405 (`test_celdas_postgres.py`) |
 | RNF-19 Tiempo de respuesta | Medido con `scripts/medir_rnf19.py` sobre Docker. **No se cumple por completo:** crear cuenta con 4 simultáneas supera 1 s (ver abajo) | [`docs/evidencias/rnf19.md`](docs/evidencias/rnf19.md) |
-| RNF-20 Compatibilidad | Pantallas sin dependencias propias de un navegador | Capturas en Chrome, Edge y Firefox (ver abajo) |
+| RNF-20 Compatibilidad | Pruebas de extremo a extremo con Playwright en Docker (caso NF-02): Chrome y Edge estables para Linux y el Firefox de Playwright | [`docs/evidencias/rnf20/reporte.md`](docs/evidencias/rnf20/reporte.md) y sus capturas (ver abajo) |
 | RNF-21 Confirmación de acciones sensibles | Componente `confirmacion`: nombra a la persona o la celda y no actúa hasta confirmar | Guion HU-21 y HU-25; `confirmacion.spec.ts` |
 
 ### RNF-19 · Tiempo de respuesta medido
@@ -508,9 +508,46 @@ auditoría, que referencia al actor con una llave foránea. Ahora el bloqueo sol
 desactivar a un administrador y con `FOR NO KEY UPDATE`: el p95 bajó de 1257 a 404 ms (612 ms en
 la medición versionada). El detalle está en el historial del reporte.
 
-**Capturas para RNF-20** (una por navegador, en sus versiones actuales): *Ingresar* con el
-mensaje de credenciales inválidas, el menú del Operador, *Cuentas de usuario* con la
-confirmación de desactivar y *Celdas* con la confirmación de inhabilitar.
+### RNF-20 · Capturas en Chrome, Edge y Firefox (caso NF-02)
+
+Las capturas las toma un recorrido automático con Playwright 1.64.1 que corre **dentro de
+Docker**: no hay que instalar ningún navegador en el equipo. Con un solo comando (levanta la
+base, el backend y el frontend si no están corriendo):
+
+```bash
+docker compose --profile e2e run --rm --build e2e
+```
+
+La primera vez construye una imagen de unos 4 GB (entre 10 y 20 minutos); después, cada ejecución tarda unos 3 minutos. El recorrido usa la base de la demo pero
+**no modifica datos**: las confirmaciones se cancelan y la cuenta "abc" no llega a enviarse
+(una comprobación falla si se intenta cualquier escritura). Cada pantalla se verifica
+(textos, menús y botones esperados) antes de capturarla. Las mismas 10 pantallas en cada
+navegador:
+
+| N.º | Pantalla |
+| --- | --- |
+| 01 | `ingreso` |
+| 02 | `error_credenciales` |
+| 03 | `inicio_administrador` |
+| 04 | `cuentas` |
+| 05 | `crear_cuenta_abc` (usuario "abc" y su mensaje de error) |
+| 06 | `confirmar_desactivar` (sobre diego.arango, cancelando) |
+| 07 | `celdas_administrador` |
+| 08 | `confirmar_inhabilitar` (cancelando) |
+| 09 | `inicio_operador` |
+| 10 | `celdas_operador` |
+
+Se guardan en `docs/evidencias/rnf20/` con nombres como `NF-02_chrome_01_ingreso.png`, junto
+con `reporte.md`, que trae el navegador, su versión y el resultado de cada pantalla.
+
+**Aclaraciones honestas sobre los navegadores:** Chrome es el Google Chrome estable oficial
+para Linux. Edge es el Microsoft Edge estable oficial **para Linux** (no la versión de
+Windows) y comparte motor con Chrome. Firefox es el que distribuye Playwright: motor Gecko de
+Firefox estable con parches para automatizarlo, no el instalador oficial de Mozilla. Los tres
+corren sin ventana (headless). El reporte muestra la versión y la identificación (user agent)
+que da cada navegador, como prueba de cuál se ejecutó. Las
+contraseñas salen de `.env` a través de Docker Compose; no aparecen en el código, en las
+capturas (los campos muestran puntos) ni en el reporte, y el recorrido lo comprueba al final.
 
 ## Reglas implementadas
 
@@ -670,6 +707,7 @@ todas aprobadas.
 | Iteración 2 · reglas y seguridad | `tests/test_reglas_cuentas_celdas.py`, `test_seguridad.py`, `src/app/utils/reglas.spec.ts` | Valores límite de usuario, nombre, contraseña (incluido el límite de 72 bytes), código y ubicación; hash bcrypt de costo 12; tokens vencidos, alterados, sin firma o con otra clave; mapa de permisos |
 | Iteración 2 · sesión y permisos | `tests/test_autenticacion_postgres.py`, `src/app/auth/auth.spec.ts`, `ingreso/ingreso.spec.ts`, `app.spec.ts` | Login (mismo 401 para usuario inexistente y contraseña mala, 403 de cuenta desactivada), **todas** las rutas exigen sesión, 403 exactamente en lo que el rol no puede hacer, revocación, interceptor, guards y botón "atrás" (bfcache) |
 | Iteración 2 · gestión | `tests/test_cuentas_postgres.py`, `test_gestion_celdas_postgres.py`, `cuentas/*.spec.ts`, `celdas/*.spec.ts` | HU-19 a HU-25 con sus valores límite, auditoría, y concurrencia: mismo usuario o mismo código creados a la vez, dos administradores que se desactivan mutuamente, inhabilitar frente a una entrada en curso |
+| Iteración 2 · extremo a extremo | `e2e/nf02.spec.ts` (`docker compose --profile e2e run --rm --build e2e`) | RNF-20: las 10 pantallas en Chrome, Edge y Firefox, con capturas y reporte; no cuenta en los totales de arriba |
 | Iteración 2 · migraciones | `tests/test_migraciones_ea2_postgres.py`, `test_migracion_0008_postgres.py` | Restricciones de 0006–0008 y su aplicación sobre datos de la EA1 sin perder la autoría; validación de los CHECK solo si los datos los cumplen |
 
 ## Arquitectura y estructura
@@ -695,6 +733,8 @@ AutosColombia/
 ├── docs/diccionario_datos.md   # (nuestro) tablas, columnas, tipos, llaves y restricciones
 ├── docs/evidencias/rnf19.md    # (nuestro) evidencia de RNF-19 (y rnf19.csv con los datos crudos)
 ├── scripts/medir_rnf19.py      # (nuestro) medición automática de RNF-19
+├── docs/evidencias/rnf20/      # (nuestro) capturas de RNF-20 por navegador y reporte.md
+├── e2e/                        # (nuestro) recorrido de RNF-20 con Playwright en Docker (caso NF-02)
 ├── backend/
 │   ├── Dockerfile              # (nuestro) migra, carga semillas e inicia la API
 │   ├── app/
