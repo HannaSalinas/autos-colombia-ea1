@@ -173,6 +173,8 @@ export class EstanciaAcciones implements OnInit {
   private mensaje(error: HttpErrorResponse): string {
     if ([404, 409].includes(error.status) && typeof error.error?.detail === 'string')
       return error.error.detail;
+    // El mismo texto de permiso que Control de acceso, la pantalla que contiene estas acciones.
+    if (error.status === 403) return 'Tu cuenta no tiene permiso para esta operación.';
     if (error.status === 422)
       return 'Revisa los datos: hay campos que no cumplen las validaciones.';
     return 'No se pudo conectar con el servicio. Consulta de nuevo antes de reintentar.';

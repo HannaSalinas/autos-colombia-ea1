@@ -129,6 +129,26 @@ describe('Acciones sobre la estancia (corrección de celda y novedades)', () => 
     expect(c.etiqueta('OBJETO_OLVIDADO')).toBe('Objeto olvidado');
   });
 
+  // Un 403 es falta de permiso, no un problema de conexión: se dice con el mismo texto que usa
+  // Control de acceso. Antes caía en "No se pudo conectar con el servicio".
+  it('ante un 403 muestra el mensaje de permiso al corregir la celda y al registrar la novedad', () => {
+    iniciar();
+    const permiso = 'Tu cuenta no tiene permiso para esta operación.';
+    const sinPermiso = { status: 403, statusText: 'Forbidden' };
+    c.correccion.setValue({ celda_id: 5, motivo: 'Motivo' });
+    c.corregir();
+    http
+      .expectOne('/estancias/3/correccion-celda')
+      .flush({ detail: 'No tienes permiso para esta operación.' }, sinPermiso);
+    expect(c.errorCorreccion()).toBe(permiso);
+    c.novedad.setValue({ tipo: 'GOLPE', descripcion: 'Golpe' });
+    c.registrarNovedad();
+    http
+      .expectOne({ method: 'POST', url: '/estancias/3/novedades' })
+      .flush({ detail: 'No tienes permiso para esta operación.' }, sinPermiso);
+    expect(c.errorNovedad()).toBe(permiso);
+  });
+
   it('informa cuando la estancia ya se cerró', () => {
     iniciar();
     c.novedad.setValue({ tipo: 'GOLPE', descripcion: 'Golpe' });
