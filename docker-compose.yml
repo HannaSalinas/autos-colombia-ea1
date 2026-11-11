@@ -91,5 +91,28 @@ services:
         condition: service_healthy
     command: ["sh", "-c", "python -m alembic -c alembic.ini upgrade head && python -m pytest -q"]
 
+  # RNF-20 (caso NF-02): pruebas de extremo a extremo en Chrome, Edge y Firefox dentro de Docker.
+  # Uso: docker compose --profile e2e run --rm --build e2e
+  # Levanta la base, el backend y el frontend si no están corriendo, y usa la base de la demo
+  # (solo ingresa y sale; no modifica datos). Las capturas y el reporte quedan en docs/evidencias/rnf20/.
+  e2e:
+    profiles: ["e2e"]
+    build: ./e2e
+    depends_on:
+      - frontend
+    environment:
+      BASE_URL: http://frontend
+      SALIDA: /e2e/salida
+      TZ: America/Bogota
+      ADMIN_USUARIO: "${ADMIN_USUARIO:?Falta ADMIN_USUARIO en .env (ver .env.example)}"
+      ADMIN_CONTRASENA: "${ADMIN_CONTRASENA:?Falta ADMIN_CONTRASENA en .env (ver .env.example)}"
+      MARTA_CONTRASENA: "${MARTA_CONTRASENA:?Falta MARTA_CONTRASENA en .env (ver .env.example)}"
+    # Con el usuario del equipo, para que las capturas no queden a nombre de root.
+    user: "${E2E_UID:-1000}:${E2E_GID:-1000}"
+    shm_size: "1gb"   # Chrome y Edge necesitan más memoria compartida que la que trae Docker por defecto
+    volumes:
+      - ./docs/evidencias/rnf20:/e2e/salida
+      - ./.git:/repo-git:ro   # solo para leer el commit que aparece en el reporte
+
 volumes:
   datos_postgres:
