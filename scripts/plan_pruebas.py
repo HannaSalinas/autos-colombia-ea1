@@ -84,7 +84,7 @@ def completar() -> None:
     ahora = datetime.now(timezone.utc).isoformat()
     for caso in ("US-13", "US-19", "CE-13"):
         r = resultados.get(caso)
-        if not r:
+        if not r or f"{caso}_pytest.txt" in r["evidencias"]:   # ya completado (se puede volver a ejecutar)
             continue
         ok, resumen = resultado_pytest(caso)
         r["evidencias"].append(f"{caso}_pytest.txt")
@@ -105,7 +105,7 @@ def completar() -> None:
     }
     rnf19 = (RAIZ / "docs/evidencias/rnf19.md").read_text(encoding="utf-8")
     commit19 = re.search(r"Commit medido \| (\w+)", rnf19).group(1)
-    global19 = re.search(r"\*\*Resultado global:[^\n]*", rnf19).group(0).strip("*")
+    global19 = re.search(r"\*\*Resultado global:[^\n]*", rnf19).group(0).replace("**", "")
     resultados["NF-01"] = {
         "id": "NF-01", "estado": "Fallido",
         "resultado": (f"Reporte docs/evidencias/rnf19.md (commit medido {commit19}, entorno Docker recién creado, con equipo, "

@@ -387,7 +387,7 @@ export const CASOS_PERMISOS_CELDAS: Record<string, (c: Caso, browser: Browser) =
     verificar(r.status === 200 && det.body.estado === 'INHABILITADA' && det.body.tiene_historial === true, `inhabilitar: ${r.status}, estado ${det.body.estado}`);
     verificar(JSON.stringify(antes) === JSON.stringify(despues), 'el historial de C81 cambió');
     verificar(h.body.items.some((x: any) => x.celda === 'C81'), 'el historial no muestra la estancia en C81');
-    c.anotar(`La inhabilitación se permite (200, estado INHABILITADA, con historial). Las ${antes.length} estancias de C81 quedan intactas y el historial las sigue mostrando.`);
+    c.anotar(`La inhabilitación se permite (200, estado INHABILITADA, con historial). ${antes.length === 1 ? 'La estancia cerrada de C81 queda intacta y el historial la sigue mostrando.' : `Las ${antes.length} estancias de C81 quedan intactas y el historial las sigue mostrando.`}`);
   },
 
   'CE-12': async (c, browser) => {
