@@ -1,0 +1,15 @@
+-- responsables de los movimientos (entradas y salidas) anteriores a esta ejecución: la historia de la EA1
+SELECT 'entrada' AS movimiento, o.nombre AS responsable, count(*)::int AS movimientos
+         FROM estancia e JOIN operador o ON o.id = e.operador_entrada_id WHERE e.entrada < $1 GROUP BY 1, 2
+       UNION ALL
+       SELECT 'salida', o.nombre, count(*)::int
+         FROM estancia e JOIN operador o ON o.id = e.operador_salida_id WHERE e.salida < $1 GROUP BY 1, 2
+       ORDER BY 1, 2;
+-- parámetros: ["2026-11-12T14:21:23.406Z"]
+-- resultado:
+movimiento | responsable               | movimientos
+-----------+---------------------------+------------
+entrada    | Diego Arango (Portería 2) | 21
+entrada    | Marta Úsuga (Portería 1)  | 14
+salida     | Diego Arango (Portería 2) | 15
+salida     | Marta Úsuga (Portería 1)  | 15

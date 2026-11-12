@@ -1,0 +1,527 @@
+[
+  {
+    "id": "US-01",
+    "estado": "Aprobado",
+    "resultado": "API de login: 200. Menú: «Inicio», «Control de acceso», «Ocupación», «Historial», «Vehículos», «Celdas», «Cuentas de usuario». Cabecera: «Administradora de Prueba», «Administrador · admin_prueba» y «Cerrar sesión».",
+    "incidencia": "",
+    "evidencias": [
+      "US-01.png",
+      "US-01_api.json"
+    ],
+    "fecha": "2026-11-12T14:21:36.296Z"
+  },
+  {
+    "id": "US-02",
+    "estado": "Aprobado",
+    "resultado": "Acceso concedido. Menú: «Inicio», «Control de acceso», «Ocupación», «Historial», «Vehículos», «Celdas» (sin «Cuentas de usuario»). En Celdas no aparecen «Nueva celda», «Editar», «Inhabilitar» ni «Rehabilitar».",
+    "incidencia": "",
+    "evidencias": [
+      "US-02.png",
+      "US-02_celdas.png"
+    ],
+    "fecha": "2026-11-12T14:21:39.253Z"
+  },
+  {
+    "id": "US-03",
+    "estado": "Aprobado",
+    "resultado": "Pantalla: ambas variantes muestran «Usuario o contraseña inválidos.». API: 401 en ambas, con el mismo cuerpo {\"detail\":\"Usuario o contraseña inválidos.\"}. No queda token; al abrir /control-acceso vuelve a «Ingresar». Sin errores técnicos.",
+    "incidencia": "",
+    "evidencias": [
+      "US-03_clave_incorrecta.png",
+      "US-03_usuario_inexistente.png",
+      "US-03_modulo_protegido.png",
+      "US-03_api.json"
+    ],
+    "fecha": "2026-11-12T14:21:43.960Z"
+  },
+  {
+    "id": "US-04",
+    "estado": "Aprobado",
+    "resultado": "Pantalla: «Escribe tu usuario.» y «Escribe tu contraseña.», sin enviar la solicitud. API: 422 en ambas, sin token (no hay sesión).",
+    "incidencia": "",
+    "evidencias": [
+      "US-04_usuario_vacio.png",
+      "US-04_contrasena_vacia.png",
+      "US-04_api.json"
+    ],
+    "fecha": "2026-11-12T14:21:45.294Z"
+  },
+  {
+    "id": "US-05",
+    "estado": "Aprobado",
+    "resultado": "API: 401 en ambas variantes (token vencido: 401/401; cuenta desactivada: 401/401); sin datos protegidos y sin cambios (GHI789 sigue fuera). Pantalla, cuenta desactivada: vuelve a «Ingresar» con el aviso «Tu sesión venció o fue cerrada. Ingresa de nuevo.». Pantalla, token vencido: vuelve a «Ingresar» con el aviso «Tu sesión venció o fue cerrada. Ingresa de nuevo.».",
+    "incidencia": "",
+    "evidencias": [
+      "US-05_token_vencido.png",
+      "US-05_cuenta_desactivada.png",
+      "US-05_api.json"
+    ],
+    "fecha": "2026-11-12T14:21:51.317Z"
+  },
+  {
+    "id": "US-06",
+    "estado": "Aprobado",
+    "resultado": "Se muestra «Ingresar» con el aviso «Cerraste sesión.». Al abrir /gestion/cuentas y con el botón atrás vuelve a «Ingresar». El token anterior responde 401 (GET /auth/yo y POST /celdas): el cierre se aplica en el servidor.",
+    "incidencia": "",
+    "evidencias": [
+      "US-06.png",
+      "US-06_atras.png",
+      "US-06_api.json"
+    ],
+    "fecha": "2026-11-12T14:21:54.939Z"
+  },
+  {
+    "id": "US-07",
+    "estado": "Aprobado",
+    "resultado": "API de creación: 201. «Cuenta de Operador Nuevo de Prueba (operador.nuevo) creada y activa.». Cuenta activa con su persona vinculada (Operador Nuevo de Prueba). Ingresa (200) con permisos de operador: celdas:ver, consultas, estancias, vehiculos:ver. El detalle muestra «Creó la cuenta» por Administradora de Prueba (admin_prueba) el 2026-11-12T14:21:57.721357Z.",
+    "incidencia": "",
+    "evidencias": [
+      "US-07.png",
+      "US-07_detalle.png",
+      "US-07_ingreso.png",
+      "US-07_api.json",
+      "US-07_bd.txt"
+    ],
+    "fecha": "2026-11-12T14:22:02.473Z"
+  },
+  {
+    "id": "US-08",
+    "estado": "Aprobado",
+    "resultado": "API de creación: 201. Después de cerrar sesión, admin.nuevo ingresa y ve todo el menú: «Inicio», «Control de acceso», «Ocupación», «Historial», «Vehículos», «Celdas», «Cuentas de usuario»; abre Control de acceso, Cuentas de usuario y Celdas.",
+    "incidencia": "",
+    "evidencias": [
+      "US-08_creada.png",
+      "US-08.png",
+      "US-08_api.json"
+    ],
+    "fecha": "2026-11-12T14:22:07.603Z"
+  },
+  {
+    "id": "US-09",
+    "estado": "Aprobado",
+    "resultado": "Pantalla y API rechazan ambas variantes con «Ese nombre de usuario ya está en uso.» (409). Cuentas 8→8 y personas 8→8: sin datos parciales.",
+    "incidencia": "",
+    "evidencias": [
+      "US-09_exacto.png",
+      "US-09_normalizado.png",
+      "US-09_api.json",
+      "US-09_bd.txt"
+    ],
+    "fecha": "2026-11-12T14:22:11.585Z"
+  },
+  {
+    "id": "US-10",
+    "estado": "Aprobado",
+    "resultado": "Pantalla: los 4 campos vacíos muestran su mensaje; #nombre=3 car.: «Escribe el nombre completo.»; #nombre=2 car.: «El nombre completo debe tener de 3 a 80 caracteres.»; #nombre=81 car.: «El nombre completo debe tener de 3 a 80 caracteres.»; #nombre_usuario=3 car.: «Usa de 4 a 30 caracteres: minúsculas, dígitos, punto o guion bajo.»; #nombre_usuario=31 car.: «Usa de 4 a 30 caracteres: minúsculas, dígitos, punto o guion bajo.»; #contrasena=7 car.: «La contraseña debe tener de 8 a 64 caracteres.»; #contrasena=65 car.: «La contraseña debe tener de 8 a 64 caracteres.»; #contrasena=14 car.: «La contraseña debe tener al menos una letra y un número.»; #nombre=3 car.: sin error; #nombre=80 car.: sin error; #nombre_usuario=4 car.: sin error; #nombre_usuario=30 car.: sin error; #contrasena=8 car.: sin error; #contrasena=64 car.: sin error; sin enviar nada. Servidor: 422 en los 12 rechazos; los límites válidos se crean (201 y 201). Cuentas y personas +2 cada una: ninguna incompleta.",
+    "incidencia": "",
+    "evidencias": [
+      "US-10_vacios.png",
+      "US-10_invalidos.png",
+      "US-10_validos.png",
+      "US-10_api.json",
+      "US-10_bd.txt"
+    ],
+    "fecha": "2026-11-12T14:22:17.028Z"
+  },
+  {
+    "id": "US-11",
+    "estado": "Aprobado",
+    "resultado": "API: 422. Ninguna cuenta con ese usuario ni con un rol distinto de ADMINISTRADOR y OPERADOR.",
+    "incidencia": "",
+    "evidencias": [
+      "US-11_api.json",
+      "US-11_bd.txt"
+    ],
+    "fecha": "2026-11-12T14:22:17.606Z"
+  },
+  {
+    "id": "US-12",
+    "estado": "Aprobado",
+    "resultado": "Las respuestas de creación, listado y detalle no traen la contraseña ni el hash. La base guarda un hash bcrypt ($2b$12$…, costo 12, 60 caracteres), no texto plano. El login responde 200.",
+    "incidencia": "",
+    "evidencias": [
+      "US-12_api.json",
+      "US-12_bd.txt"
+    ],
+    "fecha": "2026-11-12T14:22:19.463Z"
+  },
+  {
+    "id": "US-13",
+    "estado": "Aprobado",
+    "resultado": "API, dos sesiones al mismo tiempo: 409 y 201; existe exactamente 1 cuenta pedro.x. Prueba automatizada (test_dos_creaciones_simultaneas_del_mismo_usuario_dejan_una_cuenta): 1 passed, 1 warning in 1.29s.",
+    "incidencia": "",
+    "evidencias": [
+      "US-13_api.json",
+      "US-13_bd.txt",
+      "US-13_pytest.txt"
+    ],
+    "fecha": "2026-11-12T14:22:21.066Z"
+  },
+  {
+    "id": "US-14",
+    "estado": "Aprobado",
+    "resultado": "Listado con columnas «Nombre completo», «Usuario», «Rol», «Estado», «Creada». Búsqueda por nombre (1) y por usuario (1), filtro por rol (8), por estado (1) y combinado (4): solo cuentas que coinciden, en pantalla y en la API.",
+    "incidencia": "",
+    "evidencias": [
+      "US-14.png",
+      "US-14_busqueda.png",
+      "US-14_filtros.png",
+      "US-14_api.json"
+    ],
+    "fecha": "2026-11-12T14:22:25.533Z"
+  },
+  {
+    "id": "US-15",
+    "estado": "Aprobado",
+    "resultado": "API: 200 con lista vacía (total 0). La pantalla muestra «No hay cuentas que coincidan.», sin error.",
+    "incidencia": "",
+    "evidencias": [
+      "US-15.png",
+      "US-15_api.json"
+    ],
+    "fecha": "2026-11-12T14:22:28.272Z"
+  },
+  {
+    "id": "US-16",
+    "estado": "Aprobado",
+    "resultado": "Confirmación: «¿Desactivar la cuenta de Operador de Prueba (operador_prueba)? No podrá ingresar y su sesión abierta se cerrará. Sus movimientos seguirán a su nombre.». La sesión abierta recibe 401 en la siguiente solicitud y vuelve a «Ingresar». El ingreso con la contraseña correcta responde 403 «Tu cuenta está desactivada. Contacta al administrador.» (también en pantalla). Sus movimientos siguen a nombre de Operador de Prueba. Auditoría: DESACTIVAR por Administradora de Prueba (admin_prueba) («Desactivó la cuenta» en pantalla).",
+    "incidencia": "",
+    "evidencias": [
+      "US-16_confirmacion.png",
+      "US-16.png",
+      "US-16_sesion_abierta.png",
+      "US-16_ingreso_rechazado.png",
+      "US-16_auditoria.png",
+      "US-16_api.json",
+      "US-16_bd.txt"
+    ],
+    "fecha": "2026-11-12T14:22:42.006Z"
+  },
+  {
+    "id": "US-17",
+    "estado": "Aprobado",
+    "resultado": "La cuenta vuelve a ingresar (200, también en pantalla). El token anterior sigue sin validez (401). Auditoría: REACTIVAR por Administradora de Prueba (admin_prueba).",
+    "incidencia": "",
+    "evidencias": [
+      "US-17.png",
+      "US-17_ingreso.png",
+      "US-17_api.json",
+      "US-17_bd.txt"
+    ],
+    "fecha": "2026-11-12T14:22:47.757Z"
+  },
+  {
+    "id": "US-18",
+    "estado": "Aprobado",
+    "resultado": "Con dos administradores activos: la propia cuenta responde 409 «No puedes desactivar tu propia cuenta.»; admin_dos se desactiva (200). Queda 1 administrador activo.",
+    "incidencia": "",
+    "evidencias": [
+      "US-18_api.json",
+      "US-18_bd.txt"
+    ],
+    "fecha": "2026-11-12T14:22:48.861Z"
+  },
+  {
+    "id": "US-19",
+    "estado": "Aprobado",
+    "resultado": "API, desactivación cruzada al mismo tiempo: intento 1: 409 y 200, quedan 1. Una operación se confirma (200) y la otra responde 409 «No se puede desactivar al último administrador activo.». Queda exactamente un administrador activo. Prueba automatizada (test_dos_administradores_que_se_desactivan_mutuamente_no_dejan_cero): 1 passed, 1 warning in 1.00s.",
+    "incidencia": "",
+    "evidencias": [
+      "US-19_api.json",
+      "US-19_bd.txt",
+      "US-19_pytest.txt"
+    ],
+    "fecha": "2026-11-12T14:22:51.332Z"
+  },
+  {
+    "id": "US-20",
+    "estado": "Aprobado",
+    "resultado": "La pantalla no tiene selector de operador y muestra «Responsable de las operaciones: Operador de Prueba». Entrada y salida de GHI789 a nombre de Operador de Prueba (pantalla e historial). La entrada con operador_id responde 422. Los 65 movimientos de la EA1 conservan como responsables a: Diego Arango (Portería 2), Marta Úsuga (Portería 1).",
+    "incidencia": "",
+    "evidencias": [
+      "US-20_entrada.png",
+      "US-20_salida.png",
+      "US-20_historial.png",
+      "US-20_api.json",
+      "US-20_bd.txt"
+    ],
+    "fecha": "2026-11-12T14:22:33.397Z"
+  },
+  {
+    "id": "PE-01",
+    "estado": "Aprobado",
+    "resultado": "API: 401 en ambas. Cuentas (12) y celdas (83) sin cambios.",
+    "incidencia": "",
+    "evidencias": [
+      "PE-01_api.json",
+      "PE-01_bd.txt"
+    ],
+    "fecha": "2026-11-12T14:22:51.498Z"
+  },
+  {
+    "id": "PE-02",
+    "estado": "Aprobado",
+    "resultado": "La pantalla no abre Cuentas de usuario y vuelve a «Inicio» (/). API: 403 en la creación y en la desactivación. Cuentas sin cambios y operador.nuevo sigue activa.",
+    "incidencia": "",
+    "evidencias": [
+      "PE-02.png",
+      "PE-02_api.json",
+      "PE-02_bd.txt"
+    ],
+    "fecha": "2026-11-12T14:22:54.792Z"
+  },
+  {
+    "id": "PE-03",
+    "estado": "Aprobado",
+    "resultado": "El operador consulta el catálogo sin botones de acción. Crear, editar, inhabilitar y rehabilitar: 403, 403, 403, 403. C80 conserva sus datos.",
+    "incidencia": "",
+    "evidencias": [
+      "PE-03.png",
+      "PE-03_api.json",
+      "PE-03_bd.txt"
+    ],
+    "fecha": "2026-11-12T14:22:57.791Z"
+  },
+  {
+    "id": "PE-04",
+    "estado": "Aprobado",
+    "resultado": "El administrador registra la entrada y la salida de GHI789; ambos movimientos quedan a nombre de Administradora de Prueba.",
+    "incidencia": "",
+    "evidencias": [
+      "PE-04_entrada.png",
+      "PE-04_salida.png",
+      "PE-04_api.json"
+    ],
+    "fecha": "2026-11-12T14:23:01.964Z"
+  },
+  {
+    "id": "PE-05",
+    "estado": "Aprobado",
+    "resultado": "El operador ve C86 libre, C82 ocupada con la placa ABC123 y C81 inhabilitada, sin botones de administración. Consultar no cambia estancias ni celdas libres. La entrada de GHI789 recibe C30, libre y habilitada.",
+    "incidencia": "",
+    "evidencias": [
+      "PE-05.png",
+      "PE-05_api.json",
+      "PE-05_bd.txt"
+    ],
+    "fecha": "2026-11-12T14:23:35.013Z"
+  },
+  {
+    "id": "CE-01",
+    "estado": "Aprobado",
+    "resultado": "Columnas «Código», «Tipo», «Ubicación», «Estado», «Acciones». C80 CARRO «Plan de pruebas: sin historial» LIBRE; C81 CARRO «Plan de pruebas: con historial» LIBRE; C82 CARRO «Plan de pruebas: ocupada» OCUPADA. La búsqueda de C80 devuelve solo C80 y el filtro CARRO + Ocupada solo celdas que coinciden (incluida C82), en pantalla y en la API.",
+    "incidencia": "",
+    "evidencias": [
+      "CE-01_catalogo.png",
+      "CE-01_busqueda.png",
+      "CE-01_filtros.png",
+      "CE-01_api.json"
+    ],
+    "fecha": "2026-11-12T14:23:06.061Z"
+  },
+  {
+    "id": "CE-02",
+    "estado": "Aprobado",
+    "resultado": "API: 200 con lista vacía (código inexistente y filtros sin coincidencias). La pantalla muestra «No hay celdas que coincidan.», sin error.",
+    "incidencia": "",
+    "evidencias": [
+      "CE-02.png",
+      "CE-02_api.json"
+    ],
+    "fecha": "2026-11-12T14:23:09.156Z"
+  },
+  {
+    "id": "CE-03",
+    "estado": "Aprobado",
+    "resultado": "API: 404 «Celda no encontrada.»; no se devuelve otra celda.",
+    "incidencia": "",
+    "evidencias": [
+      "CE-03_api.json"
+    ],
+    "fecha": "2026-11-12T14:23:09.694Z"
+  },
+  {
+    "id": "CE-04",
+    "estado": "Aprobado",
+    "resultado": "API: 201. «Celda C83 registrada correctamente.». Al recargar sigue C83, «Bloque C, nivel 8», Libre. Existe una sola C83, libre y habilitada, sin estancias. Auditoría: CREAR por Administradora de Prueba (admin_prueba) el 2026-11-12T14:23:11.918492Z.",
+    "incidencia": "",
+    "evidencias": [
+      "CE-04.png",
+      "CE-04_recargada.png",
+      "CE-04_api.json",
+      "CE-04_bd.txt"
+    ],
+    "fecha": "2026-11-12T14:23:13.952Z"
+  },
+  {
+    "id": "CE-05",
+    "estado": "Aprobado",
+    "resultado": "API: 409 en ambas variantes («Ya existe una celda con ese código.»). C80 conserva sus datos y sigue siendo única.",
+    "incidencia": "",
+    "evidencias": [
+      "CE-05_api.json",
+      "CE-05_bd.txt"
+    ],
+    "fecha": "2026-11-12T14:23:14.560Z"
+  },
+  {
+    "id": "CE-06",
+    "estado": "Aprobado",
+    "resultado": "Pantalla: sin código: «Este campo es obligatorio y no puede estar vacío.»; sin tipo: «Este campo es obligatorio y no puede estar vacío.»; código solo con espacios: «Este campo es obligatorio y no puede estar vacío.»; C00: «El código debe ser C o M seguido de dos dígitos del 01 al 99 (ej. C05).»; C100: «El código debe ser C o M seguido de dos dígitos del 01 al 99 (ej. C05).»; M05 con tipo CARRO: «Una celda de tipo CARRO debe tener un código que empiece por C.»; ubicación de 61: «La ubicación admite máximo 60 caracteres.»; sin enviar nada. Servidor: 422 en los 8 rechazos. C99 con ubicación vacía y C85 con ubicación de 60 caracteres: 201. C01: 409 «Ya existe una celda con ese código.» (supera el formato). Ninguna celda incompleta.",
+    "incidencia": "",
+    "evidencias": [
+      "CE-06.png",
+      "CE-06_api.json",
+      "CE-06_bd.txt"
+    ],
+    "fecha": "2026-11-12T14:23:18.982Z"
+  },
+  {
+    "id": "CE-07",
+    "estado": "Aprobado",
+    "resultado": "«Celda C86 actualizada correctamente.». Al recargar se ve C86; el identificador 81 se conserva con el código y la ubicación nuevos. Sin estancias. Auditoría: EDITAR por Administradora de Prueba (admin_prueba), detalle «código: C80 → C86; ubicación: Plan de pruebas: sin historial → Plan de pruebas: editada en CE-07».",
+    "incidencia": "",
+    "evidencias": [
+      "CE-07.png",
+      "CE-07_recargada.png",
+      "CE-07_api.json",
+      "CE-07_bd.txt"
+    ],
+    "fecha": "2026-11-12T14:23:23.573Z"
+  },
+  {
+    "id": "CE-08",
+    "estado": "Aprobado",
+    "resultado": "API: 409 «Ya existe una celda con ese código.». C86 y C85 conservan sus datos.",
+    "incidencia": "",
+    "evidencias": [
+      "CE-08_api.json",
+      "CE-08_bd.txt"
+    ],
+    "fecha": "2026-11-12T14:23:24.281Z"
+  },
+  {
+    "id": "CE-09",
+    "estado": "Aprobado",
+    "resultado": "API: 404 «Celda no encontrada.». No se crea ni se modifica ninguna celda.",
+    "incidencia": "",
+    "evidencias": [
+      "CE-09_api.json",
+      "CE-09_bd.txt"
+    ],
+    "fecha": "2026-11-12T14:23:24.981Z"
+  },
+  {
+    "id": "CE-10",
+    "estado": "Aprobado",
+    "resultado": "Confirmación: «¿Inhabilitar la celda C83 (Bloque C, nivel 8)? Dejará de asignarse a nuevas entradas hasta que la rehabilites. Su historial se conserva.». C83 queda Inhabilitada en el catálogo y la consulta responde 200 con estado INHABILITADA (no se elimina). Auditoría: INHABILITAR por Administradora de Prueba (admin_prueba).",
+    "incidencia": "",
+    "evidencias": [
+      "CE-10_confirmacion.png",
+      "CE-10.png",
+      "CE-10_api.json"
+    ],
+    "fecha": "2026-11-12T14:23:29.503Z"
+  },
+  {
+    "id": "CE-11",
+    "estado": "Aprobado",
+    "resultado": "La inhabilitación se permite (200, estado INHABILITADA, con historial). Las 1 estancias de C81 quedan intactas y el historial las sigue mostrando.",
+    "incidencia": "",
+    "evidencias": [
+      "CE-11_api.json",
+      "CE-11_bd.txt"
+    ],
+    "fecha": "2026-11-12T14:23:30.441Z"
+  },
+  {
+    "id": "CE-12",
+    "estado": "Aprobado",
+    "resultado": "La pantalla impide la acción: en la fila de C82 no aparece «Inhabilitar» y se muestra «Ocupada: primero debe salir el vehículo». API: 409 «La celda C82 está ocupada: primero debe salir el vehículo.». La celda y la estancia abierta conservan sus datos.",
+    "incidencia": "",
+    "evidencias": [
+      "CE-12.png",
+      "CE-12_api.json",
+      "CE-12_bd.txt"
+    ],
+    "fecha": "2026-11-12T14:23:38.002Z"
+  },
+  {
+    "id": "CE-13",
+    "estado": "Aprobado",
+    "resultado": "API, dos sesiones al mismo tiempo: 409 y 201; existe exactamente una celda C84. Prueba automatizada (test_dos_creaciones_simultaneas_del_mismo_codigo_dejan_una_celda): 1 passed, 1 warning in 0.93s.",
+    "incidencia": "",
+    "evidencias": [
+      "CE-13_api.json",
+      "CE-13_bd.txt",
+      "CE-13_pytest.txt"
+    ],
+    "fecha": "2026-11-12T14:23:38.958Z"
+  },
+  {
+    "id": "CE-14",
+    "estado": "Aprobado",
+    "resultado": "Pantalla: C81: código y tipo bloqueados, «La celda C81 ya tuvo movimientos: su código y su tipo quedan fijos para que el historial siga siendo legible. Solo se puede editar su ubicación.»; C82: código y tipo bloqueados, «La celda C82 está ocupada: su código y su tipo no se pueden cambiar.». API: 409 en C81 («La celda C81 ya tuvo movimientos: su código y su tipo no se pueden cambiar, para que el historial siga siendo legible. Solo se puede editar su ubicación.») y en C82 («La celda C82 está ocupada: su código y su tipo no se pueden cambiar.»). La ubicación de C81 sí se modifica (200).",
+    "incidencia": "",
+    "evidencias": [
+      "CE-14_C81.png",
+      "CE-14_C82.png",
+      "CE-14_api.json",
+      "CE-14_bd.txt"
+    ],
+    "fecha": "2026-11-12T14:23:43.819Z"
+  },
+  {
+    "id": "CE-15",
+    "estado": "Aprobado",
+    "resultado": "La siguiente celda era C31; se inhabilitó. La entrada de GHI789 recibió C32, libre y habilitada, nunca la inhabilitada. Al final C31 se rehabilitó (200).",
+    "incidencia": "",
+    "evidencias": [
+      "CE-15_api.json",
+      "CE-15_bd.txt"
+    ],
+    "fecha": "2026-11-12T14:23:45.323Z"
+  },
+  {
+    "id": "CE-16",
+    "estado": "Aprobado",
+    "resultado": "C83 vuelve a estar libre y habilitada; disponible desde 2026-11-12T09:23:45.968200-05:00 (la rehabilitación ocurrió a las 2026-11-12T14:23:45.771Z). Auditoría: REHABILITAR por Administradora de Prueba (admin_prueba).",
+    "incidencia": "",
+    "evidencias": [
+      "CE-16.png",
+      "CE-16_api.json",
+      "CE-16_bd.txt"
+    ],
+    "fecha": "2026-11-12T14:23:48.648Z"
+  },
+  {
+    "id": "CE-17",
+    "estado": "Aprobado",
+    "resultado": "Variante A (test_inhabilitar_espera_a_la_entrada_en_curso_y_ve_la_celda_ocupada): la inhabilitación espera a que termine la entrada que tiene la celda bloqueada y responde 409. Variante B (test_la_entrada_salta_la_celda_que_se_esta_inhabilitando): mientras la inhabilitación sostiene el bloqueo, la entrada recibe otra celda. Nunca queda un vehículo en una celda inhabilitada. Resultado de pytest: 2 passed, 1 warning in 2.01s.",
+    "incidencia": "",
+    "evidencias": [
+      "CE-17_pytest.txt"
+    ],
+    "fecha": "2026-11-12T14:27:32.875176+00:00"
+  },
+  {
+    "id": "NF-01",
+    "estado": "Fallido",
+    "resultado": "Reporte docs/evidencias/rnf19.md (commit medido 62bcd05, entorno Docker recién creado, con equipo, CPU y memoria). Resultado global: RNF-19 NO SE CUMPLE por completo. Cumplen 11 de 12 mediciones; no cumple: Crear cuenta con 4 simultáneas (p95 1215 ms > 1000 ms). Las demás mediciones cumplen: gestión p95 ≤ 1000 ms con 4 simultáneas; login p95 ≤ 1000 ms sin simultaneidad y ≤ 2000 ms con 4 simultáneos.",
+    "incidencia": "INC-NF-01: «Crear cuenta» con 4 solicitudes simultáneas tiene p95 de 1215 ms (> 1000 ms). Causa: cada creación calcula el hash bcrypt de costo 12 (unos 0,54 s por cálculo) y el equipo de prueba tiene 2 núcleos, así que las 4 solicitudes se ponen en fila. Decisión B: se reporta el incumplimiento sin bajar el costo de bcrypt (RNF-13 exige costo 12 o más).",
+    "evidencias": [
+      "../../evidencias/rnf19.md"
+    ],
+    "fecha": "2026-11-12T14:27:32.875176+00:00"
+  },
+  {
+    "id": "NF-02",
+    "estado": "Aprobado",
+    "resultado": "Reporte docs/evidencias/rnf20/reporte.md, generado sobre el commit c16a30a con docker compose --profile e2e run --rm --build e2e: 30 de 30 pantallas funcionan en Google Chrome y Microsoft Edge estables para Linux y en el Firefox de Playwright (motor Gecko); cada paso verifica su contenido. El reporte registra la versión de cada navegador y sus capturas, sin credenciales.",
+    "incidencia": "",
+    "evidencias": [
+      "../../evidencias/rnf20/reporte.md"
+    ],
+    "fecha": "2026-11-12T14:27:32.875176+00:00"
+  }
+]

@@ -1,0 +1,7 @@
+-- C83 antes de rehabilitar
+SELECT id, codigo, tipo, ubicacion, habilitada, disponible_desde FROM celda WHERE upper(codigo) = upper($1);
+-- parámetros: ["C83"]
+-- resultado:
+id | codigo | tipo  | ubicacion         | habilitada | disponible_desde
+---+--------+-------+-------------------+------------+-----------------
+84 | C83    | CARRO | Bloque C, nivel 8 | false      | NULL

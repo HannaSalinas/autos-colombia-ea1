@@ -1,0 +1,9 @@
+-- celda CARRO que sería la siguiente en asignarse (regla: nunca usada primero; entre ellas, por código)
+SELECT c.id, c.codigo, c.disponible_desde FROM celda c
+        WHERE c.tipo = 'CARRO' AND c.habilitada AND NOT EXISTS (SELECT 1 FROM estancia e WHERE e.celda_id = c.id AND e.salida IS NULL)
+        ORDER BY c.disponible_desde ASC NULLS FIRST, c.codigo LIMIT 1;
+-- parámetros: []
+-- resultado:
+id | codigo | disponible_desde
+---+--------+-----------------
+31 | C31    | NULL

@@ -1,0 +1,15 @@
+-- administradores activos
+SELECT count(*)::int AS administradores_activos FROM cuenta_usuario WHERE rol = 'ADMINISTRADOR' AND activa;
+-- parámetros: []
+-- resultado:
+administradores_activos
+-----------------------
+2
+
+-- administradores activos
+SELECT count(*)::int AS administradores_activos FROM cuenta_usuario WHERE rol = 'ADMINISTRADOR' AND activa;
+-- parámetros: []
+-- resultado:
+administradores_activos
+-----------------------
+1

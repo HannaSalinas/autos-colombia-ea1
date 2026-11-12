@@ -1,0 +1,6 @@
+{
+  "commit_probado": "34e2d75",
+  "inicio": "2026-11-12 09:17",
+  "fin": "2026-11-12 09:26",
+  "entorno": "Docker Compose local: frontend y API en http://localhost:4200 (API a través de nginx); base recreada con docker compose down -v"
+}

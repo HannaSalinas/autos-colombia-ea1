@@ -1,0 +1,8 @@
+-- C81 y C82 después
+SELECT codigo, tipo, ubicacion FROM celda WHERE codigo IN ('C81', 'C82') ORDER BY codigo;
+-- parámetros: []
+-- resultado:
+codigo | tipo  | ubicacion
+-------+-------+--------------------------------------------
+C81    | CARRO | Plan de pruebas: ubicación editada en CE-14
+C82    | CARRO | Plan de pruebas: ocupada

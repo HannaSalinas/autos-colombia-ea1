@@ -1,0 +1,56 @@
+[
+  {
+    "sesion": "sin sesión",
+    "metodo": "POST",
+    "ruta": "/auth/login",
+    "codigo": 422,
+    "solicitud": {
+      "usuario": "",
+      "contrasena": "«omitido»"
+    },
+    "respuesta": {
+      "detail": [
+        {
+          "type": "value_error",
+          "loc": [
+            "body",
+            "usuario"
+          ],
+          "msg": "Value error, Escribe el usuario.",
+          "input": "",
+          "ctx": {
+            "error": {}
+          }
+        }
+      ]
+    },
+    "nota": "usuario vacío"
+  },
+  {
+    "sesion": "sin sesión",
+    "metodo": "POST",
+    "ruta": "/auth/login",
+    "codigo": 422,
+    "solicitud": {
+      "usuario": "admin_prueba",
+      "contrasena": "«omitido»"
+    },
+    "respuesta": {
+      "detail": [
+        {
+          "type": "value_error",
+          "loc": [
+            "body",
+            "contrasena"
+          ],
+          "msg": "Value error, Escribe la contraseña.",
+          "input": "",
+          "ctx": {
+            "error": {}
+          }
+        }
+      ]
+    },
+    "nota": "contraseña vacía"
+  }
+]

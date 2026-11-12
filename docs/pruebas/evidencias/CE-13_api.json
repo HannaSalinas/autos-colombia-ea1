@@ -1,0 +1,100 @@
+[
+  {
+    "sesion": "admin_prueba",
+    "metodo": "POST",
+    "ruta": "/auth/login",
+    "codigo": 200,
+    "solicitud": {
+      "usuario": "admin_prueba",
+      "contrasena": "«omitido»"
+    },
+    "respuesta": {
+      "token": "«omitido»",
+      "tipo": "bearer",
+      "expira_en": "2026-11-12T22:23:38.412746Z",
+      "cuenta": {
+        "id": 4,
+        "nombre_usuario": "admin_prueba",
+        "nombre": "Administradora de Prueba",
+        "rol": "ADMINISTRADOR",
+        "permisos": [
+          "celdas:gestionar",
+          "celdas:ver",
+          "consultas",
+          "cuentas:gestionar",
+          "estancias",
+          "vehiculos:gestionar",
+          "vehiculos:ver"
+        ]
+      }
+    },
+    "nota": "primera sesión de administrador"
+  },
+  {
+    "sesion": "admin_dos",
+    "metodo": "POST",
+    "ruta": "/auth/login",
+    "codigo": 200,
+    "solicitud": {
+      "usuario": "admin_dos",
+      "contrasena": "«omitido»"
+    },
+    "respuesta": {
+      "token": "«omitido»",
+      "tipo": "bearer",
+      "expira_en": "2026-11-12T22:23:38.808899Z",
+      "cuenta": {
+        "id": 5,
+        "nombre_usuario": "admin_dos",
+        "nombre": "Administrador Dos de Prueba",
+        "rol": "ADMINISTRADOR",
+        "permisos": [
+          "celdas:gestionar",
+          "celdas:ver",
+          "consultas",
+          "cuentas:gestionar",
+          "estancias",
+          "vehiculos:gestionar",
+          "vehiculos:ver"
+        ]
+      }
+    },
+    "nota": "segunda sesión de administrador"
+  },
+  {
+    "sesion": "admin_prueba",
+    "metodo": "POST",
+    "ruta": "/celdas",
+    "codigo": 409,
+    "solicitud": {
+      "codigo": "C84",
+      "tipo": "CARRO"
+    },
+    "respuesta": {
+      "detail": "Ya existe una celda con ese código."
+    },
+    "nota": "creación simultánea 1"
+  },
+  {
+    "sesion": "admin_dos",
+    "metodo": "POST",
+    "ruta": "/celdas",
+    "codigo": 201,
+    "solicitud": {
+      "codigo": "C84",
+      "tipo": "CARRO"
+    },
+    "respuesta": {
+      "id": 90,
+      "codigo": "C84",
+      "tipo": "CARRO",
+      "disponible_desde": null,
+      "ubicacion": null,
+      "habilitada": true,
+      "estado": "LIBRE",
+      "placa": null,
+      "tiene_historial": false
+    },
+    "nota": "creación simultánea 2"
+  }
+]

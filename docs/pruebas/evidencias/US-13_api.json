@@ -1,0 +1,101 @@
+[
+  {
+    "sesion": "admin_prueba",
+    "metodo": "POST",
+    "ruta": "/auth/login",
+    "codigo": 200,
+    "solicitud": {
+      "usuario": "admin_prueba",
+      "contrasena": "«omitido»"
+    },
+    "respuesta": {
+      "token": "«omitido»",
+      "tipo": "bearer",
+      "expira_en": "2026-11-12T22:22:19.854983Z",
+      "cuenta": {
+        "id": 4,
+        "nombre_usuario": "admin_prueba",
+        "nombre": "Administradora de Prueba",
+        "rol": "ADMINISTRADOR",
+        "permisos": [
+          "celdas:gestionar",
+          "celdas:ver",
+          "consultas",
+          "cuentas:gestionar",
+          "estancias",
+          "vehiculos:gestionar",
+          "vehiculos:ver"
+        ]
+      }
+    },
+    "nota": "primera sesión de administrador"
+  },
+  {
+    "sesion": "admin_dos",
+    "metodo": "POST",
+    "ruta": "/auth/login",
+    "codigo": 200,
+    "solicitud": {
+      "usuario": "admin_dos",
+      "contrasena": "«omitido»"
+    },
+    "respuesta": {
+      "token": "«omitido»",
+      "tipo": "bearer",
+      "expira_en": "2026-11-12T22:22:20.251803Z",
+      "cuenta": {
+        "id": 5,
+        "nombre_usuario": "admin_dos",
+        "nombre": "Administrador Dos de Prueba",
+        "rol": "ADMINISTRADOR",
+        "permisos": [
+          "celdas:gestionar",
+          "celdas:ver",
+          "consultas",
+          "cuentas:gestionar",
+          "estancias",
+          "vehiculos:gestionar",
+          "vehiculos:ver"
+        ]
+      }
+    },
+    "nota": "segunda sesión de administrador"
+  },
+  {
+    "sesion": "admin_prueba",
+    "metodo": "POST",
+    "ruta": "/cuentas",
+    "codigo": 409,
+    "solicitud": {
+      "nombre": "Pedro Simultáneo",
+      "nombre_usuario": "pedro.x",
+      "contrasena": "«omitido»",
+      "rol": "OPERADOR"
+    },
+    "respuesta": {
+      "detail": "Ese nombre de usuario ya está en uso."
+    },
+    "nota": "creación simultánea 1"
+  },
+  {
+    "sesion": "admin_dos",
+    "metodo": "POST",
+    "ruta": "/cuentas",
+    "codigo": 201,
+    "solicitud": {
+      "nombre": "Pedro Simultáneo",
+      "nombre_usuario": "PEDRO.X",
+      "contrasena": "«omitido»",
+      "rol": "OPERADOR"
+    },
+    "respuesta": {
+      "id": 12,
+      "nombre": "Pedro Simultáneo",
+      "nombre_usuario": "pedro.x",
+      "rol": "OPERADOR",
+      "activa": true,
+      "creada_en": "2026-11-12T14:22:20.709894Z"
+    },
+    "nota": "creación simultánea 2"
+  }
+]

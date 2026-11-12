@@ -1,0 +1,59 @@
+[
+  {
+    "sesion": "admin_prueba",
+    "metodo": "POST",
+    "ruta": "/auth/login",
+    "codigo": 200,
+    "solicitud": {
+      "usuario": "admin_prueba",
+      "contrasena": "«omitido»"
+    },
+    "respuesta": {
+      "token": "«omitido»",
+      "tipo": "bearer",
+      "expira_en": "2026-11-12T22:23:06.548408Z",
+      "cuenta": {
+        "id": 4,
+        "nombre_usuario": "admin_prueba",
+        "nombre": "Administradora de Prueba",
+        "rol": "ADMINISTRADOR",
+        "permisos": [
+          "celdas:gestionar",
+          "celdas:ver",
+          "consultas",
+          "cuentas:gestionar",
+          "estancias",
+          "vehiculos:gestionar",
+          "vehiculos:ver"
+        ]
+      }
+    },
+    "nota": "iniciar sesión como admin_prueba"
+  },
+  {
+    "sesion": "admin_prueba",
+    "metodo": "GET",
+    "ruta": "/celdas?buscar=X9",
+    "codigo": 200,
+    "respuesta": {
+      "items": [],
+      "total": 0,
+      "offset": 0,
+      "limit": 20
+    },
+    "nota": "código inexistente"
+  },
+  {
+    "sesion": "admin_prueba",
+    "metodo": "GET",
+    "ruta": "/celdas?buscar=M0&tipo=CARRO",
+    "codigo": 200,
+    "respuesta": {
+      "items": [],
+      "total": 0,
+      "offset": 0,
+      "limit": 20
+    },
+    "nota": "filtros sin coincidencias"
+  }
+]

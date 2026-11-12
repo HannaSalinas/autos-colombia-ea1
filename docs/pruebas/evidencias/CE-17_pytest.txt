@@ -1,0 +1,23 @@
+# CE-17 · 2026-11-12 09:25 (Bogotá) · commit 34e2d75
+# docker compose run --rm backend-tests ... python -m pytest -v tests/test_gestion_celdas_postgres.py::test_inhabilitar_espera_a_la_entrada_en_curso_y_ve_la_celda_ocupada tests/test_gestion_celdas_postgres.py::test_la_entrada_salta_la_celda_que_se_esta_inhabilitando
+ Container autoscolombia-db-test-1 Running
+ Container autoscolombia-db-test-1 Waiting
+ Container autoscolombia-db-test-1 Healthy
+ Container autoscolombia-backend-tests-run-a7a9ab836cc9 Creating
+ Container autoscolombia-backend-tests-run-a7a9ab836cc9 Created
+============================= test session starts ==============================
+platform linux -- Python 3.12.16, pytest-9.1.1, pluggy-1.7.0 -- /usr/local/bin/python
+rootdir: /backend
+plugins: anyio-4.15.1
+collecting ... collected 2 items
+
+tests/test_gestion_celdas_postgres.py::test_inhabilitar_espera_a_la_entrada_en_curso_y_ve_la_celda_ocupada PASSED [ 50%]
+tests/test_gestion_celdas_postgres.py::test_la_entrada_salta_la_celda_que_se_esta_inhabilitando PASSED [100%]
+
+=============================== warnings summary ===============================
+../usr/local/lib/python3.12/site-packages/fastapi/testclient.py:1
+  /usr/local/lib/python3.12/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========================= 2 passed, 1 warning in 2.01s =========================

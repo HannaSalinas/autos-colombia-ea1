@@ -1,0 +1,880 @@
+[
+  {
+    "sesion": "admin",
+    "metodo": "POST",
+    "ruta": "/auth/login",
+    "codigo": 200,
+    "solicitud": {
+      "usuario": "admin",
+      "contrasena": "«omitido»"
+    },
+    "respuesta": {
+      "token": "«omitido»",
+      "tipo": "bearer",
+      "expira_en": "2026-11-12T22:21:24.102026Z",
+      "cuenta": {
+        "id": 1,
+        "nombre_usuario": "admin",
+        "nombre": "Sandra Patiño",
+        "rol": "ADMINISTRADOR",
+        "permisos": [
+          "celdas:gestionar",
+          "celdas:ver",
+          "consultas",
+          "cuentas:gestionar",
+          "estancias",
+          "vehiculos:gestionar",
+          "vehiculos:ver"
+        ]
+      }
+    },
+    "nota": "cuenta administradora de las semillas (contraseña de .env)"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "GET",
+    "ruta": "/cuentas?buscar=admin_prueba",
+    "codigo": 200,
+    "respuesta": {
+      "items": [],
+      "total": 0,
+      "offset": 0,
+      "limit": 20
+    },
+    "nota": "comprobar que admin_prueba no existe"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "GET",
+    "ruta": "/cuentas?buscar=admin_dos",
+    "codigo": 200,
+    "respuesta": {
+      "items": [],
+      "total": 0,
+      "offset": 0,
+      "limit": 20
+    },
+    "nota": "comprobar que admin_dos no existe"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "GET",
+    "ruta": "/cuentas?buscar=operador_prueba",
+    "codigo": 200,
+    "respuesta": {
+      "items": [],
+      "total": 0,
+      "offset": 0,
+      "limit": 20
+    },
+    "nota": "comprobar que operador_prueba no existe"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "GET",
+    "ruta": "/cuentas?buscar=operador.nuevo",
+    "codigo": 200,
+    "respuesta": {
+      "items": [],
+      "total": 0,
+      "offset": 0,
+      "limit": 20
+    },
+    "nota": "comprobar que operador.nuevo no existe"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "GET",
+    "ruta": "/cuentas?buscar=admin.nuevo",
+    "codigo": 200,
+    "respuesta": {
+      "items": [],
+      "total": 0,
+      "offset": 0,
+      "limit": 20
+    },
+    "nota": "comprobar que admin.nuevo no existe"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "GET",
+    "ruta": "/cuentas?buscar=pedro.x",
+    "codigo": 200,
+    "respuesta": {
+      "items": [],
+      "total": 0,
+      "offset": 0,
+      "limit": 20
+    },
+    "nota": "comprobar que pedro.x no existe"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "GET",
+    "ruta": "/celdas?buscar=C80",
+    "codigo": 200,
+    "respuesta": {
+      "items": [],
+      "total": 0,
+      "offset": 0,
+      "limit": 20
+    },
+    "nota": "comprobar que C80 no existe"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "GET",
+    "ruta": "/celdas?buscar=C81",
+    "codigo": 200,
+    "respuesta": {
+      "items": [],
+      "total": 0,
+      "offset": 0,
+      "limit": 20
+    },
+    "nota": "comprobar que C81 no existe"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "GET",
+    "ruta": "/celdas?buscar=C82",
+    "codigo": 200,
+    "respuesta": {
+      "items": [],
+      "total": 0,
+      "offset": 0,
+      "limit": 20
+    },
+    "nota": "comprobar que C82 no existe"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "GET",
+    "ruta": "/celdas?buscar=C83",
+    "codigo": 200,
+    "respuesta": {
+      "items": [],
+      "total": 0,
+      "offset": 0,
+      "limit": 20
+    },
+    "nota": "comprobar que C83 no existe"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "GET",
+    "ruta": "/celdas?buscar=C84",
+    "codigo": 200,
+    "respuesta": {
+      "items": [],
+      "total": 0,
+      "offset": 0,
+      "limit": 20
+    },
+    "nota": "comprobar que C84 no existe"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "GET",
+    "ruta": "/celdas?buscar=C86",
+    "codigo": 200,
+    "respuesta": {
+      "items": [],
+      "total": 0,
+      "offset": 0,
+      "limit": 20
+    },
+    "nota": "comprobar que C86 no existe"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "POST",
+    "ruta": "/cuentas",
+    "codigo": 201,
+    "solicitud": {
+      "nombre": "Administradora de Prueba",
+      "nombre_usuario": "admin_prueba",
+      "contrasena": "«omitido»",
+      "rol": "ADMINISTRADOR"
+    },
+    "respuesta": {
+      "id": 4,
+      "nombre": "Administradora de Prueba",
+      "nombre_usuario": "admin_prueba",
+      "rol": "ADMINISTRADOR",
+      "activa": true,
+      "creada_en": "2026-11-12T14:21:24.953658Z"
+    },
+    "nota": "crear admin_prueba"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "POST",
+    "ruta": "/cuentas",
+    "codigo": 201,
+    "solicitud": {
+      "nombre": "Administrador Dos de Prueba",
+      "nombre_usuario": "admin_dos",
+      "contrasena": "«omitido»",
+      "rol": "ADMINISTRADOR"
+    },
+    "respuesta": {
+      "id": 5,
+      "nombre": "Administrador Dos de Prueba",
+      "nombre_usuario": "admin_dos",
+      "rol": "ADMINISTRADOR",
+      "activa": true,
+      "creada_en": "2026-11-12T14:21:25.588231Z"
+    },
+    "nota": "crear admin_dos"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "POST",
+    "ruta": "/cuentas",
+    "codigo": 201,
+    "solicitud": {
+      "nombre": "Operador de Prueba",
+      "nombre_usuario": "operador_prueba",
+      "contrasena": "«omitido»",
+      "rol": "OPERADOR"
+    },
+    "respuesta": {
+      "id": 6,
+      "nombre": "Operador de Prueba",
+      "nombre_usuario": "operador_prueba",
+      "rol": "OPERADOR",
+      "activa": true,
+      "creada_en": "2026-11-12T14:21:26.118917Z"
+    },
+    "nota": "crear operador_prueba"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "GET",
+    "ruta": "/auth/yo",
+    "codigo": 200,
+    "respuesta": {
+      "id": 1,
+      "nombre_usuario": "admin",
+      "nombre": "Sandra Patiño",
+      "rol": "ADMINISTRADOR",
+      "permisos": [
+        "celdas:gestionar",
+        "celdas:ver",
+        "consultas",
+        "cuentas:gestionar",
+        "estancias",
+        "vehiculos:gestionar",
+        "vehiculos:ver"
+      ]
+    },
+    "nota": "nombre de la persona de la cuenta de las semillas"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "GET",
+    "ruta": "/vehiculos?offset=0&limit=100",
+    "codigo": 200,
+    "respuesta": {
+      "items": [
+        {
+          "id": 1,
+          "placa": "ABC123",
+          "color": "Rojo",
+          "modelo": 2022,
+          "marca": "Mazda",
+          "tipo": "AUTOMOVIL",
+          "cliente_id": 1,
+          "cliente_nombre": "Laura Gómez",
+          "mensualidad_vigente": true,
+          "mensualidad_hasta": "2026-12-02",
+          "mensualidad_proxima": null
+        },
+        {
+          "id": 2,
+          "placa": "KLM45D",
+          "color": "Negro",
+          "modelo": 2023,
+          "marca": "Yamaha",
+          "tipo": "MOTO",
+          "cliente_id": 1,
+          "cliente_nombre": "Laura Gómez",
+          "mensualidad_vigente": true,
+          "mensualidad_hasta": "2026-12-02",
+          "mensualidad_proxima": null
+        },
+        {
+          "id": 3,
+          "placa": "DEF456",
+          "color": "Blanco",
+          "modelo": 2020,
+          "marca": "Toyota",
+          "tipo": "CAMIONETA",
+          "cliente_id": 2,
+          "cliente_nombre": "Carlos Pérez",
+          "mensualidad_vigente": false,
+          "mensualidad_hasta": "2026-11-07",
+          "mensualidad_proxima": null
+        },
+        {
+          "id": 4,
+          "placa": "GHI789",
+          "color": "Gris",
+          "modelo": 2019,
+          "marca": "Renault",
+          "tipo": "AUTOMOVIL",
+          "cliente_id": 3,
+          "cliente_nombre": "Ana Restrepo",
+          "mensualidad_vigente": true,
+          "mensualidad_hasta": "2026-11-12",
+          "mensualidad_proxima": null
+        },
+        {
+          "id": 5,
+          "placa": "XYZ12A",
+          "color": "Azul",
+          "modelo": 2021,
+          "marca": "Honda",
+          "tipo": "MOTO",
+          "cliente_id": 3,
+          "cliente_nombre": "Ana Restrepo",
+          "mensualidad_vigente": false,
+          "mensualidad_hasta": "2026-11-07",
+          "mensualidad_proxima": null
+        },
+        {
+          "id": 6,
+          "placa": "JKL321",
+          "color": "Plata",
+          "modelo": 2024,
+          "marca": "Chevrolet",
+          "tipo": "AUTOMOVIL",
+          "cliente_id": 4,
+          "cliente_nombre": "Jorge Mesa",
+          "mensualidad_vigente": true,
+          "mensualidad_hasta": "2026-12-03",
+          "mensualidad_proxima": null
+        },
+        {
+          "id": 7,
+          "placa": "MNO654",
+          "color": "Verde",
+          "modelo": 2025,
+          "marca": "Kia",
+          "tipo": "CAMIONETA",
+          "cliente_id": 5,
+          "cliente_nombre": "Paola Ríos",
+          "mensualidad_vigente": false,
+          "mensualidad_hasta": null,
+          "mensualidad_proxima": null
+        },
+        {
+          "id": 8,
+          "placa": "PQR98B",
+          "color": "Rojo",
+          "modelo": 2026,
+          "marca": "Suzuki",
+          "tipo": "MOTO",
+          "cliente_id": 6,
+          "cliente_nombre": "Andrés Cano",
+          "mensualidad_vigente": false,
+          "mensualidad_hasta": null,
+          "mensualidad_proxima": "2026-11-13"
+        },
+        {
+          "id": 9,
+          "placa": "STU852",
+          "color": "Negro",
+          "modelo": 2018,
+          "marca": "Nissan",
+          "tipo": "AUTOMOVIL",
+          "cliente_id": 6,
+          "cliente_nombre": "Andrés Cano",
+          "mensualidad_vigente": true,
+          "mensualidad_hasta": "2026-12-02",
+          "mensualidad_proxima": null
+        }
+      ],
+      "total": 9,
+      "offset": 0,
+      "limit": 100
+    },
+    "nota": "listar vehículos para elegir carros con mensualidad vigente"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "GET",
+    "ruta": "/estancias/vehiculo/ABC123",
+    "codigo": 200,
+    "respuesta": {
+      "vehiculo": {
+        "id": 1,
+        "placa": "ABC123",
+        "color": "Rojo",
+        "modelo": 2022,
+        "marca": "Mazda",
+        "tipo": "AUTOMOVIL",
+        "cliente_id": 1
+      },
+      "esta_dentro": true,
+      "estancia": {
+        "id": 31,
+        "vehiculo_id": 1,
+        "celda_id": 1,
+        "entrada": "2026-11-12T09:45:46.237652Z",
+        "salida": null,
+        "operador_entrada_id": 1,
+        "operador_salida_id": null,
+        "celda": {
+          "id": 1,
+          "codigo": "C01",
+          "tipo": "CARRO",
+          "disponible_desde": null,
+          "ubicacion": null,
+          "habilitada": true
+        }
+      }
+    },
+    "nota": "carros con mensualidad vigente que están dentro"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "POST",
+    "ruta": "/estancias/salida",
+    "codigo": 200,
+    "solicitud": {
+      "placa": "ABC123"
+    },
+    "respuesta": {
+      "id": 31,
+      "vehiculo_id": 1,
+      "celda_id": 1,
+      "entrada": "2026-11-12T09:45:46.237652Z",
+      "salida": "2026-11-12T14:21:26.611922Z",
+      "operador_entrada_id": 1,
+      "operador_salida_id": 3,
+      "placa": "ABC123",
+      "celda": {
+        "id": 1,
+        "codigo": "C01",
+        "tipo": "CARRO",
+        "disponible_desde": "2026-11-12T14:21:26.611922Z",
+        "ubicacion": null,
+        "habilitada": true
+      },
+      "duracion_segundos": 16540,
+      "permanencia": "4 h 35 min"
+    },
+    "nota": "preparación: registrar la salida de ABC123 para tener carros disponibles"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "GET",
+    "ruta": "/estancias/vehiculo/GHI789",
+    "codigo": 200,
+    "respuesta": {
+      "vehiculo": {
+        "id": 4,
+        "placa": "GHI789",
+        "color": "Gris",
+        "modelo": 2019,
+        "marca": "Renault",
+        "tipo": "AUTOMOVIL",
+        "cliente_id": 3
+      },
+      "esta_dentro": true,
+      "estancia": {
+        "id": 33,
+        "vehiculo_id": 4,
+        "celda_id": 2,
+        "entrada": "2026-11-12T09:59:46.237652Z",
+        "salida": null,
+        "operador_entrada_id": 1,
+        "operador_salida_id": null,
+        "celda": {
+          "id": 2,
+          "codigo": "C02",
+          "tipo": "CARRO",
+          "disponible_desde": null,
+          "ubicacion": null,
+          "habilitada": true
+        }
+      }
+    },
+    "nota": "carros con mensualidad vigente que están dentro"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "POST",
+    "ruta": "/estancias/salida",
+    "codigo": 200,
+    "solicitud": {
+      "placa": "GHI789"
+    },
+    "respuesta": {
+      "id": 33,
+      "vehiculo_id": 4,
+      "celda_id": 2,
+      "entrada": "2026-11-12T09:59:46.237652Z",
+      "salida": "2026-11-12T14:21:26.899756Z",
+      "operador_entrada_id": 1,
+      "operador_salida_id": 3,
+      "placa": "GHI789",
+      "celda": {
+        "id": 2,
+        "codigo": "C02",
+        "tipo": "CARRO",
+        "disponible_desde": "2026-11-12T14:21:26.899756Z",
+        "ubicacion": null,
+        "habilitada": true
+      },
+      "duracion_segundos": 15700,
+      "permanencia": "4 h 21 min"
+    },
+    "nota": "preparación: registrar la salida de GHI789 para tener carros disponibles"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "GET",
+    "ruta": "/estancias/vehiculo/JKL321",
+    "codigo": 200,
+    "respuesta": {
+      "vehiculo": {
+        "id": 6,
+        "placa": "JKL321",
+        "color": "Plata",
+        "modelo": 2024,
+        "marca": "Chevrolet",
+        "tipo": "AUTOMOVIL",
+        "cliente_id": 4
+      },
+      "esta_dentro": true,
+      "estancia": {
+        "id": 34,
+        "vehiculo_id": 6,
+        "celda_id": 5,
+        "entrada": "2026-11-12T10:23:46.237652Z",
+        "salida": null,
+        "operador_entrada_id": 2,
+        "operador_salida_id": null,
+        "celda": {
+          "id": 5,
+          "codigo": "C05",
+          "tipo": "CARRO",
+          "disponible_desde": null,
+          "ubicacion": null,
+          "habilitada": true
+        }
+      }
+    },
+    "nota": "carros con mensualidad vigente que están dentro"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "POST",
+    "ruta": "/estancias/salida",
+    "codigo": 200,
+    "solicitud": {
+      "placa": "JKL321"
+    },
+    "respuesta": {
+      "id": 34,
+      "vehiculo_id": 6,
+      "celda_id": 5,
+      "entrada": "2026-11-12T10:23:46.237652Z",
+      "salida": "2026-11-12T14:21:27.142339Z",
+      "operador_entrada_id": 2,
+      "operador_salida_id": 3,
+      "placa": "JKL321",
+      "celda": {
+        "id": 5,
+        "codigo": "C05",
+        "tipo": "CARRO",
+        "disponible_desde": "2026-11-12T14:21:27.142339Z",
+        "ubicacion": null,
+        "habilitada": true
+      },
+      "duracion_segundos": 14260,
+      "permanencia": "3 h 57 min"
+    },
+    "nota": "preparación: registrar la salida de JKL321 para tener carros disponibles"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "POST",
+    "ruta": "/celdas",
+    "codigo": 201,
+    "solicitud": {
+      "codigo": "C80",
+      "tipo": "CARRO",
+      "ubicacion": "Plan de pruebas: sin historial"
+    },
+    "respuesta": {
+      "id": 81,
+      "codigo": "C80",
+      "tipo": "CARRO",
+      "disponible_desde": null,
+      "ubicacion": "Plan de pruebas: sin historial",
+      "habilitada": true,
+      "estado": "LIBRE",
+      "placa": null,
+      "tiene_historial": false
+    },
+    "nota": "crear C80"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "POST",
+    "ruta": "/celdas",
+    "codigo": 201,
+    "solicitud": {
+      "codigo": "C81",
+      "tipo": "CARRO",
+      "ubicacion": "Plan de pruebas: con historial"
+    },
+    "respuesta": {
+      "id": 82,
+      "codigo": "C81",
+      "tipo": "CARRO",
+      "disponible_desde": null,
+      "ubicacion": "Plan de pruebas: con historial",
+      "habilitada": true,
+      "estado": "LIBRE",
+      "placa": null,
+      "tiene_historial": false
+    },
+    "nota": "crear C81"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "POST",
+    "ruta": "/celdas",
+    "codigo": 201,
+    "solicitud": {
+      "codigo": "C82",
+      "tipo": "CARRO",
+      "ubicacion": "Plan de pruebas: ocupada"
+    },
+    "respuesta": {
+      "id": 83,
+      "codigo": "C82",
+      "tipo": "CARRO",
+      "disponible_desde": null,
+      "ubicacion": "Plan de pruebas: ocupada",
+      "habilitada": true,
+      "estado": "LIBRE",
+      "placa": null,
+      "tiene_historial": false
+    },
+    "nota": "crear C82"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "GET",
+    "ruta": "/estancias/vehiculo/ABC123",
+    "codigo": 200,
+    "respuesta": {
+      "vehiculo": {
+        "id": 1,
+        "placa": "ABC123",
+        "color": "Rojo",
+        "modelo": 2022,
+        "marca": "Mazda",
+        "tipo": "AUTOMOVIL",
+        "cliente_id": 1
+      },
+      "esta_dentro": false,
+      "estancia": null
+    },
+    "nota": "elegir un carro con mensualidad vigente que esté fuera"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "POST",
+    "ruta": "/estancias/entrada",
+    "codigo": 201,
+    "solicitud": {
+      "placa": "ABC123"
+    },
+    "respuesta": {
+      "id": 36,
+      "vehiculo_id": 1,
+      "celda_id": 26,
+      "entrada": "2026-11-12T14:21:28.632608Z",
+      "salida": null,
+      "operador_entrada_id": 3,
+      "operador_salida_id": null,
+      "placa": "ABC123",
+      "celda": {
+        "id": 26,
+        "codigo": "C26",
+        "tipo": "CARRO",
+        "disponible_desde": null,
+        "ubicacion": null,
+        "habilitada": true
+      },
+      "duracion_segundos": null,
+      "permanencia": null
+    },
+    "nota": "entrada real de ABC123 (la asignación elige la celda)"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "POST",
+    "ruta": "/estancias/36/correccion-celda",
+    "codigo": 201,
+    "solicitud": {
+      "celda_id": 82,
+      "motivo": "Preparación del plan de pruebas: estancia en C81"
+    },
+    "respuesta": {
+      "id": 8,
+      "estancia_id": 36,
+      "celda_anterior": {
+        "id": 26,
+        "codigo": "C26",
+        "tipo": "CARRO",
+        "disponible_desde": "2026-11-12T14:21:28.998395Z",
+        "ubicacion": null,
+        "habilitada": true
+      },
+      "celda_nueva": {
+        "id": 82,
+        "codigo": "C81",
+        "tipo": "CARRO",
+        "disponible_desde": null,
+        "ubicacion": "Plan de pruebas: con historial",
+        "habilitada": true
+      },
+      "operador_id": 3,
+      "fecha": "2026-11-12T14:21:28.998395Z",
+      "motivo": "Preparación del plan de pruebas: estancia en C81"
+    },
+    "nota": "corregir la celda a C81"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "POST",
+    "ruta": "/estancias/salida",
+    "codigo": 200,
+    "solicitud": {
+      "placa": "ABC123"
+    },
+    "respuesta": {
+      "id": 36,
+      "vehiculo_id": 1,
+      "celda_id": 82,
+      "entrada": "2026-11-12T14:21:28.632608Z",
+      "salida": "2026-11-12T14:21:29.262676Z",
+      "operador_entrada_id": 3,
+      "operador_salida_id": 3,
+      "placa": "ABC123",
+      "celda": {
+        "id": 82,
+        "codigo": "C81",
+        "tipo": "CARRO",
+        "disponible_desde": "2026-11-12T14:21:29.262676Z",
+        "ubicacion": "Plan de pruebas: con historial",
+        "habilitada": true
+      },
+      "duracion_segundos": 0,
+      "permanencia": "0 min"
+    },
+    "nota": "salida real de ABC123: la estancia queda cerrada en C81"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "GET",
+    "ruta": "/estancias/vehiculo/ABC123",
+    "codigo": 200,
+    "respuesta": {
+      "vehiculo": {
+        "id": 1,
+        "placa": "ABC123",
+        "color": "Rojo",
+        "modelo": 2022,
+        "marca": "Mazda",
+        "tipo": "AUTOMOVIL",
+        "cliente_id": 1
+      },
+      "esta_dentro": false,
+      "estancia": null
+    },
+    "nota": "elegir un carro con mensualidad vigente que esté fuera"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "POST",
+    "ruta": "/estancias/entrada",
+    "codigo": 201,
+    "solicitud": {
+      "placa": "ABC123"
+    },
+    "respuesta": {
+      "id": 37,
+      "vehiculo_id": 1,
+      "celda_id": 27,
+      "entrada": "2026-11-12T14:21:29.578781Z",
+      "salida": null,
+      "operador_entrada_id": 3,
+      "operador_salida_id": null,
+      "placa": "ABC123",
+      "celda": {
+        "id": 27,
+        "codigo": "C27",
+        "tipo": "CARRO",
+        "disponible_desde": null,
+        "ubicacion": null,
+        "habilitada": true
+      },
+      "duracion_segundos": null,
+      "permanencia": null
+    },
+    "nota": "entrada real de ABC123 (la asignación elige la celda)"
+  },
+  {
+    "sesion": "admin",
+    "metodo": "POST",
+    "ruta": "/estancias/37/correccion-celda",
+    "codigo": 201,
+    "solicitud": {
+      "celda_id": 83,
+      "motivo": "Preparación del plan de pruebas: estancia en C82"
+    },
+    "respuesta": {
+      "id": 9,
+      "estancia_id": 37,
+      "celda_anterior": {
+        "id": 27,
+        "codigo": "C27",
+        "tipo": "CARRO",
+        "disponible_desde": "2026-11-12T14:21:29.906027Z",
+        "ubicacion": null,
+        "habilitada": true
+      },
+      "celda_nueva": {
+        "id": 83,
+        "codigo": "C82",
+        "tipo": "CARRO",
+        "disponible_desde": null,
+        "ubicacion": "Plan de pruebas: ocupada",
+        "habilitada": true
+      },
+      "operador_id": 3,
+      "fecha": "2026-11-12T14:21:29.906027Z",
+      "motivo": "Preparación del plan de pruebas: estancia en C82"
+    },
+    "nota": "corregir la celda a C82"
+  },
+  {
+    "sesion": "sin sesión",
+    "metodo": "GET",
+    "ruta": "/health",
+    "codigo": 200,
+    "respuesta": {
+      "status": "ok"
+    },
+    "nota": "la API responde"
+  }
+]

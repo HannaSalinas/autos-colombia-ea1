@@ -1,0 +1,7 @@
+-- cómo se guarda la contraseña (solo algoritmo y costo: el hash no se reproduce)
+SELECT nombre_usuario, substring(hash_contrasena FROM 1 FOR 7) AS algoritmo_y_costo, length(hash_contrasena) AS largo FROM cuenta_usuario WHERE nombre_usuario = 'cuenta.ficticia';
+-- parámetros: []
+-- resultado:
+nombre_usuario  | algoritmo_y_costo | largo
+----------------+-------------------+------
+cuenta.ficticia | $2b$12$           | 60

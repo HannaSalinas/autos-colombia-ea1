@@ -1,0 +1,15 @@
+-- identificador de la cuenta admin
+SELECT id FROM cuenta_usuario WHERE lower(nombre_usuario) = lower($1);
+-- parámetros: ["admin"]
+-- resultado:
+id
+--
+1
+
+-- identificador de la cuenta marta.usuga
+SELECT id FROM cuenta_usuario WHERE lower(nombre_usuario) = lower($1);
+-- parámetros: ["marta.usuga"]
+-- resultado:
+id
+--
+2

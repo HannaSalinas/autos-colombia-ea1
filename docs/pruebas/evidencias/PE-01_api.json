@@ -1,0 +1,32 @@
+[
+  {
+    "sesion": "sin sesión",
+    "metodo": "POST",
+    "ruta": "/cuentas",
+    "codigo": 401,
+    "solicitud": {
+      "nombre": "Sin Sesión",
+      "nombre_usuario": "sin.sesion",
+      "contrasena": "«omitido»",
+      "rol": "OPERADOR"
+    },
+    "respuesta": {
+      "detail": "Debes iniciar sesión para continuar."
+    },
+    "nota": "crear cuenta sin autenticación"
+  },
+  {
+    "sesion": "sin sesión",
+    "metodo": "POST",
+    "ruta": "/celdas",
+    "codigo": 401,
+    "solicitud": {
+      "codigo": "C79",
+      "tipo": "CARRO"
+    },
+    "respuesta": {
+      "detail": "Debes iniciar sesión para continuar."
+    },
+    "nota": "crear celda sin autenticación"
+  }
+]

@@ -1,0 +1,15 @@
+-- celdas antes
+SELECT count(*)::int AS celdas, max(id)::int AS max_id FROM celda;
+-- parámetros: []
+-- resultado:
+celdas | max_id
+-------+-------
+86     | 88
+
+-- celdas después
+SELECT count(*)::int AS celdas, max(id)::int AS max_id, count(*) FILTER (WHERE ubicacion = 'Cambio válido')::int AS con_el_cambio FROM celda;
+-- parámetros: []
+-- resultado:
+celdas | max_id | con_el_cambio
+-------+--------+--------------
+86     | 88     | 0

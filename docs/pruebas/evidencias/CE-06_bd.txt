@@ -1,0 +1,7 @@
+-- celdas con los valores rechazados
+SELECT count(*)::int AS celdas FROM celda WHERE upper(trim(codigo)) IN ('C00', 'C100', 'C79', '') OR (upper(codigo) = 'M05' AND tipo = 'CARRO') OR length(ubicacion) > 60;
+-- parámetros: []
+-- resultado:
+celdas
+------
+0

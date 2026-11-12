@@ -1,0 +1,15 @@
+-- cuentas y personas
+SELECT (SELECT count(*) FROM cuenta_usuario)::int AS cuentas, (SELECT count(*) FROM operador)::int AS personas;
+-- parámetros: []
+-- resultado:
+cuentas | personas
+--------+---------
+8       | 8
+
+-- cuentas y personas
+SELECT (SELECT count(*) FROM cuenta_usuario)::int AS cuentas, (SELECT count(*) FROM operador)::int AS personas;
+-- parámetros: []
+-- resultado:
+cuentas | personas
+--------+---------
+8       | 8

@@ -1,0 +1,7 @@
+-- cuentas con ese usuario o con un rol distinto de los dos válidos
+SELECT count(*) FILTER (WHERE nombre_usuario = 'rol.invalido')::int AS con_ese_usuario, count(*) FILTER (WHERE rol NOT IN ('ADMINISTRADOR', 'OPERADOR'))::int AS con_rol_arbitrario FROM cuenta_usuario;
+-- parámetros: []
+-- resultado:
+con_ese_usuario | con_rol_arbitrario
+----------------+-------------------
+0               | 0

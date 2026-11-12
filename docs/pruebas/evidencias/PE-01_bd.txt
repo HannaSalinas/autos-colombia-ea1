@@ -1,0 +1,15 @@
+-- cuentas y celdas antes
+SELECT (SELECT count(*) FROM cuenta_usuario)::int AS cuentas, (SELECT count(*) FROM celda)::int AS celdas;
+-- parámetros: []
+-- resultado:
+cuentas | celdas
+--------+-------
+12      | 83
+
+-- cuentas y celdas después
+SELECT (SELECT count(*) FROM cuenta_usuario)::int AS cuentas, (SELECT count(*) FROM celda)::int AS celdas;
+-- parámetros: []
+-- resultado:
+cuentas | celdas
+--------+-------
+12      | 83

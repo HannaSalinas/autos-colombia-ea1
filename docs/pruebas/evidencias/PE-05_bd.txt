@@ -1,0 +1,25 @@
+-- estados disponibles para el caso
+SELECT c.codigo, c.habilitada, EXISTS (SELECT 1 FROM estancia e WHERE e.celda_id = c.id AND e.salida IS NULL) AS ocupada FROM celda c WHERE c.codigo IN ('C86', 'C81', 'C82') ORDER BY c.codigo;
+-- parámetros: []
+-- resultado:
+codigo | habilitada | ocupada
+-------+------------+--------
+C81    | false      | false
+C82    | true       | true
+C86    | true       | false
+
+-- estancias y celdas libres
+SELECT (SELECT count(*) FROM estancia)::int AS estancias, (SELECT count(*) FROM celda c WHERE c.habilitada AND NOT EXISTS (SELECT 1 FROM estancia e WHERE e.celda_id = c.id AND e.salida IS NULL))::int AS libres;
+-- parámetros: []
+-- resultado:
+estancias | libres
+----------+-------
+39        | 81
+
+-- estancias y celdas libres
+SELECT (SELECT count(*) FROM estancia)::int AS estancias, (SELECT count(*) FROM celda c WHERE c.habilitada AND NOT EXISTS (SELECT 1 FROM estancia e WHERE e.celda_id = c.id AND e.salida IS NULL))::int AS libres;
+-- parámetros: []
+-- resultado:
+estancias | libres
+----------+-------
+39        | 81

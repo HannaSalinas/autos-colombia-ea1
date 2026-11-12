@@ -1,0 +1,7 @@
+-- celdas C84
+SELECT count(*)::int AS celdas FROM celda WHERE upper(codigo) = 'C84';
+-- parámetros: []
+-- resultado:
+celdas
+------
+1

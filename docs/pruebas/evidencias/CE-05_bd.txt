@@ -1,0 +1,23 @@
+-- C80 antes
+SELECT id, codigo, tipo, ubicacion, habilitada, disponible_desde FROM celda WHERE upper(codigo) = upper($1);
+-- parámetros: ["C80"]
+-- resultado:
+id | codigo | tipo  | ubicacion                      | habilitada | disponible_desde
+---+--------+-------+--------------------------------+------------+-----------------
+81 | C80    | CARRO | Plan de pruebas: sin historial | true       | NULL
+
+-- C80 después
+SELECT id, codigo, tipo, ubicacion, habilitada, disponible_desde FROM celda WHERE upper(codigo) = upper($1);
+-- parámetros: ["C80"]
+-- resultado:
+id | codigo | tipo  | ubicacion                      | habilitada | disponible_desde
+---+--------+-------+--------------------------------+------------+-----------------
+81 | C80    | CARRO | Plan de pruebas: sin historial | true       | NULL
+
+-- celdas con el código C80
+SELECT count(*)::int AS celdas FROM celda WHERE upper(trim(codigo)) = 'C80';
+-- parámetros: []
+-- resultado:
+celdas
+------
+1

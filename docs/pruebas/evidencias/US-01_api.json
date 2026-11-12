@@ -1,0 +1,33 @@
+[
+  {
+    "sesion": "sin sesión",
+    "metodo": "POST",
+    "ruta": "/auth/login",
+    "codigo": 200,
+    "solicitud": {
+      "usuario": "admin_prueba",
+      "contrasena": "«omitido»"
+    },
+    "respuesta": {
+      "token": "«omitido»",
+      "tipo": "bearer",
+      "expira_en": "2026-11-12T22:21:30.942813Z",
+      "cuenta": {
+        "id": 4,
+        "nombre_usuario": "admin_prueba",
+        "nombre": "Administradora de Prueba",
+        "rol": "ADMINISTRADOR",
+        "permisos": [
+          "celdas:gestionar",
+          "celdas:ver",
+          "consultas",
+          "cuentas:gestionar",
+          "estancias",
+          "vehiculos:gestionar",
+          "vehiculos:ver"
+        ]
+      }
+    },
+    "nota": "login del administrador por API"
+  }
+]

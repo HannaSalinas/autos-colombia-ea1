@@ -1,0 +1,56 @@
+[
+  {
+    "sesion": "operador_prueba",
+    "metodo": "POST",
+    "ruta": "/auth/login",
+    "codigo": 200,
+    "solicitud": {
+      "usuario": "operador_prueba",
+      "contrasena": "«omitido»"
+    },
+    "respuesta": {
+      "token": "«omitido»",
+      "tipo": "bearer",
+      "expira_en": "2026-11-12T22:22:54.680341Z",
+      "cuenta": {
+        "id": 6,
+        "nombre_usuario": "operador_prueba",
+        "nombre": "Operador de Prueba",
+        "rol": "OPERADOR",
+        "permisos": [
+          "celdas:ver",
+          "consultas",
+          "estancias",
+          "vehiculos:ver"
+        ]
+      }
+    },
+    "nota": "iniciar sesión como operador_prueba"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "POST",
+    "ruta": "/cuentas",
+    "codigo": 403,
+    "solicitud": {
+      "nombre": "Creada Por Operador",
+      "nombre_usuario": "creada.por.operador",
+      "contrasena": "«omitido»",
+      "rol": "OPERADOR"
+    },
+    "respuesta": {
+      "detail": "No tienes permiso para esta operación."
+    },
+    "nota": "el operador intenta crear una cuenta"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "POST",
+    "ruta": "/cuentas/7/desactivar",
+    "codigo": 403,
+    "respuesta": {
+      "detail": "No tienes permiso para esta operación."
+    },
+    "nota": "el operador intenta desactivar una cuenta existente (operador.nuevo)"
+  }
+]

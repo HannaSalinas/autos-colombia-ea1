@@ -1,0 +1,30 @@
+[
+  {
+    "sesion": "sin sesión",
+    "metodo": "POST",
+    "ruta": "/auth/login",
+    "codigo": 401,
+    "solicitud": {
+      "usuario": "admin_prueba",
+      "contrasena": "«omitido»"
+    },
+    "respuesta": {
+      "detail": "Usuario o contraseña inválidos."
+    },
+    "nota": "usuario existente, contraseña incorrecta"
+  },
+  {
+    "sesion": "sin sesión",
+    "metodo": "POST",
+    "ruta": "/auth/login",
+    "codigo": 401,
+    "solicitud": {
+      "usuario": "usuario.inexistente",
+      "contrasena": "«omitido»"
+    },
+    "respuesta": {
+      "detail": "Usuario o contraseña inválidos."
+    },
+    "nota": "usuario inexistente"
+  }
+]

@@ -1,0 +1,31 @@
+-- quién sigue activo
+SELECT nombre_usuario FROM cuenta_usuario WHERE rol = $1 AND activa;
+-- parámetros: ["ADMINISTRADOR"]
+-- resultado:
+nombre_usuario
+--------------
+admin_prueba
+
+-- administradores activos
+SELECT count(*)::int AS administradores_activos FROM cuenta_usuario WHERE rol = 'ADMINISTRADOR' AND activa;
+-- parámetros: []
+-- resultado:
+administradores_activos
+-----------------------
+2
+
+-- administradores activos
+SELECT count(*)::int AS administradores_activos FROM cuenta_usuario WHERE rol = 'ADMINISTRADOR' AND activa;
+-- parámetros: []
+-- resultado:
+administradores_activos
+-----------------------
+1
+
+-- administrador que quedó activo
+SELECT nombre_usuario FROM cuenta_usuario WHERE rol = $1 AND activa;
+-- parámetros: ["ADMINISTRADOR"]
+-- resultado:
+nombre_usuario
+--------------
+admin_dos

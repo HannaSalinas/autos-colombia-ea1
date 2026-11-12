@@ -1,0 +1,7 @@
+-- cuenta y persona vinculada
+SELECT c.nombre_usuario, c.rol, c.activa, o.id AS persona_id, o.nombre AS persona FROM cuenta_usuario c JOIN operador o ON o.id = c.operador_id WHERE c.nombre_usuario = $1;
+-- parámetros: ["operador.nuevo"]
+-- resultado:
+nombre_usuario | rol      | activa | persona_id | persona
+---------------+----------+--------+------------+-------------------------
+operador.nuevo | OPERADOR | true   | 7          | Operador Nuevo de Prueba

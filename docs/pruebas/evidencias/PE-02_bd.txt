@@ -1,0 +1,15 @@
+-- cuentas antes
+SELECT count(*)::int AS cuentas, bool_and(activa) FILTER (WHERE id = $1) AS objetivo_activa FROM cuenta_usuario;
+-- parámetros: [7]
+-- resultado:
+cuentas | objetivo_activa
+--------+----------------
+12      | true
+
+-- cuentas después
+SELECT count(*)::int AS cuentas, bool_and(activa) FILTER (WHERE id = $1) AS objetivo_activa FROM cuenta_usuario;
+-- parámetros: [7]
+-- resultado:
+cuentas | objetivo_activa
+--------+----------------
+12      | true

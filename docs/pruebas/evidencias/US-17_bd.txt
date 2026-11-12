@@ -1,0 +1,7 @@
+-- estado de operador_prueba antes de reactivar
+SELECT activa FROM cuenta_usuario WHERE id = $1;
+-- parámetros: [6]
+-- resultado:
+activa
+------
+false

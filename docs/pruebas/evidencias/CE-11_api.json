@@ -1,0 +1,247 @@
+[
+  {
+    "sesion": "admin_prueba",
+    "metodo": "POST",
+    "ruta": "/auth/login",
+    "codigo": 200,
+    "solicitud": {
+      "usuario": "admin_prueba",
+      "contrasena": "«omitido»"
+    },
+    "respuesta": {
+      "token": "«omitido»",
+      "tipo": "bearer",
+      "expira_en": "2026-11-12T22:23:30.028807Z",
+      "cuenta": {
+        "id": 4,
+        "nombre_usuario": "admin_prueba",
+        "nombre": "Administradora de Prueba",
+        "rol": "ADMINISTRADOR",
+        "permisos": [
+          "celdas:gestionar",
+          "celdas:ver",
+          "consultas",
+          "cuentas:gestionar",
+          "estancias",
+          "vehiculos:gestionar",
+          "vehiculos:ver"
+        ]
+      }
+    },
+    "nota": "iniciar sesión como admin_prueba"
+  },
+  {
+    "sesion": "admin_prueba",
+    "metodo": "POST",
+    "ruta": "/celdas/82/inhabilitar",
+    "codigo": 200,
+    "respuesta": {
+      "id": 82,
+      "codigo": "C81",
+      "tipo": "CARRO",
+      "disponible_desde": "2026-11-12T09:21:29.262676-05:00",
+      "ubicacion": "Plan de pruebas: con historial",
+      "habilitada": false,
+      "estado": "INHABILITADA",
+      "placa": null,
+      "tiene_historial": true
+    },
+    "nota": "inhabilitar C81"
+  },
+  {
+    "sesion": "admin_prueba",
+    "metodo": "GET",
+    "ruta": "/celdas/82",
+    "codigo": 200,
+    "respuesta": {
+      "id": 82,
+      "codigo": "C81",
+      "tipo": "CARRO",
+      "disponible_desde": "2026-11-12T09:21:29.262676-05:00",
+      "ubicacion": "Plan de pruebas: con historial",
+      "habilitada": false,
+      "estado": "INHABILITADA",
+      "placa": null,
+      "tiene_historial": true,
+      "auditoria": [
+        {
+          "fecha": "2026-11-12T14:21:27.915413Z",
+          "accion": "CREAR",
+          "detalle": "Código C81, tipo CARRO, ubicación Plan de pruebas: con historial.",
+          "actor": "Sandra Patiño (admin)"
+        },
+        {
+          "fecha": "2026-11-12T14:23:30.138560Z",
+          "accion": "INHABILITAR",
+          "detalle": null,
+          "actor": "Administradora de Prueba (admin_prueba)"
+        }
+      ]
+    },
+    "nota": "consultar C81"
+  },
+  {
+    "sesion": "admin_prueba",
+    "metodo": "GET",
+    "ruta": "/reportes/historial?placa=ABC123",
+    "codigo": 200,
+    "respuesta": {
+      "items": [
+        {
+          "id": 37,
+          "placa": "ABC123",
+          "tipo_vehiculo": "AUTOMOVIL",
+          "celda": "C82",
+          "entrada": "2026-11-12T14:21:29.578781Z",
+          "salida": null,
+          "abierta": true,
+          "duracion_segundos": null,
+          "permanencia": null,
+          "operador_entrada": "Sandra Patiño",
+          "operador_salida": null,
+          "novedades": 0,
+          "correcciones": 1
+        },
+        {
+          "id": 36,
+          "placa": "ABC123",
+          "tipo_vehiculo": "AUTOMOVIL",
+          "celda": "C81",
+          "entrada": "2026-11-12T14:21:28.632608Z",
+          "salida": "2026-11-12T14:21:29.262676Z",
+          "abierta": false,
+          "duracion_segundos": 0,
+          "permanencia": "0 min",
+          "operador_entrada": "Sandra Patiño",
+          "operador_salida": "Sandra Patiño",
+          "novedades": 0,
+          "correcciones": 1
+        },
+        {
+          "id": 31,
+          "placa": "ABC123",
+          "tipo_vehiculo": "AUTOMOVIL",
+          "celda": "C01",
+          "entrada": "2026-11-12T09:45:46.237652Z",
+          "salida": "2026-11-12T14:21:26.611922Z",
+          "abierta": false,
+          "duracion_segundos": 16540,
+          "permanencia": "4 h 35 min",
+          "operador_entrada": "Marta Úsuga (Portería 1)",
+          "operador_salida": "Sandra Patiño",
+          "novedades": 0,
+          "correcciones": 0
+        },
+        {
+          "id": 26,
+          "placa": "ABC123",
+          "tipo_vehiculo": "AUTOMOVIL",
+          "celda": "C04",
+          "entrada": "2026-11-11T13:25:00Z",
+          "salida": "2026-11-11T15:01:00Z",
+          "abierta": false,
+          "duracion_segundos": 5760,
+          "permanencia": "1 h 36 min",
+          "operador_entrada": "Marta Úsuga (Portería 1)",
+          "operador_salida": "Diego Arango (Portería 2)",
+          "novedades": 0,
+          "correcciones": 0
+        },
+        {
+          "id": 22,
+          "placa": "ABC123",
+          "tipo_vehiculo": "AUTOMOVIL",
+          "celda": "C07",
+          "entrada": "2026-11-10T13:00:00Z",
+          "salida": "2026-11-10T14:46:00Z",
+          "abierta": false,
+          "duracion_segundos": 6360,
+          "permanencia": "1 h 46 min",
+          "operador_entrada": "Diego Arango (Portería 2)",
+          "operador_salida": "Diego Arango (Portería 2)",
+          "novedades": 0,
+          "correcciones": 0
+        },
+        {
+          "id": 20,
+          "placa": "ABC123",
+          "tipo_vehiculo": "AUTOMOVIL",
+          "celda": "C10",
+          "entrada": "2026-11-09T18:55:00Z",
+          "salida": "2026-11-09T23:11:00Z",
+          "abierta": false,
+          "duracion_segundos": 15360,
+          "permanencia": "4 h 16 min",
+          "operador_entrada": "Diego Arango (Portería 2)",
+          "operador_salida": "Diego Arango (Portería 2)",
+          "novedades": 0,
+          "correcciones": 0
+        },
+        {
+          "id": 16,
+          "placa": "ABC123",
+          "tipo_vehiculo": "AUTOMOVIL",
+          "celda": "C13",
+          "entrada": "2026-11-08T13:00:00Z",
+          "salida": "2026-11-08T14:30:00Z",
+          "abierta": false,
+          "duracion_segundos": 5400,
+          "permanencia": "1 h 30 min",
+          "operador_entrada": "Marta Úsuga (Portería 1)",
+          "operador_salida": "Marta Úsuga (Portería 1)",
+          "novedades": 0,
+          "correcciones": 0
+        },
+        {
+          "id": 9,
+          "placa": "ABC123",
+          "tipo_vehiculo": "AUTOMOVIL",
+          "celda": "C17",
+          "entrada": "2026-11-07T14:55:00Z",
+          "salida": "2026-11-07T17:26:00Z",
+          "abierta": false,
+          "duracion_segundos": 9060,
+          "permanencia": "2 h 31 min",
+          "operador_entrada": "Diego Arango (Portería 2)",
+          "operador_salida": "Marta Úsuga (Portería 1)",
+          "novedades": 1,
+          "correcciones": 1
+        },
+        {
+          "id": 5,
+          "placa": "ABC123",
+          "tipo_vehiculo": "AUTOMOVIL",
+          "celda": "C19",
+          "entrada": "2026-11-06T16:55:00Z",
+          "salida": "2026-11-06T20:15:00Z",
+          "abierta": false,
+          "duracion_segundos": 12000,
+          "permanencia": "3 h 20 min",
+          "operador_entrada": "Diego Arango (Portería 2)",
+          "operador_salida": "Diego Arango (Portería 2)",
+          "novedades": 1,
+          "correcciones": 0
+        },
+        {
+          "id": 1,
+          "placa": "ABC123",
+          "tipo_vehiculo": "AUTOMOVIL",
+          "celda": "C22",
+          "entrada": "2026-11-05T14:10:00Z",
+          "salida": "2026-11-05T20:41:00Z",
+          "abierta": false,
+          "duracion_segundos": 23460,
+          "permanencia": "6 h 31 min",
+          "operador_entrada": "Diego Arango (Portería 2)",
+          "operador_salida": "Marta Úsuga (Portería 1)",
+          "novedades": 0,
+          "correcciones": 0
+        }
+      ],
+      "total": 10,
+      "offset": 0,
+      "limit": 20
+    },
+    "nota": "historial consultable de la estancia en C81"
+  }
+]

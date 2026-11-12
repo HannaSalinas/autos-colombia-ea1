@@ -1,0 +1,15 @@
+-- C82 y su estancia abierta antes
+SELECT c.habilitada, e.id AS estancia, e.salida FROM celda c JOIN estancia e ON e.celda_id = c.id AND e.salida IS NULL WHERE c.codigo = 'C82';
+-- parámetros: []
+-- resultado:
+habilitada | estancia | salida
+-----------+----------+-------
+true       | 37       | NULL
+
+-- C82 y su estancia abierta después
+SELECT c.habilitada, e.id AS estancia, e.salida FROM celda c JOIN estancia e ON e.celda_id = c.id AND e.salida IS NULL WHERE c.codigo = 'C82';
+-- parámetros: []
+-- resultado:
+habilitada | estancia | salida
+-----------+----------+-------
+true       | 37       | NULL

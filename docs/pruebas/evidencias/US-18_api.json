@@ -1,0 +1,88 @@
+[
+  {
+    "sesion": "admin_prueba",
+    "metodo": "POST",
+    "ruta": "/auth/login",
+    "codigo": 200,
+    "solicitud": {
+      "usuario": "admin_prueba",
+      "contrasena": "«omitido»"
+    },
+    "respuesta": {
+      "token": "«omitido»",
+      "tipo": "bearer",
+      "expira_en": "2026-11-12T22:22:48.199425Z",
+      "cuenta": {
+        "id": 4,
+        "nombre_usuario": "admin_prueba",
+        "nombre": "Administradora de Prueba",
+        "rol": "ADMINISTRADOR",
+        "permisos": [
+          "celdas:gestionar",
+          "celdas:ver",
+          "consultas",
+          "cuentas:gestionar",
+          "estancias",
+          "vehiculos:gestionar",
+          "vehiculos:ver"
+        ]
+      }
+    },
+    "nota": "admin_prueba (con sesión)"
+  },
+  {
+    "sesion": "admin_prueba",
+    "metodo": "POST",
+    "ruta": "/cuentas/1/desactivar",
+    "codigo": 200,
+    "respuesta": {
+      "id": 1,
+      "nombre": "Sandra Patiño",
+      "nombre_usuario": "admin",
+      "rol": "ADMINISTRADOR",
+      "activa": false,
+      "creada_en": "2026-11-12T14:19:39.305882Z"
+    },
+    "nota": "preparación: dejar solo a admin_prueba y admin_dos activos (desactivar admin)"
+  },
+  {
+    "sesion": "admin_prueba",
+    "metodo": "POST",
+    "ruta": "/cuentas/8/desactivar",
+    "codigo": 200,
+    "respuesta": {
+      "id": 8,
+      "nombre": "Administrador Nuevo de Prueba",
+      "nombre_usuario": "admin.nuevo",
+      "rol": "ADMINISTRADOR",
+      "activa": false,
+      "creada_en": "2026-11-12T14:22:05.169005Z"
+    },
+    "nota": "preparación: dejar solo a admin_prueba y admin_dos activos (desactivar admin.nuevo)"
+  },
+  {
+    "sesion": "admin_prueba",
+    "metodo": "POST",
+    "ruta": "/cuentas/4/desactivar",
+    "codigo": 409,
+    "respuesta": {
+      "detail": "No puedes desactivar tu propia cuenta."
+    },
+    "nota": "admin_prueba intenta desactivar su propia cuenta"
+  },
+  {
+    "sesion": "admin_prueba",
+    "metodo": "POST",
+    "ruta": "/cuentas/5/desactivar",
+    "codigo": 200,
+    "respuesta": {
+      "id": 5,
+      "nombre": "Administrador Dos de Prueba",
+      "nombre_usuario": "admin_dos",
+      "rol": "ADMINISTRADOR",
+      "activa": false,
+      "creada_en": "2026-11-12T14:21:25.588231Z"
+    },
+    "nota": "admin_prueba desactiva a admin_dos"
+  }
+]

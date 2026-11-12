@@ -1,0 +1,23 @@
+[
+  {
+    "sesion": "admin_prueba",
+    "metodo": "POST",
+    "ruta": "/cuentas",
+    "codigo": 201,
+    "solicitud": {
+      "nombre": "Administrador Nuevo de Prueba",
+      "nombre_usuario": "admin.nuevo",
+      "contrasena": "«omitido»",
+      "rol": "ADMINISTRADOR"
+    },
+    "respuesta": {
+      "id": 8,
+      "nombre": "Administrador Nuevo de Prueba",
+      "nombre_usuario": "admin.nuevo",
+      "rol": "ADMINISTRADOR",
+      "activa": true,
+      "creada_en": "2026-11-12T14:22:05.169005Z"
+    },
+    "nota": "creación desde la pantalla (respuesta capturada del navegador)"
+  }
+]

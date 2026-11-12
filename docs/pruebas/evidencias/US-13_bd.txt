@@ -1,0 +1,7 @@
+-- cuentas con el usuario pedro.x
+SELECT count(*)::int AS cuentas FROM cuenta_usuario WHERE lower(nombre_usuario) = 'pedro.x';
+-- parámetros: []
+-- resultado:
+cuentas
+-------
+1

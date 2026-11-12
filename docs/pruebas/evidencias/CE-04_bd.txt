@@ -1,0 +1,7 @@
+-- celdas C83 y estancias en ella
+SELECT (SELECT count(*) FROM celda WHERE upper(codigo) = 'C83')::int AS celdas_c83, (SELECT count(*) FROM estancia e JOIN celda c ON c.id = e.celda_id WHERE c.codigo = 'C83')::int AS estancias;
+-- parámetros: []
+-- resultado:
+celdas_c83 | estancias
+-----------+----------
+1          | 0

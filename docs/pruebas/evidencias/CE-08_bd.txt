@@ -1,0 +1,31 @@
+-- C86 antes
+SELECT id, codigo, tipo, ubicacion, habilitada, disponible_desde FROM celda WHERE upper(codigo) = upper($1);
+-- parámetros: ["C86"]
+-- resultado:
+id | codigo | tipo  | ubicacion                         | habilitada | disponible_desde
+---+--------+-------+-----------------------------------+------------+-----------------
+81 | C86    | CARRO | Plan de pruebas: editada en CE-07 | true       | NULL
+
+-- C85 antes
+SELECT id, codigo, tipo, ubicacion, habilitada, disponible_desde FROM celda WHERE upper(codigo) = upper($1);
+-- parámetros: ["C85"]
+-- resultado:
+id | codigo | tipo  | ubicacion                                                    | habilitada | disponible_desde
+---+--------+-------+--------------------------------------------------------------+------------+-----------------
+88 | C85    | CARRO | UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU | true       | NULL
+
+-- C86 después
+SELECT id, codigo, tipo, ubicacion, habilitada, disponible_desde FROM celda WHERE upper(codigo) = upper($1);
+-- parámetros: ["C86"]
+-- resultado:
+id | codigo | tipo  | ubicacion                         | habilitada | disponible_desde
+---+--------+-------+-----------------------------------+------------+-----------------
+81 | C86    | CARRO | Plan de pruebas: editada en CE-07 | true       | NULL
+
+-- C85 después
+SELECT id, codigo, tipo, ubicacion, habilitada, disponible_desde FROM celda WHERE upper(codigo) = upper($1);
+-- parámetros: ["C85"]
+-- resultado:
+id | codigo | tipo  | ubicacion                                                    | habilitada | disponible_desde
+---+--------+-------+--------------------------------------------------------------+------------+-----------------
+88 | C85    | CARRO | UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU | true       | NULL

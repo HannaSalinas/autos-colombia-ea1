@@ -1,0 +1,15 @@
+-- estancias de la celda
+SELECT count(*)::int AS estancias FROM estancia WHERE celda_id = $1;
+-- parámetros: [81]
+-- resultado:
+estancias
+---------
+0
+
+-- estancias de la celda
+SELECT count(*)::int AS estancias FROM estancia WHERE celda_id = $1;
+-- parámetros: [81]
+-- resultado:
+estancias
+---------
+0

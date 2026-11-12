@@ -1,0 +1,15 @@
+-- estancias de C81
+SELECT e.id, v.placa, e.entrada, e.salida FROM estancia e JOIN celda c ON c.id = e.celda_id JOIN vehiculo v ON v.id = e.vehiculo_id WHERE c.codigo = 'C81' ORDER BY e.id;
+-- parámetros: []
+-- resultado:
+id | placa  | entrada         | salida
+---+--------+-----------------+----------------
+36 | ABC123 | [object Object] | [object Object]
+
+-- estancias de C81
+SELECT e.id, v.placa, e.entrada, e.salida FROM estancia e JOIN celda c ON c.id = e.celda_id JOIN vehiculo v ON v.id = e.vehiculo_id WHERE c.codigo = 'C81' ORDER BY e.id;
+-- parámetros: []
+-- resultado:
+id | placa  | entrada         | salida
+---+--------+-----------------+----------------
+36 | ABC123 | [object Object] | [object Object]

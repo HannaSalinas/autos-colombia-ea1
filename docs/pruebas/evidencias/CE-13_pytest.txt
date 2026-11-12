@@ -1,0 +1,22 @@
+# CE-13 · 2026-11-12 09:25 (Bogotá) · commit 34e2d75
+# docker compose run --rm backend-tests ... python -m pytest -v tests/test_gestion_celdas_postgres.py::test_dos_creaciones_simultaneas_del_mismo_codigo_dejan_una_celda
+ Container autoscolombia-db-test-1 Running
+ Container autoscolombia-db-test-1 Waiting
+ Container autoscolombia-db-test-1 Healthy
+ Container autoscolombia-backend-tests-run-2f14ba89c002 Creating
+ Container autoscolombia-backend-tests-run-2f14ba89c002 Created
+============================= test session starts ==============================
+platform linux -- Python 3.12.16, pytest-9.1.1, pluggy-1.7.0 -- /usr/local/bin/python
+rootdir: /backend
+plugins: anyio-4.15.1
+collecting ... collected 1 item
+
+tests/test_gestion_celdas_postgres.py::test_dos_creaciones_simultaneas_del_mismo_codigo_dejan_una_celda PASSED [100%]
+
+=============================== warnings summary ===============================
+../usr/local/lib/python3.12/site-packages/fastapi/testclient.py:1
+  /usr/local/lib/python3.12/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========================= 1 passed, 1 warning in 0.93s =========================

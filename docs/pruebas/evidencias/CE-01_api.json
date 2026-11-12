@@ -1,0 +1,141 @@
+[
+  {
+    "sesion": "admin_prueba",
+    "metodo": "POST",
+    "ruta": "/auth/login",
+    "codigo": 200,
+    "solicitud": {
+      "usuario": "admin_prueba",
+      "contrasena": "«omitido»"
+    },
+    "respuesta": {
+      "token": "«omitido»",
+      "tipo": "bearer",
+      "expira_en": "2026-11-12T22:23:02.387356Z",
+      "cuenta": {
+        "id": 4,
+        "nombre_usuario": "admin_prueba",
+        "nombre": "Administradora de Prueba",
+        "rol": "ADMINISTRADOR",
+        "permisos": [
+          "celdas:gestionar",
+          "celdas:ver",
+          "consultas",
+          "cuentas:gestionar",
+          "estancias",
+          "vehiculos:gestionar",
+          "vehiculos:ver"
+        ]
+      }
+    },
+    "nota": "iniciar sesión como admin_prueba"
+  },
+  {
+    "sesion": "admin_prueba",
+    "metodo": "GET",
+    "ruta": "/celdas?buscar=C8&limit=100",
+    "codigo": 200,
+    "respuesta": {
+      "items": [
+        {
+          "id": 81,
+          "codigo": "C80",
+          "tipo": "CARRO",
+          "disponible_desde": null,
+          "ubicacion": "Plan de pruebas: sin historial",
+          "habilitada": true,
+          "estado": "LIBRE",
+          "placa": null,
+          "tiene_historial": false
+        },
+        {
+          "id": 82,
+          "codigo": "C81",
+          "tipo": "CARRO",
+          "disponible_desde": "2026-11-12T09:21:29.262676-05:00",
+          "ubicacion": "Plan de pruebas: con historial",
+          "habilitada": true,
+          "estado": "LIBRE",
+          "placa": null,
+          "tiene_historial": true
+        },
+        {
+          "id": 83,
+          "codigo": "C82",
+          "tipo": "CARRO",
+          "disponible_desde": null,
+          "ubicacion": "Plan de pruebas: ocupada",
+          "habilitada": true,
+          "estado": "OCUPADA",
+          "placa": "ABC123",
+          "tiene_historial": true
+        }
+      ],
+      "total": 3,
+      "offset": 0,
+      "limit": 100
+    },
+    "nota": "catálogo de las celdas de prueba"
+  },
+  {
+    "sesion": "admin_prueba",
+    "metodo": "GET",
+    "ruta": "/celdas?buscar=C80",
+    "codigo": 200,
+    "respuesta": {
+      "items": [
+        {
+          "id": 81,
+          "codigo": "C80",
+          "tipo": "CARRO",
+          "disponible_desde": null,
+          "ubicacion": "Plan de pruebas: sin historial",
+          "habilitada": true,
+          "estado": "LIBRE",
+          "placa": null,
+          "tiene_historial": false
+        }
+      ],
+      "total": 1,
+      "offset": 0,
+      "limit": 20
+    },
+    "nota": "buscar C80"
+  },
+  {
+    "sesion": "admin_prueba",
+    "metodo": "GET",
+    "ruta": "/celdas?tipo=CARRO&estado=OCUPADA&limit=100",
+    "codigo": 200,
+    "respuesta": {
+      "items": [
+        {
+          "id": 14,
+          "codigo": "C14",
+          "tipo": "CARRO",
+          "disponible_desde": null,
+          "ubicacion": null,
+          "habilitada": true,
+          "estado": "OCUPADA",
+          "placa": "STU852",
+          "tiene_historial": true
+        },
+        {
+          "id": 83,
+          "codigo": "C82",
+          "tipo": "CARRO",
+          "disponible_desde": null,
+          "ubicacion": "Plan de pruebas: ocupada",
+          "habilitada": true,
+          "estado": "OCUPADA",
+          "placa": "ABC123",
+          "tiene_historial": true
+        }
+      ],
+      "total": 2,
+      "offset": 0,
+      "limit": 100
+    },
+    "nota": "filtrar por tipo CARRO y estado OCUPADA"
+  }
+]
