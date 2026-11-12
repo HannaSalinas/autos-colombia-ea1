@@ -186,7 +186,7 @@ function tabla(filas: Record<string, unknown>[]): string {
   const columnas = Object.keys(filas[0]);
   const texto = (v: unknown) => (v instanceof Date ? v.toISOString() : v === null ? 'NULL' : String(v));
   const anchos = columnas.map((c) => Math.max(c.length, ...filas.map((f) => texto(f[c]).length)));
-  const linea = (vals: string[]) => vals.map((v, i) => v.padEnd(anchos[i])).join(' | ');
+  const linea = (vals: string[]) => vals.map((v, i) => v.padEnd(anchos[i])).join(' | ').trimEnd();
   return [linea(columnas), anchos.map((a) => '-'.repeat(a)).join('-+-'), ...filas.map((f) => linea(columnas.map((c) => texto(f[c]))))].join('\n');
 }
 

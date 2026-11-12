@@ -59,7 +59,7 @@ for caso in US-13 US-19 CE-13 CE-17; do
     echo "# $caso · $(hora) (Bogotá) · commit $COMMIT_PROBADO"
     echo "# docker compose run --rm backend-tests ... python -m pytest -v ${PRUEBAS[$caso]}"
     docker compose run --rm backend-tests sh -c "python -m alembic -c alembic.ini upgrade head >/dev/null && python -m pytest -v -p no:cacheprovider ${PRUEBAS[$caso]}" 2>&1 \
-      | sed 's/\x1b\[[0-9;]*m//g' || true
+      | sed 's/\x1b\[[0-9;]*m//g; s/[[:space:]]*$//' || true
   } > "$EVIDENCIAS/${caso}_pytest.txt"
   tail -1 "$EVIDENCIAS/${caso}_pytest.txt"
 done
