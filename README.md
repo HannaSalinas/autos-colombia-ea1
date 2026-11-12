@@ -709,6 +709,50 @@ todas aprobadas.
 | Iteración 2 · gestión | `tests/test_cuentas_postgres.py`, `test_gestion_celdas_postgres.py`, `cuentas/*.spec.ts`, `celdas/*.spec.ts` | HU-19 a HU-25 con sus valores límite, auditoría, y concurrencia: mismo usuario o mismo código creados a la vez, dos administradores que se desactivan mutuamente, inhabilitar frente a una entrada en curso |
 | Iteración 2 · extremo a extremo | `e2e/nf02.spec.ts` (`docker compose --profile e2e run --rm --build e2e`) | RNF-20: las 10 pantallas en Chrome, Edge y Firefox, con capturas y reporte; no cuenta en los totales de arriba |
 | Iteración 2 · migraciones | `tests/test_migraciones_ea2_postgres.py`, `test_migracion_0008_postgres.py` | Restricciones de 0006–0008 y su aplicación sobre datos de la EA1 sin perder la autoría; validación de los CHECK solo si los datos los cumplen |
+| Iteración 2 · plan de pruebas PP-02 | `e2e/plan/` y `scripts/ejecutar_plan_pruebas.sh` | Los 44 casos del plan (US, PE, CE y NF) contra el sistema real, con evidencia por caso; no cuenta en los totales de arriba (ver la sección siguiente) |
+
+### Ejecución automatizada del plan de pruebas de la EA2 (PP-02)
+
+El plan `Salinas_Hanna_EA2_Plan_Pruebas.xlsx` (44 casos: US-01 a US-20, PE-01 a PE-05, CE-01 a CE-17,
+NF-01 y NF-02) se ejecuta contra el sistema real con un solo comando, desde un commit sin cambios
+pendientes (la evidencia debe corresponder a ese commit):
+
+```bash
+scripts/ejecutar_plan_pruebas.sh
+```
+
+1. Recrea la base (`docker compose down -v` y `up --build`) y carga la historia de la EA1 con
+   `app.demo` (US-20 la necesita).
+2. Prepara los datos de la hoja Plan **por la API**: `admin_prueba`, `admin_dos` y `operador_prueba`,
+   las celdas C80 (sin historial), C81 (con una estancia cerrada) y C82 (ocupada). C81 y C82 se
+   obtienen con entradas reales corregidas de celda, porque la asignación nunca las elige directamente.
+   Las contraseñas de las cuentas de prueba se generan al azar en memoria y nunca se escriben; las de
+   las semillas llegan de `.env` como variables de entorno.
+3. Ejecuta los casos US, PE y CE con Playwright en Google Chrome (servicio `plan-pruebas`, misma imagen
+   que `e2e`): cada caso verifica la pantalla, la API y la base. Si algo no coincide con el resultado
+   esperado del Excel, el caso queda **Fallido** con su incidencia; si no se cumple su precondición,
+   **Bloqueado**. Nunca se ajusta un resultado esperado.
+4. Ejecuta las pruebas automatizadas de concurrencia de US-13, US-19, CE-13 y CE-17 (que además se
+   reproducen contra la API cuando es posible).
+5. Toma NF-01 de [docs/evidencias/rnf19.md](docs/evidencias/rnf19.md) (Fallido por «Crear cuenta con
+   4 simultáneas», decisión B) y NF-02 de [docs/evidencias/rnf20/reporte.md](docs/evidencias/rnf20/reporte.md).
+6. Busca en las evidencias los valores secretos de `.env`, tokens y hashes (se detiene si encuentra
+   alguno), escribe [docs/pruebas/reporte.md](docs/pruebas/reporte.md) y deja la base limpia
+   (`docker compose down -v`).
+
+Evidencias en `docs/pruebas/evidencias/`, nombradas con el ID del caso: capturas (`US-01.png`),
+solicitudes y respuestas de la API sin tokens, contraseñas ni hashes (`US-03_api.json`), consultas a la
+base con su salida (`US-09_bd.txt`) y salidas de pytest (`US-13_pytest.txt`). Después de hacer commit de
+las evidencias, el Excel (que no se versiona) se llena con enlaces permanentes a ese commit:
+
+```bash
+python3 scripts/plan_pruebas.py excel <commit-de-las-evidencias> ~/Documentos/EA2/Salinas_Hanna_EA2_Plan_Pruebas.xlsx
+```
+
+El script edita el XML del `.xlsx` (Estado, Resultado real, Evidencia, Incidencia, Fecha de ejecución en
+hora de Bogotá y Responsable; en la hoja Plan, versión probada y fecha de cierre) y guarda antes una
+copia `_antes_de_ejecutar.xlsx`. La tabla, los estilos, la validación, el formato condicional y las
+fórmulas no se tocan.
 
 ## Arquitectura y estructura
 
