@@ -1,7 +1,7 @@
 # Evidencia de RNF-20: compatibilidad de navegadores (caso NF-02)
 
-Pruebas de extremo a extremo con Playwright 1.64.1 dentro de Docker, el 2026-11-11 12:18 (hora de
-Bogotá), sobre el commit `1fbcc36`. Comando: `docker compose --profile e2e run --rm --build e2e`.
+Pruebas de extremo a extremo con Playwright 1.64.1 dentro de Docker, el 2026-11-12 09:16 (hora de
+Bogotá), sobre el commit `c16a30a`. Comando: `docker compose --profile e2e run --rm --build e2e`.
 Cada pantalla se verifica (textos, menús y botones esperados) antes de capturarla, y el recorrido
 no modifica datos: las confirmaciones se cancelan y la cuenta "abc" no llega a enviarse.
 Los navegadores corren sin ventana (modo headless), con una ventana de 1280 × 900 px; por eso su
@@ -11,7 +11,7 @@ identificación dice "HeadlessChrome". La página que dibujan es la misma que co
 
 | Navegador | Motor | Versión | Aclaración |
 | --- | --- | --- | --- |
-| Google Chrome (estable, Linux) | Chromium (Blink) | 157.0.8103.50 | Navegador oficial de Google para Linux, descargado al construir la imagen. |
+| Google Chrome (estable, Linux) | Chromium (Blink) | 157.0.8103.78 | Navegador oficial de Google para Linux, descargado al construir la imagen. |
 | Microsoft Edge (estable, Linux) | Chromium (Blink) | 157.0.4341.46 | Navegador oficial de Microsoft para Linux, no la versión de Windows. Comparte motor con Chrome. |
 | Firefox de Playwright | Gecko | 157.0 | Firefox que distribuye Playwright 1.64.1: motor Gecko de Firefox estable con parches para automatizarlo. No es el instalador oficial de Mozilla y puede ir unas semanas detrás de la última versión. |
 
