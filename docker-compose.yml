@@ -114,5 +114,33 @@ services:
       - ./docs/evidencias/rnf20:/e2e/salida
       - ./.git:/repo-git:ro   # solo para leer el commit que aparece en el reporte
 
+  # Plan de pruebas de la EA2 (casos US, PE y CE). Lo lanza scripts/ejecutar_plan_pruebas.sh, que
+  # antes recrea la base. Las contraseñas de las cuentas de prueba se generan en memoria dentro del
+  # contenedor; las de .env solo pasan como variables de entorno (nunca se escriben).
+  plan-pruebas:
+    profiles: ["plan"]
+    build: ./e2e
+    depends_on:
+      - frontend
+    command: ["npx", "playwright", "test", "--config", "plan.config.ts"]
+    environment:
+      BASE_URL: http://frontend
+      SALIDA: /e2e/salida
+      TZ: America/Bogota
+      PGHOST: db
+      PGDATABASE: autos_colombia
+      PGUSER: "${POSTGRES_USER:?Falta POSTGRES_USER en .env (ver .env.example)}"
+      PGPASSWORD: "${POSTGRES_PASSWORD:?Falta POSTGRES_PASSWORD en .env (ver .env.example)}"
+      ADMIN_USUARIO: "${ADMIN_USUARIO:?Falta ADMIN_USUARIO en .env (ver .env.example)}"
+      ADMIN_CONTRASENA: "${ADMIN_CONTRASENA:?Falta ADMIN_CONTRASENA en .env (ver .env.example)}"
+      MARTA_CONTRASENA: "${MARTA_CONTRASENA:?Falta MARTA_CONTRASENA en .env (ver .env.example)}"
+      # Token ya vencido para US-05 (lo genera el backend al ejecutar; solo vive en memoria).
+      TOKEN_VENCIDO: "${TOKEN_VENCIDO:-}"
+      COMMIT_PROBADO: "${COMMIT_PROBADO:-}"
+    user: "${E2E_UID:-1000}:${E2E_GID:-1000}"
+    shm_size: "1gb"
+    volumes:
+      - ./docs/pruebas/evidencias:/e2e/salida
+
 volumes:
   datos_postgres:
