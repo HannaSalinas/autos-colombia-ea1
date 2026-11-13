@@ -752,7 +752,8 @@ python3 scripts/plan_pruebas.py excel <commit-de-las-evidencias> ~/Documentos/EA
 El script edita el XML del `.xlsx` (Estado, Resultado real, Evidencia, Incidencia, Fecha de ejecución en
 hora de Bogotá y Responsable; en la hoja Plan, versión probada y fecha de cierre) y guarda antes una
 copia `_antes_de_ejecutar.xlsx`. La tabla, los estilos, la validación, el formato condicional y las
-fórmulas no se tocan.
+fórmulas no se tocan. El Excel diligenciado de la ejecución entregada está en
+[docs/pruebas/Salinas_Hanna_EA2_Plan_Pruebas.xlsx](docs/pruebas/Salinas_Hanna_EA2_Plan_Pruebas.xlsx).
 
 ## Arquitectura y estructura
 
