@@ -1,0 +1,34 @@
+.filtros-pagos {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr auto;
+  gap: 14px;
+  align-items: end;
+}
+.enlace,
+th a {
+  color: #214c43;
+  font-weight: 600;
+  font-size: 14px;
+}
+td.placa {
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+td.monto {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.fila-anulada td.monto {
+  text-decoration: line-through;
+  color: #8a6d68;
+}
+@media (max-width: 1000px) {
+  .filtros-pagos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 520px) {
+  .filtros-pagos {
+    grid-template-columns: 1fr;
+  }
+}

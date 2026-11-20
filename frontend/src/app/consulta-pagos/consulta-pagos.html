@@ -1,0 +1,154 @@
+<section class="management" aria-labelledby="consulta-titulo">
+  <header class="heading">
+    <div>
+      <span class="eyebrow">MENSUALIDADES</span>
+      <h1 id="consulta-titulo">Pagos registrados</h1>
+      <p>Consulta los pagos y abre su comprobante. Los pagos anulados nunca se eliminan.</p>
+    </div>
+    <a class="enlace" routerLink="/pagos">Registrar un pago</a>
+  </header>
+
+  <section class="panel" aria-label="Filtrar pagos">
+    <form [formGroup]="filtros" (ngSubmit)="buscar()" class="filtros-pagos" novalidate>
+      <div class="field">
+        <label for="filtro-placa">Placa</label>
+        <input
+          id="filtro-placa"
+          type="search"
+          formControlName="placa"
+          maxlength="12"
+          autocapitalize="characters"
+        />
+      </div>
+      <div class="field">
+        <label for="filtro-desde">Desde</label>
+        <input id="filtro-desde" type="date" formControlName="desde" />
+      </div>
+      <div class="field">
+        <label for="filtro-hasta">Hasta</label>
+        <input id="filtro-hasta" type="date" formControlName="hasta" />
+      </div>
+      <div class="field">
+        <label for="filtro-metodo">Método</label>
+        <select id="filtro-metodo" formControlName="metodo">
+          <option value="">Todos</option>
+          @for (m of metodos; track m.valor) {
+            <option [value]="m.valor">{{ m.etiqueta }}</option>
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label for="filtro-estado">Estado</label>
+        <select id="filtro-estado" formControlName="estado">
+          <option value="">Todos</option>
+          @for (e of estadosPago; track e[0]) {
+            <option [value]="e[0]">{{ e[1] }}</option>
+          }
+        </select>
+      </div>
+      <div class="actions">
+        <button type="submit" [disabled]="loading()">Buscar</button
+        ><button type="button" (click)="limpiar()" [disabled]="loading()">Limpiar</button>
+      </div>
+    </form>
+    @if (filtroError()) {
+      <p class="notice error" role="alert">{{ filtroError() }}</p>
+    }
+  </section>
+
+  <section class="panel list" aria-label="Listado de pagos" [attr.aria-busy]="loading()">
+    <div class="list-heading">
+      <h2>
+        Pagos <span class="count">{{ total() }}</span>
+      </h2>
+      <button type="button" (click)="load()" [disabled]="loading()">Actualizar listado</button>
+    </div>
+    @if (loading()) {
+      <p class="empty" role="status">Cargando pagos…</p>
+    } @else if (listError()) {
+      <p class="notice error" role="alert">{{ listError() }}</p>
+    } @else if (!items().length) {
+      <p class="empty" role="status">
+        {{
+          hayFiltros()
+            ? 'No hay pagos que coincidan con los filtros.'
+            : 'Todavía no hay pagos registrados.'
+        }}
+      </p>
+    } @else {
+      <div class="table-scroll">
+        <table>
+          <caption class="sr-only">
+            Pagos, página
+            {{
+              page()
+            }}
+            de
+            {{
+              pages()
+            }}
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Comprobante</th>
+              <th scope="col">Fecha (Bogotá)</th>
+              <th scope="col">Placa</th>
+              <th scope="col">Cliente</th>
+              <th scope="col">Periodo</th>
+              <th scope="col">Meses</th>
+              <th scope="col">Monto</th>
+              <th scope="col">Método</th>
+              <th scope="col">Estado</th>
+              <th scope="col">Responsable</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of items(); track p.id) {
+              <tr [class.fila-anulada]="p.estado === 'ANULADO'">
+                <th scope="row">
+                  <a
+                    [routerLink]="['/consultas/pagos', p.id]"
+                    [attr.aria-label]="'Ver comprobante ' + p.comprobante"
+                    >{{ p.comprobante }}</a
+                  >
+                </th>
+                <td>{{ fechaHora(p.fecha) }}</td>
+                <td class="placa">{{ p.placa }}</td>
+                <td>{{ p.cliente_nombre }}</td>
+                <td>{{ fecha(p.fecha_inicio) }} – {{ fecha(p.fecha_fin) }}</td>
+                <td>{{ p.meses }}</td>
+                <td class="monto">{{ pesos(p.monto) }}</td>
+                <td>{{ metodo(p.metodo) }}</td>
+                <td>
+                  <span
+                    class="status-tag"
+                    [class.ok]="p.estado === 'VALIDO'"
+                    [class.off]="p.estado === 'ANULADO'"
+                    >{{ estados[p.estado] }}</span
+                  >
+                </td>
+                <td>{{ p.registrado_por }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+    <nav class="pagination" aria-label="Paginación de pagos">
+      <button
+        type="button"
+        (click)="load(offset() - limit)"
+        [disabled]="loading() || offset() === 0"
+      >
+        Anterior</button
+      ><span>Página {{ page() }} de {{ pages() }}</span
+      ><button
+        type="button"
+        (click)="load(offset() + limit)"
+        [disabled]="loading() || offset() + limit >= total()"
+      >
+        Siguiente
+      </button>
+    </nav>
+  </section>
+</section>

@@ -1,0 +1,98 @@
+<section class="management" aria-labelledby="detalle-titulo">
+  <header class="heading">
+    <div>
+      <span class="eyebrow">MENSUALIDADES</span>
+      <h1 id="detalle-titulo">Detalle del pago</h1>
+      <p>El comprobante del pago y, si se anuló, quién lo anuló, cuándo y por qué.</p>
+    </div>
+    <a class="enlace" routerLink="/consultas/pagos">Volver a pagos registrados</a>
+  </header>
+
+  @if (cargando()) {
+    <p class="empty" role="status">Cargando el pago…</p>
+  } @else if (error()) {
+    <p class="notice error" role="alert">{{ error() }}</p>
+  } @else if (pago(); as p) {
+    @if (exito()) {
+      <p class="notice success" role="status">{{ exito() }}</p>
+    }
+    @if (errorAccion()) {
+      <p class="notice error" role="alert">{{ errorAccion() }}</p>
+    }
+    <section class="panel">
+      <app-comprobante [pago]="p" />
+      <div class="actions acciones">
+        <button type="button" (click)="imprimir()">Imprimir comprobante</button>
+        @if (puedeAnular() && p.estado === 'VALIDO' && p.anulable && !pidiendoMotivo()) {
+          <button type="button" class="danger" (click)="iniciarAnulacion()">Anular pago</button>
+        }
+      </div>
+      @if (puedeAnular() && p.estado === 'VALIDO' && !p.anulable) {
+        <p class="notice warning" role="note">
+          Este pago no se puede anular: solo se anula el pago del último periodo del vehículo, y
+          {{ p.placa }} tiene un periodo posterior. Para corregirlo, anula primero el pago más
+          reciente.
+        </p>
+      }
+      @if (puedeAnular() && p.estado === 'ANULADO') {
+        <p class="hint">Este pago ya está anulado. Un pago se anula una sola vez.</p>
+      }
+    </section>
+
+    @if (pidiendoMotivo()) {
+      <section class="panel anulacion" aria-labelledby="anular-titulo">
+        <h2 id="anular-titulo">Anular el pago {{ p.comprobante }}</h2>
+        <p class="hint">
+          El pago quedará ANULADO, con tu nombre, la fecha y el motivo. No se elimina. Su periodo
+          (del
+          {{ fecha(p.fecha_inicio) }} al {{ fecha(p.fecha_fin) }}) dejará de habilitar la entrada.
+        </p>
+        <div class="field">
+          <label for="motivo">Motivo de la anulación</label>
+          <textarea
+            id="motivo"
+            rows="3"
+            [formControl]="motivo"
+            [attr.maxlength]="motivoMaximo + 20"
+            [attr.aria-invalid]="!!errorMotivo()"
+            aria-describedby="motivo-ayuda motivo-error"
+            [readonly]="confirmando()"
+          ></textarea>
+          <span id="motivo-ayuda" class="hint"
+            >De {{ motivoMinimo }} a {{ motivoMaximo }} caracteres · {{ largoMotivo() }}/{{
+              motivoMaximo
+            }}</span
+          >
+          <span id="motivo-error" class="field-error">{{ errorMotivo() }}</span>
+        </div>
+        @if (confirmando()) {
+          <app-confirmacion
+            titulo="Confirmar anulación"
+            [mensaje]="
+              '¿Anular el pago ' +
+              p.comprobante +
+              ' de ' +
+              p.placa +
+              ' por ' +
+              pesos(p.monto) +
+              ' (del ' +
+              fecha(p.fecha_inicio) +
+              ' al ' +
+              fecha(p.fecha_fin) +
+              ')? Esta acción no se puede deshacer.'
+            "
+            textoConfirmar="Sí, anular el pago"
+            [ocupado]="anulando()"
+            (confirmar)="anular()"
+            (cancelar)="cancelar()"
+          />
+        } @else {
+          <div class="actions">
+            <button type="button" class="danger" (click)="continuar()">Continuar</button
+            ><button type="button" (click)="cancelar()">Cancelar</button>
+          </div>
+        }
+      </section>
+    }
+  }
+</section>
