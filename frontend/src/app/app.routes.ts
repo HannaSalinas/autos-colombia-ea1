@@ -62,5 +62,27 @@ export const routes: Routes = [
     data: { permiso: PERMISOS.cuentasGestionar },
     loadComponent: () => import('./cuentas/cuentas').then((m) => m.Cuentas),
   },
+  // Iteración 3: pagos de mensualidad (ambos roles; anular solo el Administrador, dentro del detalle).
+  {
+    path: 'pagos',
+    title: 'Pagos | Autos Colombia',
+    canActivate: [accesoGuard],
+    data: { permiso: PERMISOS.pagos },
+    loadComponent: () => import('./pagos/pagos').then((m) => m.Pagos),
+  },
+  {
+    path: 'consultas/pagos',
+    title: 'Pagos registrados | Autos Colombia',
+    canActivate: [accesoGuard],
+    data: { permiso: PERMISOS.pagos },
+    loadComponent: () => import('./consulta-pagos/consulta-pagos').then((m) => m.ConsultaPagos),
+  },
+  {
+    path: 'consultas/pagos/:id',
+    title: 'Detalle del pago | Autos Colombia',
+    canActivate: [accesoGuard],
+    data: { permiso: PERMISOS.pagos },
+    loadComponent: () => import('./pago-detalle/pago-detalle').then((m) => m.PagoDetalleComponent),
+  },
   { path: '**', redirectTo: '' },
 ];

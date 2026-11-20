@@ -12,7 +12,7 @@ const OPERADOR: CuentaSesion = {
   nombre_usuario: 'marta.usuga',
   nombre: 'Marta Úsuga (Portería 1)',
   rol: 'OPERADOR',
-  permisos: ['celdas:ver', 'consultas', 'estancias', 'vehiculos:ver'],
+  permisos: ['celdas:ver', 'consultas', 'estancias', 'pagos', 'tarifas:ver', 'vehiculos:ver'],
 };
 const ADMINISTRADOR: CuentaSesion = {
   id: 1,
@@ -23,8 +23,14 @@ const ADMINISTRADOR: CuentaSesion = {
     'celdas:gestionar',
     'celdas:ver',
     'consultas',
+    'clientes:gestionar',
     'cuentas:gestionar',
     'estancias',
+    'pagos',
+    'pagos:anular',
+    'recaudo:ver',
+    'tarifas:gestionar',
+    'tarifas:ver',
     'vehiculos:gestionar',
     'vehiculos:ver',
   ],
@@ -67,11 +73,14 @@ describe('Navegación', () => {
 
   it('el Operador ve solo las opciones de su lista de permisos', () => {
     const el = montar(OPERADOR).nativeElement as HTMLElement;
+    // Iteración 3: Pagos y Pagos registrados también son del Operador (D14).
     expect(enlaces(el)).toEqual([
       'Inicio',
       'Control de acceso',
+      'Pagos',
       'Ocupación',
       'Historial',
+      'Pagos registrados',
       'Vehículos',
       'Celdas',
     ]);
@@ -86,8 +95,10 @@ describe('Navegación', () => {
     expect(enlaces(el)).toEqual([
       'Inicio',
       'Control de acceso',
+      'Pagos',
       'Ocupación',
       'Historial',
+      'Pagos registrados',
       'Vehículos',
       'Celdas',
       'Cuentas de usuario',

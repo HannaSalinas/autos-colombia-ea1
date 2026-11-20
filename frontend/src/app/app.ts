@@ -17,8 +17,11 @@ interface OpcionMenu {
 export const MENU: readonly OpcionMenu[] = [
   { ruta: '/', etiqueta: 'Inicio', exacta: true },
   { ruta: '/control-acceso', etiqueta: 'Control de acceso', permiso: PERMISOS.estancias },
+  // Iteración 3: el cobro ocurre en la portería, junto al control de acceso (D14).
+  { ruta: '/pagos', etiqueta: 'Pagos', permiso: PERMISOS.pagos },
   { ruta: '/consultas/ocupacion', etiqueta: 'Ocupación', permiso: PERMISOS.consultas },
   { ruta: '/consultas/historial', etiqueta: 'Historial', permiso: PERMISOS.consultas },
+  { ruta: '/consultas/pagos', etiqueta: 'Pagos registrados', permiso: PERMISOS.pagos },
   { ruta: '/gestion/vehiculos', etiqueta: 'Vehículos', permiso: PERMISOS.vehiculosVer },
   { ruta: '/gestion/celdas', etiqueta: 'Celdas', permiso: PERMISOS.celdasVer },
   { ruta: '/gestion/cuentas', etiqueta: 'Cuentas de usuario', permiso: PERMISOS.cuentasGestionar },
