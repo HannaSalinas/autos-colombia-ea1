@@ -1,20 +1,18 @@
 """Integración Fase 1: clientes, reglas de vehículo y estado de mensualidad (PostgreSQL real, con rollback)."""
 
 from datetime import timedelta
-from uuid import uuid4
 
 import pytest
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
-from conftest import codigos_celda_libres, placa_aleatoria
+from conftest import codigos_celda_libres, datos_cliente, placa_aleatoria
 from app.domain.reglas import fin_de_mensualidad, hoy_bogota
 from app.models import Celda, Cliente, Estancia, Mensualidad, Operador
 
 
 def nuevo_cliente(session, correo=None) -> Cliente:
-    cliente = Cliente(documento=f"TEST-{uuid4().hex}", nombre="Cliente de prueba", telefono="3000000000",
-                      correo=correo)
+    cliente = Cliente(**datos_cliente(correo=correo))
     session.add(cliente)
     session.flush()
     return cliente

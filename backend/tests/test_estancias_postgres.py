@@ -17,7 +17,7 @@ import pytest
 from sqlalchemy import delete, event, func, select, text
 from sqlalchemy.orm import Session
 
-from conftest import ALEMBIC_HEAD, codigos_celda_libres, crear_cuenta, encabezado, placa_aleatoria
+from conftest import ALEMBIC_HEAD, codigos_celda_libres, crear_cuenta, datos_cliente, encabezado, placa_aleatoria
 from app.database import get_engine
 from app.domain.reglas import fin_de_mensualidad, hoy_bogota
 from app.main import app
@@ -41,7 +41,7 @@ def datos(request):
     token = 'TEST-EST-' + uuid4().hex.upper()
     hoy = hoy_bogota()
     with Session(engine) as s, s.begin():
-        owner = Cliente(documento=token, nombre='Prueba', telefono='001')
+        owner = Cliente(**datos_cliente())
         s.add(owner)
         s.flush()
         tipos = ['MOTO', 'MOTO', 'MOTO', 'AUTOMOVIL']

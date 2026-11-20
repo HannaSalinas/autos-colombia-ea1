@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import pytest
 
-from conftest import codigos_celda_libres, placa_aleatoria
+from conftest import codigos_celda_libres, datos_cliente, placa_aleatoria
 from app.domain.reglas import ZONA_BOGOTA
 from app.models import Celda, Cliente, CorreccionCelda, Estancia, Novedad, Operador, Vehiculo
 
@@ -20,7 +20,7 @@ def datos(api_y_sesion):
     """Una moto con tres estancias: dos cerradas en los bordes del día y una abierta ahora."""
     api, session = api_y_sesion
     token = uuid4().hex[:8].upper()
-    cliente = Cliente(documento=f"TEST-{token}", nombre="Prueba", telefono="001")
+    cliente = Cliente(**datos_cliente())
     session.add(cliente)
     session.flush()
     moto = Vehiculo(placa=placa_aleatoria("MOTO"), color="Azul", modelo=2024, marca="M", tipo="MOTO",

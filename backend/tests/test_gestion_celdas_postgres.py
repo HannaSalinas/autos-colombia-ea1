@@ -16,7 +16,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import delete, event, func, select, text
 from sqlalchemy.orm import Session
 
-from conftest import autenticar, codigos_celda_libres, crear_cuenta, encabezado, placa_aleatoria
+from conftest import autenticar, codigos_celda_libres, crear_cuenta, datos_cliente, encabezado, placa_aleatoria
 from app.database import get_engine
 from app.domain.reglas import fin_de_mensualidad, hoy_bogota
 from app.main import app
@@ -35,7 +35,7 @@ def nueva_celda(session, tipo="CARRO", **campos) -> Celda:
 
 
 def vehiculo_vigente(session, tipo="AUTOMOVIL") -> Vehiculo:
-    cliente = Cliente(documento=f"TEST-{placa_aleatoria()}{time.time_ns()}", nombre="Prueba", telefono="001")
+    cliente = Cliente(**datos_cliente())
     session.add(cliente)
     session.flush()
     vehiculo = Vehiculo(placa=placa_aleatoria(tipo), color="Rojo", modelo=2024, marca="M", tipo=tipo,

@@ -8,6 +8,9 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, validates
 
+from app.domain.pagos import (
+    DOCUMENTO_MAXIMO, DOCUMENTO_MINIMO, TARIFA_MAXIMA, TARIFA_MINIMA, TIPOS_DOCUMENTO, TIPOS_VEHICULO,
+)
 from app.domain.reglas import (
     DESCRIPCION_MAXIMA, MODELO_MINIMO, MOTIVO_MAXIMO, NOMBRE_MAXIMO, NOMBRE_MINIMO, ROLES, TIPOS_NOVEDAD, TOTAL_CELDAS,
     UBICACION_MAXIMA, USUARIO_MAXIMO, USUARIO_MINIMO, normalizar_placa, required_text,
@@ -24,12 +27,24 @@ class Cliente(Base):
     """Propietario de uno o varios vehículos. Agregado en la migración 0003."""
     __tablename__ = "cliente"
     __table_args__ = (
-        UniqueConstraint("documento", name="uq_cliente_documento"),
         CheckConstraint("documento ~ '[^[:space:]]'", name="ck_cliente_documento_no_vacio"),
         CheckConstraint("nombre ~ '[^[:space:]]'", name="ck_cliente_nombre_no_vacio"),
         CheckConstraint("telefono ~ '[^[:space:]]'", name="ck_cliente_telefono_no_vacio"),
         CheckConstraint("correo IS NULL OR correo ~ '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$'",
                         name="ck_cliente_correo_formato"),
+        # Agregados en la migración 0009 (Iteración 3). Los de formato son NOT VALID: no revisan
+        # clientes antiguos, sí los nuevos y los modificados.
+        CheckConstraint("tipo_documento IN (" + ", ".join(f"'{t}'" for t in TIPOS_DOCUMENTO) + ")",
+                        name="ck_cliente_tipo_documento"),
+        CheckConstraint("registrado_por_cuenta_id IS NULL OR registrado_en IS NOT NULL", name="ck_cliente_registro"),
+        CheckConstraint(f"documento ~ '^[A-Z0-9]{{{DOCUMENTO_MINIMO},{DOCUMENTO_MAXIMO}}}$'",
+                        name="ck_cliente_documento_formato", postgresql_not_valid=True),
+        CheckConstraint(f"char_length(nombre) BETWEEN {NOMBRE_MINIMO} AND {NOMBRE_MAXIMO} "
+                        "AND nombre !~ '^[[:space:]]|[[:space:]]$'",
+                        name="ck_cliente_nombre_longitud", postgresql_not_valid=True),
+        CheckConstraint("telefono ~ '^[0-9]{10}$'", name="ck_cliente_telefono_formato", postgresql_not_valid=True),
+        # Único por tipo y número, sin distinguir mayúsculas (reemplaza a uq_cliente_documento de la 0003).
+        Index("uq_cliente_tipo_documento", "tipo_documento", text("upper(documento)"), unique=True),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
@@ -37,6 +52,16 @@ class Cliente(Base):
     nombre: Mapped[str] = mapped_column(Text, nullable=False)
     telefono: Mapped[str] = mapped_column(Text, nullable=False)
     correo: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Migración 0009. Los clientes anteriores quedaron con CC; registrado_* es NULL para los anteriores
+    # a la Iteración 3 y los de las semillas (D18: el propio registro guarda quién y cuándo).
+    # default solo en Python (código interno: semillas y pruebas). La API exige el tipo explícito y en la
+    # base no hay DEFAULT: un INSERT directo sin tipo de documento falla.
+    tipo_documento: Mapped[str] = mapped_column(Text, nullable=False, default="CC")
+    registrado_en: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    registrado_por_cuenta_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("cuenta_usuario.id", name="fk_cliente_registrado_por", ondelete="RESTRICT"),
+        nullable=True,
+    )
 
     @validates("documento", "nombre", "telefono")
     def validate_text(self, key: str, value: str) -> str:
@@ -362,3 +387,30 @@ class AuditoriaCelda(Base):
     fecha: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     accion: Mapped[str] = mapped_column(Text, nullable=False)
     detalle: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class Tarifa(Base):
+    """Tarifa mensual por tipo de vehículo (D12). Migración 0009.
+
+    Nunca se edita ni se elimina: cada cambio crea una tarifa nueva, vigente desde ese momento. Lo
+    garantiza el trigger tarifa_sin_cambios de la base (RNF-24). La vigente es la más reciente.
+    """
+    __tablename__ = "tarifa"
+    __table_args__ = (
+        CheckConstraint("tipo_vehiculo IN (" + ", ".join(f"'{t}'" for t in TIPOS_VEHICULO) + ")",
+                        name="ck_tarifa_tipo_vehiculo"),
+        CheckConstraint(f"valor BETWEEN {TARIFA_MINIMA} AND {TARIFA_MAXIMA}", name="ck_tarifa_valor"),
+        UniqueConstraint("tipo_vehiculo", "vigente_desde", name="uq_tarifa_tipo_desde"),
+        UniqueConstraint("id", "tipo_vehiculo", "valor", name="uq_tarifa_id_tipo_valor"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    tipo_vehiculo: Mapped[str] = mapped_column(Text, nullable=False)
+    valor: Mapped[int] = mapped_column(Integer, nullable=False)   # pesos enteros (RNF-22)
+    vigente_desde: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(),
+                                                    nullable=False)
+    # NULL = la definieron las semillas.
+    definida_por_cuenta_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("cuenta_usuario.id", name="fk_tarifa_definida_por", ondelete="RESTRICT"),
+        nullable=True,
+    )

@@ -8,7 +8,7 @@ import pytest
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 
-from conftest import autenticar, codigos_celda_libres, placa_aleatoria
+from conftest import autenticar, codigos_celda_libres, datos_cliente, placa_aleatoria
 from app.domain.reglas import MOTIVO_MAXIMO, fin_de_mensualidad, hoy_bogota
 from app.models import Celda, Cliente, CorreccionCelda, Estancia, Mensualidad, Operador, Vehiculo
 
@@ -18,7 +18,7 @@ def escena(api_y_sesion):
     """Un automóvil dentro en la celda X; celdas de carro Y (libre) y Z (ocupada por otro); celda de moto M."""
     api, session = api_y_sesion
     token = uuid4().hex[:8].upper()
-    cliente = Cliente(documento=f"TEST-{token}", nombre="Prueba", telefono="001")
+    cliente = Cliente(**datos_cliente())
     session.add(cliente)
     session.flush()
     carro, otro = (Vehiculo(placa=placa_aleatoria(), color="Rojo", modelo=2024, marca="M", tipo="AUTOMOVIL",

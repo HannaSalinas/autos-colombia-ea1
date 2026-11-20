@@ -1,14 +1,13 @@
 """Pruebas optativas en autos_colombia: sin DDL y rollback de todos los registros."""
 
 import os
-from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from conftest import ALEMBIC_HEAD, autenticar, placa_aleatoria
+from conftest import ALEMBIC_HEAD, autenticar, datos_cliente, placa_aleatoria
 from app.models import Cliente
 from app.database import get_engine, get_session
 from app.main import app
@@ -28,7 +27,7 @@ def client():
             assert connection.scalar(text("SELECT version_num FROM alembic_version")) == ALEMBIC_HEAD
             with Session(bind=connection, join_transaction_mode="create_savepoint") as session:
                 # Iteración 1: todo vehículo pertenece a un cliente.
-                owner = Cliente(documento=f"TEST-{uuid4().hex}", nombre="Prueba", telefono="001")
+                owner = Cliente(**datos_cliente())
                 session.add(owner)
                 session.flush()
                 def override_session():

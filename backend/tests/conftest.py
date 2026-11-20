@@ -40,6 +40,16 @@ def placa_aleatoria(tipo: str = "AUTOMOVIL") -> str:
     return letras + "".join(random.choices(string.digits, k=3))
 
 
+def datos_cliente(**cambios) -> dict:
+    """Datos válidos de un cliente nuevo con un documento que no choca con los existentes.
+
+    Iteración 3 (migración 0009): los clientes nuevos deben cumplir documento de 5 a 15 letras o
+    números, nombre de 3 a 80 caracteres y teléfono de 10 dígitos (los antiguos no se revisan).
+    """
+    return {"documento": "T" + uuid4().hex[:14].upper(), "nombre": "Cliente de prueba", "telefono": "3000000000",
+            **cambios}
+
+
 # Iteración 2: los tokens se firman con JWT_SECRETO. Si la prueba corre sin .env (por ejemplo,
 # solo las pruebas sin base de datos), se usa una clave de prueba; nunca es la del sistema real.
 os.environ.setdefault("JWT_SECRETO", "clave-de-firma-solo-para-pruebas-automatizadas")
