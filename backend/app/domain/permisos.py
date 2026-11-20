@@ -15,9 +15,17 @@ CELDAS_GESTIONAR = "celdas:gestionar"      # crear, editar, inhabilitar y rehabi
 VEHICULOS_VER = "vehiculos:ver"            # listado de vehículos y clientes (solo lectura)
 VEHICULOS_GESTIONAR = "vehiculos:gestionar"
 CUENTAS_GESTIONAR = "cuentas:gestionar"    # cuentas de usuario y personas
+# Iteración 3 (pagos). El cobro ocurre en la portería: ambos roles registran pagos (D14).
+PAGOS = "pagos"                            # estado de la mensualidad, registrar pago, consultar pagos y comprobante
+PAGOS_ANULAR = "pagos:anular"              # anular el pago del último periodo (D14)
+TARIFAS_VER = "tarifas:ver"                # tarifa vigente de cada tipo de vehículo
+TARIFAS_GESTIONAR = "tarifas:gestionar"    # nueva tarifa e historial de tarifas
+CLIENTES_GESTIONAR = "clientes:gestionar"  # registrar clientes (la consulta sigue con vehiculos:ver, D15)
+RECAUDO_VER = "recaudo:ver"                # resumen de recaudo
 
-PERMISOS_OPERADOR = frozenset({ESTANCIAS, CONSULTAS, CELDAS_VER, VEHICULOS_VER})
-PERMISOS_ADMINISTRADOR = PERMISOS_OPERADOR | {CELDAS_GESTIONAR, VEHICULOS_GESTIONAR, CUENTAS_GESTIONAR}
+PERMISOS_OPERADOR = frozenset({ESTANCIAS, CONSULTAS, CELDAS_VER, VEHICULOS_VER, PAGOS, TARIFAS_VER})
+PERMISOS_ADMINISTRADOR = PERMISOS_OPERADOR | {CELDAS_GESTIONAR, VEHICULOS_GESTIONAR, CUENTAS_GESTIONAR, PAGOS_ANULAR,
+                                              TARIFAS_GESTIONAR, CLIENTES_GESTIONAR, RECAUDO_VER}
 
 PERMISOS_POR_ROL: dict[str, frozenset[str]] = {
     "ADMINISTRADOR": PERMISOS_ADMINISTRADOR,

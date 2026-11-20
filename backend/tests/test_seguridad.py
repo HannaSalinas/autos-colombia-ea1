@@ -102,8 +102,11 @@ def test_administrador_contiene_al_operador():
 
 
 def test_operador_solo_operativas():
-    assert permisos.permisos_de("OPERADOR") == {"estancias", "consultas", "celdas:ver", "vehiculos:ver"}
-    for permiso in ("celdas:gestionar", "vehiculos:gestionar", "cuentas:gestionar"):
+    # Iteración 3: el Operador también registra y consulta pagos y ve las tarifas (D14, HU-26).
+    assert permisos.permisos_de("OPERADOR") == {"estancias", "consultas", "celdas:ver", "vehiculos:ver", "pagos",
+                                                "tarifas:ver"}
+    for permiso in ("celdas:gestionar", "vehiculos:gestionar", "cuentas:gestionar", "pagos:anular",
+                    "tarifas:gestionar", "clientes:gestionar", "recaudo:ver"):
         assert not permisos.tiene_permiso("OPERADOR", permiso)
         assert permisos.tiene_permiso("ADMINISTRADOR", permiso)
 
