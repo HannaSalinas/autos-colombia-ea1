@@ -1,0 +1,66 @@
+.rango {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 220px)) auto;
+  gap: 16px;
+  align-items: end;
+}
+.totales {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 18px 0;
+}
+.totales article {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px;
+  border-radius: 12px;
+  border: 1px solid #dce2dc;
+}
+.total-principal {
+  background: #e6f1e8;
+}
+.total-anulado {
+  background: #fdf3f1;
+}
+.etiqueta {
+  font-size: 13px;
+  font-weight: 600;
+  color: #526c60;
+}
+.cifra {
+  font-size: 28px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #203a33;
+}
+.total-anulado .cifra {
+  color: #923b2e;
+}
+.desgloses {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+caption {
+  text-align: left;
+  font-weight: 600;
+  padding: 0 0 10px;
+}
+tfoot th,
+tfoot td {
+  font-weight: 700;
+  border-bottom: 0;
+}
+.monto {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 760px) {
+  .rango,
+  .totales,
+  .desgloses {
+    grid-template-columns: 1fr;
+  }
+}

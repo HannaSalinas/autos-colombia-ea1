@@ -1,0 +1,120 @@
+<section class="management" aria-labelledby="recaudo-titulo">
+  <header class="heading">
+    <div>
+      <span class="eyebrow">MENSUALIDADES</span>
+      <h1 id="recaudo-titulo">Recaudo</h1>
+      <p>
+        Cuánto se recaudó en un rango de fechas. Los pagos válidos y los anulados se cuentan por la
+        fecha del pago.
+      </p>
+    </div>
+  </header>
+
+  <section class="panel" aria-label="Rango de fechas">
+    <form [formGroup]="rango" (ngSubmit)="consultar()" class="rango" novalidate>
+      <div class="field">
+        <label for="desde">Desde</label>
+        <input id="desde" type="date" formControlName="desde" />
+      </div>
+      <div class="field">
+        <label for="hasta">Hasta</label>
+        <input id="hasta" type="date" formControlName="hasta" />
+      </div>
+      <div class="actions">
+        <button type="submit" class="primary" [disabled]="cargando()">
+          {{ cargando() ? 'Consultando…' : 'Consultar' }}
+        </button>
+      </div>
+    </form>
+    @if (error()) {
+      <p class="notice error" role="alert">{{ error() }}</p>
+    }
+  </section>
+
+  @if (resumen(); as r) {
+    <section class="panel" aria-labelledby="totales-titulo" [attr.aria-busy]="cargando()">
+      <h2 id="totales-titulo">Del {{ fecha(r.desde) }} al {{ fecha(r.hasta) }}</h2>
+      <div class="totales">
+        <article class="total-principal">
+          <span class="etiqueta">Total recaudado (pagos válidos)</span>
+          <span class="cifra">{{ pesos(r.validos.total) }}</span>
+          <span class="hint"
+            >{{ r.validos.cantidad }} {{ r.validos.cantidad === 1 ? 'pago' : 'pagos' }}</span
+          >
+        </article>
+        <article class="total-anulado">
+          <span class="etiqueta">Pagos anulados (no suman)</span>
+          <span class="cifra">{{ pesos(r.anulados.total) }}</span>
+          <span class="hint"
+            >{{ r.anulados.cantidad }} {{ r.anulados.cantidad === 1 ? 'pago' : 'pagos' }}</span
+          >
+        </article>
+      </div>
+      @if (!r.validos.cantidad && !r.anulados.cantidad) {
+        <p class="empty" role="status">No hay pagos registrados en este rango.</p>
+      }
+      <div class="desgloses">
+        <div class="table-scroll">
+          <table>
+            <caption>
+              Por método de pago
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Método</th>
+                <th scope="col">Pagos</th>
+                <th scope="col">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (m of r.por_metodo; track m.metodo) {
+                <tr>
+                  <th scope="row">{{ metodo(m.metodo) }}</th>
+                  <td>{{ m.cantidad }}</td>
+                  <td class="monto">{{ pesos(m.total) }}</td>
+                </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr>
+                <th scope="row">Total</th>
+                <td>{{ r.validos.cantidad }}</td>
+                <td class="monto">{{ pesos(r.validos.total) }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <caption>
+              Por tipo de vehículo
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Tipo</th>
+                <th scope="col">Pagos</th>
+                <th scope="col">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (t of r.por_tipo_vehiculo; track t.tipo_vehiculo) {
+                <tr>
+                  <th scope="row">{{ t.tipo_vehiculo }}</th>
+                  <td>{{ t.cantidad }}</td>
+                  <td class="monto">{{ pesos(t.total) }}</td>
+                </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr>
+                <th scope="row">Total</th>
+                <td>{{ r.validos.cantidad }}</td>
+                <td class="monto">{{ pesos(r.validos.total) }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </section>
+  }
+</section>
