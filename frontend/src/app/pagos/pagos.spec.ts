@@ -3,15 +3,8 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { Cotizacion, EstadoMensualidadRespuesta, PagoDetalle } from '../models/pago';
+import { textoDe } from '../utils/pruebas';
 import { Pagos } from './pagos';
-
-const textoDe = (el: HTMLElement) => {
-  // Une los nodos de texto con un espacio: así "Monto a pagar" (dt) y "$ 120.000" (dd) quedan separados.
-  const partes: string[] = [];
-  const recorrido = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
-  while (recorrido.nextNode()) partes.push(recorrido.currentNode.textContent ?? '');
-  return partes.join(' ').replace(/\s+/g, ' ');
-};
 
 describe('Pagos: estado y registro (HU-29, HU-30)', () => {
   let fixture: ComponentFixture<Pagos>;

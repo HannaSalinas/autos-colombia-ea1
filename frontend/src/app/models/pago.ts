@@ -106,3 +106,17 @@ export const ESTADOS_MENSUALIDAD: Record<EstadoMensualidad, string> = {
 export const ESTADOS_PAGO: Record<EstadoPago, string> = { VALIDO: 'Válido', ANULADO: 'Anulado' };
 export const etiquetaMetodo = (metodo: string): string =>
   METODOS_PAGO.find((m) => m.valor === metodo)?.etiqueta ?? metodo;
+
+// --- Resumen de recaudo (RF-39, HU-33) ---
+export interface TotalRecaudo {
+  cantidad: number;
+  total: number;
+}
+export interface Recaudo {
+  desde: string;
+  hasta: string;
+  validos: TotalRecaudo;
+  por_metodo: (TotalRecaudo & { metodo: MetodoPago })[];
+  por_tipo_vehiculo: (TotalRecaudo & { tipo_vehiculo: string })[];
+  anulados: TotalRecaudo;
+}

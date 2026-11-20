@@ -4,16 +4,9 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
 import { CuentaSesion } from '../models/auth';
+import { textoDe } from '../utils/pruebas';
 import { PagoDetalle } from '../models/pago';
 import { PagoDetalleComponent } from './pago-detalle';
-
-const textoDe = (el: HTMLElement) => {
-  // Une los nodos de texto con un espacio: así "Monto a pagar" (dt) y "$ 120.000" (dd) quedan separados.
-  const partes: string[] = [];
-  const recorrido = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
-  while (recorrido.nextNode()) partes.push(recorrido.currentNode.textContent ?? '');
-  return partes.join(' ').replace(/\s+/g, ' ');
-};
 
 const ADMIN: CuentaSesion = {
   id: 1,

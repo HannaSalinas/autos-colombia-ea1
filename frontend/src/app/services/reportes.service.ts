@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { timeout } from 'rxjs';
+import { Recaudo } from '../models/pago';
 import { FiltrosHistorial, HistorialPagina, Ocupacion } from '../models/reporte';
 import { API_BASE_URL } from './api.service';
 
@@ -18,6 +19,12 @@ export class ReportesService {
     for (const [clave, valor] of Object.entries(filtros)) if (valor) params[clave] = valor;
     return this.http
       .get<HistorialPagina>(`${this.base}/historial`, { params })
+      .pipe(timeout(15000));
+  }
+  /** Iteración 3 (RF-39, solo Administrador): días de Bogotá, ambos incluidos. */
+  recaudo(desde: string, hasta: string) {
+    return this.http
+      .get<Recaudo>(`${this.base}/recaudo`, { params: { desde, hasta } })
       .pipe(timeout(15000));
   }
 }
