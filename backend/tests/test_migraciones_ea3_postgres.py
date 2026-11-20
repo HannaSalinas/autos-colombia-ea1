@@ -181,3 +181,289 @@ def test_tarifa_no_se_edita_ni_se_borra_aunque_se_intente_en_la_base(conexion):
     falla(conexion, "DELETE FROM tarifa WHERE id = :i", {"i": tarifa}, "23001", mensaje=mensaje)
     falla(conexion, "TRUNCATE tarifa CASCADE", {}, "23001", mensaje=mensaje)
     assert conexion.scalar(text("SELECT valor FROM tarifa WHERE id = :i"), {"i": tarifa}) == 120000
+
+
+# --- 0010: pagos ---
+
+def test_sql_offline_de_0010():
+    sql = sql_offline("0009:0010")
+    assert "CREATE EXTENSION IF NOT EXISTS btree_gist" in sql
+    assert "CREATE SEQUENCE pago_comprobante_seq MINVALUE 1 MAXVALUE 999999 NO CYCLE" in sql
+    assert "CREATE TABLE pago" in sql and "CHECK (monto = valor_mensual * meses)" in sql
+    assert "FOREIGN KEY(tarifa_id, tipo_vehiculo, valor_mensual) REFERENCES tarifa (id, tipo_vehiculo, valor)" in sql
+    assert "referencia IS NOT NULL AND referencia ~ '^[A-Za-z0-9-]{4,30}$'" in sql
+    assert "ALTER TABLE mensualidad ADD COLUMN pago_id BIGINT" in sql
+    assert "FOREIGN KEY(pago_id, pago_estado) REFERENCES pago (id, estado) ON DELETE RESTRICT ON UPDATE CASCADE" in sql
+    assert "EXCLUDE USING gist (vehiculo_id WITH =, daterange(fecha_inicio, fecha_fin, '[]') WITH &&) " \
+           "WHERE (pago_estado = 'VALIDO')" in sql
+    assert "BEFORE UPDATE OR DELETE ON pago" in sql and "BEFORE TRUNCATE ON pago" in sql
+    assert "BEFORE UPDATE OR DELETE ON mensualidad" in sql and "BEFORE TRUNCATE ON mensualidad" in sql
+    # Sin conexión, el aviso de superposiciones antiguas se escribe en SQL.
+    assert "periodos antiguos que se superponen" in sql
+    # No borra tablas, columnas, restricciones ni datos.
+    for borrado in ("DROP TABLE", "DROP COLUMN", "DROP CONSTRAINT", "DROP INDEX", "DELETE FROM"):
+        assert borrado not in sql
+
+
+class Datos:
+    """Vehículo, tarifa y cuenta para probar pagos con SQL directo."""
+
+    def __init__(self, conexion, placa: str = "ZZY991", valor: int = 120000, tarifa: int | None = None) -> None:
+        self.c = conexion
+        cliente_id = cliente(conexion, d="88" + placa[3:] + "88")
+        self.vehiculo = conexion.scalar(text(
+            "INSERT INTO vehiculo (placa, color, modelo, marca, tipo, cliente_id) "
+            "VALUES (:p, 'Rojo', 2024, 'Mazda', 'AUTOMOVIL', :c) RETURNING id"), {"p": placa, "c": cliente_id})
+        # Dos tarifas del mismo tipo en una transacción tendrían el mismo vigente_desde (now() es la hora
+        # de inicio de la transacción) y uq_tarifa_tipo_desde las rechaza: se puede reutilizar una.
+        self.tarifa = tarifa or conexion.scalar(text(TARIFA), {"t": "AUTOMOVIL", "v": valor})
+        self.valor = valor
+        self.cuenta = cuenta(conexion, f"cuenta.{placa.lower()}")
+
+    def pago(self, meses: int = 1, metodo: str = "EFECTIVO", referencia: str | None = None) -> int:
+        return self.c.scalar(text(
+            "INSERT INTO pago (meses, tarifa_id, tipo_vehiculo, valor_mensual, monto, metodo, referencia, "
+            "registrado_por_cuenta_id) VALUES (:m, :t, 'AUTOMOVIL', :v, :monto, :metodo, :r, :c) RETURNING id"),
+            {"m": meses, "t": self.tarifa, "v": self.valor, "monto": self.valor * meses, "metodo": metodo,
+             "r": referencia, "c": self.cuenta})
+
+    def periodo(self, inicio: str, fin: str, pago: int | None = None) -> int:
+        return self.c.scalar(text(
+            "INSERT INTO mensualidad (vehiculo_id, fecha_inicio, fecha_fin, pago_id, pago_estado) "
+            "VALUES (:v, :i, :f, :p, :e) RETURNING id"),
+            {"v": self.vehiculo, "i": inicio, "f": fin, "p": pago, "e": "VALIDO" if pago else None})
+
+    def anular(self, pago: int, motivo: str = "Error al digitar la placa") -> None:
+        self.c.execute(text("UPDATE pago SET estado = 'ANULADO', anulado_en = now(), anulado_por_cuenta_id = :c, "
+                            "motivo_anulacion = :m WHERE id = :p"), {"c": self.cuenta, "m": motivo, "p": pago})
+
+
+PAGO = ("INSERT INTO pago (meses, tarifa_id, tipo_vehiculo, valor_mensual, monto, metodo, referencia, "
+        "registrado_por_cuenta_id) VALUES (:m, :t, :tipo, :v, :monto, :metodo, :r, :c)")
+
+
+def test_pago_reglas_en_sus_limites(conexion):
+    d = Datos(conexion)
+    base = {"m": 1, "t": d.tarifa, "tipo": "AUTOMOVIL", "v": d.valor, "monto": d.valor, "metodo": "EFECTIVO",
+            "r": None, "c": d.cuenta}
+    fila = conexion.execute(text(
+        "SELECT comprobante, estado, fecha FROM pago WHERE id = :i"), {"i": d.pago(6)}).one()
+    assert fila.estado == "VALIDO" and fila.fecha is not None
+    assert fila.comprobante.startswith("RC-") and len(fila.comprobante) == 9
+    for meses in (0, 7):
+        falla(conexion, PAGO, {**base, "m": meses, "monto": d.valor * meses}, "23514", "ck_pago_meses")
+    # El monto lo calcula el sistema (D11): la base exige tarifa × meses.
+    falla(conexion, PAGO, {**base, "monto": d.valor + 1}, "23514", "ck_pago_monto")
+    # El valor y el tipo copiados deben ser los de una tarifa real (FK compuesta).
+    falla(conexion, PAGO, {**base, "v": d.valor + 1000, "monto": d.valor + 1000}, "23503", "fk_pago_tarifa")
+    falla(conexion, PAGO, {**base, "tipo": "MOTO"}, "23503", "fk_pago_tarifa")
+    falla(conexion, PAGO, {**base, "metodo": "CHEQUE"}, "23514", "ck_pago_metodo")
+    # Referencia: vacía en efectivo; obligatoria de 4 a 30 en transferencia y tarjeta.
+    assert d.pago(1, "TRANSFERENCIA", "A1B2") and d.pago(1, "TARJETA", "x" * 30)
+    falla(conexion, PAGO, {**base, "r": "TRX-1234"}, "23514", "ck_pago_referencia")
+    for metodo in ("TRANSFERENCIA", "TARJETA"):
+        for referencia in (None, "ABC", "x" * 31, "con espacio"):
+            falla(conexion, PAGO, {**base, "metodo": metodo, "r": referencia}, "23514", "ck_pago_referencia")
+    columnas = {c["name"]: str(c["type"]) for c in inspect(conexion).get_columns("pago")}
+    assert columnas["monto"] == "INTEGER" and columnas["valor_mensual"] == "INTEGER"   # RNF-22
+
+
+def test_comprobante_unico_garantizado_por_la_base(conexion):
+    d = Datos(conexion)
+    primero = conexion.scalar(text("SELECT comprobante FROM pago WHERE id = :i"), {"i": d.pago()})
+    segundo = conexion.scalar(text("SELECT comprobante FROM pago WHERE id = :i"), {"i": d.pago()})
+    assert primero != segundo and int(segundo[3:]) > int(primero[3:])
+    falla(conexion, PAGO.replace("registrado_por_cuenta_id)", "registrado_por_cuenta_id, comprobante)")
+          .replace(":c)", ":c, :comp)"),
+          {"m": 1, "t": d.tarifa, "tipo": "AUTOMOVIL", "v": d.valor, "monto": d.valor, "metodo": "EFECTIVO",
+           "r": None, "c": d.cuenta, "comp": primero}, "23505", "uq_pago_comprobante")
+
+
+def test_anular_una_sola_vez_con_sus_datos(conexion):
+    d = Datos(conexion)
+    pago = d.pago()
+    periodo = d.periodo("2026-11-20", "2026-12-19", pago)
+    # Sin motivo, con motivo corto o con espacios exteriores: lo rechaza el CHECK.
+    for motivo in (None, "a" * 9, "a" * 201, " " + "a" * 10):
+        falla(conexion, "UPDATE pago SET estado = 'ANULADO', anulado_en = now(), anulado_por_cuenta_id = :c, "
+                        "motivo_anulacion = :m WHERE id = :p", {"c": d.cuenta, "m": motivo, "p": pago}, "23514",
+              "ck_pago_anulacion")
+    d.anular(pago, "a" * 10)
+    # ON UPDATE CASCADE: la copia del estado en el periodo cambia en la misma sentencia.
+    assert conexion.scalar(text("SELECT pago_estado FROM mensualidad WHERE id = :i"), {"i": periodo}) == "ANULADO"
+    mensaje = "Un pago no se edita ni se elimina"
+    # Una sola vez: ni volver a VALIDO, ni cambiar el motivo de un anulado.
+    falla(conexion, "UPDATE pago SET estado = 'VALIDO', anulado_en = NULL, anulado_por_cuenta_id = NULL, "
+                    "motivo_anulacion = NULL WHERE id = :p", {"p": pago}, "23001", mensaje=mensaje)
+    falla(conexion, "UPDATE pago SET motivo_anulacion = 'Otro motivo distinto' WHERE id = :p", {"p": pago}, "23001",
+          mensaje=mensaje)
+
+
+def test_pago_no_se_edita_ni_se_borra_aunque_se_intente_en_la_base(conexion):
+    d = Datos(conexion)
+    pago = d.pago(2, "TRANSFERENCIA", "TRX-0001")
+    mensaje = "Un pago no se edita ni se elimina"
+    for cambio in ("monto = monto", "referencia = 'TRX-0002'", "fecha = now() - interval '1 day'",
+                   "meses = 1, monto = valor_mensual", "comprobante = 'RC-999998'"):
+        falla(conexion, f"UPDATE pago SET {cambio} WHERE id = :p", {"p": pago}, "23001", mensaje=mensaje)
+    # Anular cambiando a la vez otro dato tampoco se permite.
+    falla(conexion, "UPDATE pago SET estado = 'ANULADO', anulado_en = now(), anulado_por_cuenta_id = :c, "
+                    "motivo_anulacion = 'Error al digitar', referencia = 'TRX-0003' WHERE id = :p",
+          {"c": d.cuenta, "p": pago}, "23001", mensaje=mensaje)
+    falla(conexion, "DELETE FROM pago WHERE id = :p", {"p": pago}, "23001", mensaje=mensaje)
+    falla(conexion, "TRUNCATE pago CASCADE", {}, "23001", mensaje=mensaje)
+    assert conexion.scalar(text("SELECT referencia FROM pago WHERE id = :p"), {"p": pago}) == "TRX-0001"
+
+
+def test_periodo_pagado_no_se_edita_ni_se_borra(conexion):
+    d = Datos(conexion)
+    pagado = d.periodo("2026-11-20", "2026-12-19", d.pago())
+    antiguo = d.periodo("2026-09-01", "2026-10-01")
+    for cambio in ("fecha_fin = '2027-01-19'", "fecha_inicio = '2026-11-21'", "pago_id = NULL, pago_estado = NULL"):
+        falla(conexion, f"UPDATE mensualidad SET {cambio} WHERE id = :i", {"i": pagado}, "23001",
+              mensaje="Un periodo pagado no se edita")
+    falla(conexion, "DELETE FROM mensualidad WHERE id = :i", {"i": pagado}, "23001",
+          mensaje="Un periodo pagado no se elimina")
+    falla(conexion, "TRUNCATE mensualidad", {}, "23001", mensaje="Un periodo pagado no se elimina")
+    # La copia del estado solo la cambia la cascada: a mano no coincide con el pago (FK compuesta).
+    falla(conexion, "UPDATE mensualidad SET pago_estado = 'ANULADO' WHERE id = :i", {"i": pagado}, "23503",
+          "fk_mensualidad_pago")
+    # Un periodo antiguo no se puede vincular a un pago.
+    falla(conexion, "UPDATE mensualidad SET pago_id = :p, pago_estado = 'VALIDO' WHERE id = :i",
+          {"p": d.pago(), "i": antiguo}, "23001", mensaje="no se puede vincular")
+    # Los periodos antiguos siguen como antes (D10): la regla nueva solo protege los pagados.
+    conexion.execute(text("UPDATE mensualidad SET fecha_fin = '2026-10-02' WHERE id = :i"), {"i": antiguo})
+    conexion.execute(text("DELETE FROM mensualidad WHERE id = :i"), {"i": antiguo})
+
+
+def test_vinculo_uno_a_uno_y_estado_coherente(conexion):
+    d = Datos(conexion)
+    pago = d.pago()
+    d.periodo("2026-11-20", "2026-12-19", pago)
+    falla(conexion, "INSERT INTO mensualidad (vehiculo_id, fecha_inicio, fecha_fin, pago_id, pago_estado) "
+                    "VALUES (:v, '2027-03-01', '2027-03-31', :p, 'VALIDO')", {"v": d.vehiculo, "p": pago},
+          "23505", "uq_mensualidad_pago")
+    falla(conexion, "INSERT INTO mensualidad (vehiculo_id, fecha_inicio, fecha_fin, pago_id) "
+                    "VALUES (:v, '2027-03-01', '2027-03-31', :p)", {"v": d.vehiculo, "p": d.pago()},
+          "23514", "ck_mensualidad_pago")
+    falla(conexion, "INSERT INTO mensualidad (vehiculo_id, fecha_inicio, fecha_fin, pago_id, pago_estado) "
+                    "VALUES (:v, '2027-03-01', '2027-03-31', :p, 'ANULADO')", {"v": d.vehiculo, "p": d.pago()},
+          "23503", "fk_mensualidad_pago")
+
+
+def test_exclusion_parcial_de_periodos_pagados(conexion):
+    d = Datos(conexion)
+    d.periodo("2026-11-20", "2026-12-19", d.pago())
+    # Encadenado (empieza el día siguiente al fin): se acepta.
+    d.periodo("2026-12-20", "2027-01-19", d.pago())
+    # Cruzarse un solo día con otro periodo pagado y no anulado: lo rechaza la base (23P01).
+    sql = ("INSERT INTO mensualidad (vehiculo_id, fecha_inicio, fecha_fin, pago_id, pago_estado) "
+           "VALUES (:v, :i, :f, :p, 'VALIDO')")
+    for inicio, fin in (("2027-01-19", "2027-02-18"), ("2026-12-01", "2026-12-10"), ("2026-10-01", "2027-03-01")):
+        falla(conexion, sql, {"v": d.vehiculo, "i": inicio, "f": fin, "p": d.pago()}, "23P01",
+              "ex_mensualidad_pagada_sin_superposicion")
+    # Anulado, su periodo deja de contar: ahora sí cabe otro en las mismas fechas.
+    ultimo = conexion.scalar(text("SELECT pago_id FROM mensualidad WHERE vehiculo_id = :v AND fecha_inicio = "
+                                  "'2026-12-20'"), {"v": d.vehiculo})
+    d.anular(ultimo)
+    d.periodo("2026-12-20", "2027-01-19", d.pago())
+    # Otro vehículo puede tener las mismas fechas.
+    otro = Datos(conexion, "ZZY992", tarifa=d.tarifa)
+    otro.periodo("2026-11-20", "2026-12-19", otro.pago())
+
+
+def test_limitacion_declarada_periodos_antiguos_no_entran_en_la_exclusion(conexion):
+    # RNF-23: entre un periodo pagado y uno antiguo la no superposición la garantiza el servicio,
+    # no la base. Esta prueba deja escrita esa limitación: la base acepta el cruce.
+    d = Datos(conexion)
+    d.periodo("2026-11-01", "2026-12-01")
+    d.periodo("2026-12-01", "2027-01-01")   # dos antiguos que se tocan, como JKL321
+    d.periodo("2026-12-15", "2027-01-14", d.pago())
+    assert conexion.scalar(text("SELECT count(*) FROM mensualidad WHERE vehiculo_id = :v"), {"v": d.vehiculo}) == 3
+
+
+def test_extension_y_restriccion_de_exclusion_instaladas(conexion):
+    assert conexion.scalar(text("SELECT count(*) FROM pg_extension WHERE extname = 'btree_gist'")) == 1
+    definicion = conexion.scalar(text(
+        "SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'ex_mensualidad_pagada_sin_superposicion'"))
+    assert "EXCLUDE USING gist" in definicion and "pago_estado = 'VALIDO'" in definicion
+
+
+# --- Aplicar 0009 y 0010 sobre datos de las iteraciones 1 y 2 ---
+
+@con_postgres
+def test_0009_y_0010_se_aplican_sobre_datos_anteriores_sin_modificarlos(caplog):
+    import logging
+    engine = get_engine()
+    with engine.connect() as c:
+        if c.scalar(text("SELECT count(*) FROM celda")):
+            pytest.skip("Baja y sube migraciones: requiere la base de pruebas vacía "
+                        "(docker compose run --rm backend-tests).")
+    config = Config(ALEMBIC_INI)
+    ids: dict[str, int] = {}
+    try:
+        command.downgrade(config, "0008")
+        with engine.begin() as c:
+            # Clientes con la forma de la EA1: documento con guion, teléfono corto, nombre de 2 letras.
+            ids["cliente"] = c.scalar(text("INSERT INTO cliente (documento, nombre, telefono) VALUES "
+                                           "('EA1-0009', 'Lu', '300') RETURNING id"))
+            ids["vehiculo"] = c.scalar(text("INSERT INTO vehiculo (placa, color, modelo, marca, tipo, cliente_id) "
+                                            "VALUES ('ZZX321', 'Plata', 2024, 'Chevrolet', 'AUTOMOVIL', :c) "
+                                            "RETURNING id"), {"c": ids["cliente"]})
+            # Como la semilla "renovada" (JKL321): el segundo periodo empieza el día en que termina el primero.
+            ids["primero"] = c.scalar(text("INSERT INTO mensualidad (vehiculo_id, fecha_inicio, fecha_fin) VALUES "
+                                           "(:v, current_date - 40, current_date - 9) RETURNING id"),
+                                      {"v": ids["vehiculo"]})
+            ids["segundo"] = c.scalar(text("INSERT INTO mensualidad (vehiculo_id, fecha_inicio, fecha_fin) VALUES "
+                                           "(:v, current_date - 9, current_date + 21) RETURNING id"),
+                                      {"v": ids["vehiculo"]})
+            antes = c.execute(text("SELECT id, fecha_inicio, fecha_fin FROM mensualidad WHERE vehiculo_id = :v "
+                                   "ORDER BY id"), {"v": ids["vehiculo"]}).all()
+
+        with caplog.at_level(logging.WARNING, logger="alembic.migraciones"):
+            command.upgrade(config, "head")             # no se detiene por los periodos que se tocan
+
+        with engine.connect() as c:
+            assert c.scalar(text("SELECT version_num FROM alembic_version")) == ALEMBIC_HEAD
+            fila = c.execute(text("SELECT tipo_documento, documento, nombre, telefono, registrado_en, "
+                                  "registrado_por_cuenta_id FROM cliente WHERE id = :i"), {"i": ids["cliente"]}).one()
+            assert tuple(fila) == ("CC", "EA1-0009", "Lu", "300", None, None)
+            despues = c.execute(text("SELECT id, fecha_inicio, fecha_fin, pago_id, pago_estado FROM mensualidad "
+                                     "WHERE vehiculo_id = :v ORDER BY id"), {"v": ids["vehiculo"]}).all()
+            assert [tuple(f)[:3] for f in despues] == [tuple(f) for f in antes]
+            assert all(f.pago_id is None and f.pago_estado is None for f in despues)
+        avisos = [r.getMessage() for r in caplog.records if r.levelno == logging.WARNING]
+        assert any("periodos antiguos que se superponen" in a and "ZZX321" in a for a in avisos)
+
+        # Ida y vuelta con un pago registrado: la bajada también funciona con datos.
+        with engine.begin() as c:
+            ids["tarifa"] = c.scalar(text("INSERT INTO tarifa (tipo_vehiculo, valor) VALUES ('AUTOMOVIL', 120000) "
+                                          "RETURNING id"))
+            persona = c.scalar(text("INSERT INTO operador (nombre) VALUES ('Persona 0010') RETURNING id"))
+            ids["persona"] = persona
+            ids["cuenta"] = c.scalar(text("INSERT INTO cuenta_usuario (operador_id, nombre_usuario, hash_contrasena, "
+                                          "rol) VALUES (:o, 'cuenta.migracion.0010', :h, 'OPERADOR') RETURNING id"),
+                                     {"o": persona, "h": HASH_12})
+            pago = c.scalar(text("INSERT INTO pago (meses, tarifa_id, tipo_vehiculo, valor_mensual, monto, metodo, "
+                                 "registrado_por_cuenta_id) VALUES (1, :t, 'AUTOMOVIL', 120000, 120000, 'EFECTIVO', :c) "
+                                 "RETURNING id"), {"t": ids["tarifa"], "c": ids["cuenta"]})
+            c.execute(text("INSERT INTO mensualidad (vehiculo_id, fecha_inicio, fecha_fin, pago_id, pago_estado) "
+                           "VALUES (:v, current_date + 22, current_date + 50, :p, 'VALIDO')"),
+                      {"v": ids["vehiculo"], "p": pago})
+        command.downgrade(config, "0008")
+        with engine.connect() as c:
+            # El periodo pagado y válido queda como periodo sin pago; los antiguos siguen igual.
+            assert c.scalar(text("SELECT count(*) FROM mensualidad WHERE vehiculo_id = :v"), {"v": ids["vehiculo"]}) == 3
+        command.upgrade(config, "head")
+    finally:
+        command.downgrade(config, "0008")    # sin triggers de pagos: se puede limpiar por id
+        with engine.begin() as c:
+            if "vehiculo" in ids:
+                c.execute(text("DELETE FROM mensualidad WHERE vehiculo_id = :v"), {"v": ids["vehiculo"]})
+            for tabla, clave in (("vehiculo", "vehiculo"), ("cliente", "cliente"), ("cuenta_usuario", "cuenta"),
+                                 ("operador", "persona")):
+                if clave in ids:
+                    c.execute(text(f"DELETE FROM {tabla} WHERE id = :i"), {"i": ids[clave]})
+        command.upgrade(config, "head")
+        with engine.connect() as c:
+            assert c.scalar(text("SELECT version_num FROM alembic_version")) == ALEMBIC_HEAD

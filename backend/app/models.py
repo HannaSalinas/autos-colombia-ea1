@@ -3,13 +3,16 @@
 from datetime import date, datetime, timezone
 
 from sqlalchemy import (
-    BigInteger, Boolean, CheckConstraint, Date, DateTime, ForeignKey, Identity, Index, Integer, Text, UniqueConstraint,
-    func, text, true,
+    BigInteger, Boolean, CheckConstraint, Date, DateTime, ForeignKey, ForeignKeyConstraint, Identity, Index, Integer,
+    SmallInteger, Text, UniqueConstraint, func, text, true,
 )
+from sqlalchemy.dialects.postgresql import ExcludeConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, validates
 
 from app.domain.pagos import (
-    DOCUMENTO_MAXIMO, DOCUMENTO_MINIMO, TARIFA_MAXIMA, TARIFA_MINIMA, TIPOS_DOCUMENTO, TIPOS_VEHICULO,
+    DOCUMENTO_MAXIMO, DOCUMENTO_MINIMO, MESES_MAXIMO, MESES_MINIMO, METODOS_PAGO, MOTIVO_ANULACION_MAXIMO,
+    MOTIVO_ANULACION_MINIMO, REFERENCIA_MAXIMA, REFERENCIA_MINIMA, TARIFA_MAXIMA, TARIFA_MINIMA, TIPOS_DOCUMENTO,
+    TIPOS_VEHICULO,
 )
 from app.domain.reglas import (
     DESCRIPCION_MAXIMA, MODELO_MINIMO, MOTIVO_MAXIMO, NOMBRE_MAXIMO, NOMBRE_MINIMO, ROLES, TIPOS_NOVEDAD, TOTAL_CELDAS,
@@ -294,11 +297,26 @@ class Estancia(Base):
 
 
 class Mensualidad(Base):
-    """Mensualidad pagada por un vehículo, de fecha a fecha. Agregada en la migración 0003."""
+    """Periodo de mensualidad de un vehículo (fin inclusivo). Agregada en la migración 0003.
+
+    Iteración 3 (migración 0010): cada pago genera su periodo (pago_id, 1 a 1). Los periodos
+    anteriores no tienen pago (pago_id NULL) y siguen siendo válidos (D10). pago_estado es una copia
+    del estado del pago que mantiene la base (FK compuesta con ON UPDATE CASCADE).
+    """
     __tablename__ = "mensualidad"
     __table_args__ = (
         CheckConstraint("fecha_fin > fecha_inicio", name="ck_mensualidad_fechas"),
         Index("ix_mensualidad_vehiculo_fin", "vehiculo_id", "fecha_fin"),
+        # Agregados en la migración 0010.
+        UniqueConstraint("pago_id", name="uq_mensualidad_pago"),
+        ForeignKeyConstraint(["pago_id", "pago_estado"], ["pago.id", "pago.estado"], name="fk_mensualidad_pago",
+                             onupdate="CASCADE", ondelete="RESTRICT"),
+        CheckConstraint("(pago_id IS NULL) = (pago_estado IS NULL)", name="ck_mensualidad_pago"),
+        # Exclusión PARCIAL: dos periodos pagados y no anulados del mismo vehículo no se cruzan. Los
+        # periodos antiguos no entran: algunos ya se tocan y PostgreSQL no admite EXCLUDE NOT VALID.
+        ExcludeConstraint(("vehiculo_id", "="), (text("daterange(fecha_inicio, fecha_fin, '[]')"), "&&"),
+                          name="ex_mensualidad_pagada_sin_superposicion", using="gist",
+                          where=text("pago_estado = 'VALIDO'")),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
@@ -307,6 +325,8 @@ class Mensualidad(Base):
     )
     fecha_inicio: Mapped[date] = mapped_column(Date, nullable=False)
     fecha_fin: Mapped[date] = mapped_column(Date, nullable=False)
+    pago_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    pago_estado: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     vehiculo: Mapped[Vehiculo] = relationship()
 
@@ -414,3 +434,59 @@ class Tarifa(Base):
         BigInteger, ForeignKey("cuenta_usuario.id", name="fk_tarifa_definida_por", ondelete="RESTRICT"),
         nullable=True,
     )
+
+
+class Pago(Base):
+    """Pago de la mensualidad de un vehículo (RF-36). Migración 0010.
+
+    Genera exactamente un periodo (mensualidad.pago_id). Nunca se edita ni se elimina: solo pasa una
+    vez de VALIDO a ANULADO, con quién, cuándo y por qué (D14, D18). Lo garantiza el trigger
+    pago_sin_cambios de la base (RNF-24). El comprobante RC-000001 lo numera una secuencia de la base.
+    """
+    __tablename__ = "pago"
+    __table_args__ = (
+        ForeignKeyConstraint(["tarifa_id", "tipo_vehiculo", "valor_mensual"],
+                             ["tarifa.id", "tarifa.tipo_vehiculo", "tarifa.valor"], name="fk_pago_tarifa",
+                             ondelete="RESTRICT"),
+        UniqueConstraint("comprobante", name="uq_pago_comprobante"),
+        UniqueConstraint("id", "estado", name="uq_pago_id_estado"),
+        CheckConstraint("comprobante ~ '^RC-[0-9]{6}$'", name="ck_pago_comprobante_formato"),
+        CheckConstraint(f"meses BETWEEN {MESES_MINIMO} AND {MESES_MAXIMO}", name="ck_pago_meses"),
+        CheckConstraint("monto = valor_mensual * meses", name="ck_pago_monto"),
+        CheckConstraint("metodo IN (" + ", ".join(f"'{m}'" for m in METODOS_PAGO) + ")", name="ck_pago_metodo"),
+        # NULL ~ patrón da NULL y un CHECK con NULL pasa: por eso el IS NOT NULL explícito.
+        CheckConstraint("(metodo = 'EFECTIVO' AND referencia IS NULL) OR (metodo <> 'EFECTIVO' AND referencia IS NOT NULL "
+                        f"AND referencia ~ '^[A-Za-z0-9-]{{{REFERENCIA_MINIMA},{REFERENCIA_MAXIMA}}}$')",
+                        name="ck_pago_referencia"),
+        CheckConstraint("estado IN ('VALIDO', 'ANULADO')", name="ck_pago_estado"),
+        CheckConstraint(
+            "(estado = 'VALIDO' AND anulado_en IS NULL AND anulado_por_cuenta_id IS NULL AND motivo_anulacion IS NULL) "
+            "OR (estado = 'ANULADO' AND anulado_en IS NOT NULL AND anulado_por_cuenta_id IS NOT NULL "
+            f"AND motivo_anulacion IS NOT NULL AND char_length(motivo_anulacion) BETWEEN {MOTIVO_ANULACION_MINIMO} "
+            f"AND {MOTIVO_ANULACION_MAXIMO} AND motivo_anulacion !~ '^[[:space:]]|[[:space:]]$' AND anulado_en >= fecha)",
+            name="ck_pago_anulacion"),
+        Index("ix_pago_fecha", "fecha"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    comprobante: Mapped[str] = mapped_column(
+        Text, nullable=False,
+        server_default=text("('RC-'::text || lpad((nextval('pago_comprobante_seq'::regclass))::text, 6, '0'::text))"),
+    )
+    meses: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    tarifa_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    tipo_vehiculo: Mapped[str] = mapped_column(Text, nullable=False)   # el tipo con que se cobró
+    valor_mensual: Mapped[int] = mapped_column(Integer, nullable=False)
+    monto: Mapped[int] = mapped_column(Integer, nullable=False)        # pesos enteros (RNF-22)
+    metodo: Mapped[str] = mapped_column(Text, nullable=False)
+    referencia: Mapped[str | None] = mapped_column(Text, nullable=True)
+    fecha: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    registrado_por_cuenta_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("cuenta_usuario.id", name="fk_pago_registrado_por", ondelete="RESTRICT"), nullable=False
+    )
+    estado: Mapped[str] = mapped_column(Text, server_default="VALIDO", nullable=False)
+    anulado_en: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    anulado_por_cuenta_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("cuenta_usuario.id", name="fk_pago_anulado_por", ondelete="RESTRICT"), nullable=True
+    )
+    motivo_anulacion: Mapped[str | None] = mapped_column(Text, nullable=True)
