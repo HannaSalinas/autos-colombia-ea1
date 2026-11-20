@@ -3,7 +3,9 @@
 Proyecto del curso **Ingeniería de Software (IU Digital)**. Sistema para el parqueadero
 "Autos Colombia": clientes con mensualidad por vehículo, entrada con asignación automática
 de celda, salida con tiempo de permanencia, corrección de celda, novedades, reporte de
-ocupación e historial.
+ocupación e historial. Desde la Iteración 2: ingreso con roles y gestión de cuentas y celdas.
+Desde la Iteración 3: tarifas, registro de clientes y pagos de mensualidad con resumen,
+comprobante, anulación y resumen de recaudo.
 
 - **Backend:** Python 3.12 · FastAPI · SQLAlchemy · Alembic · PostgreSQL 17.
 - **Frontend:** Angular 22 · TypeScript, servido por nginx.
@@ -18,15 +20,16 @@ ocupación e historial.
 2. [Capturas](#capturas)
 3. [Guion de demostración (HU-01 a HU-14)](#guion-de-demostración-hu-01-a-hu-14)
 4. [Guion de demostración de la Iteración 2 (HU-15 a HU-25)](#guion-de-demostración-de-la-iteración-2-hu-15-a-hu-25)
-5. [Verificación de requerimientos no funcionales](#verificación-de-requerimientos-no-funcionales)
-6. [Reglas implementadas](#reglas-implementadas)
-7. [API](#api)
-8. [Datos de demostración](#datos-de-demostración)
-9. [Pruebas](#pruebas)
-10. [Arquitectura y estructura](#arquitectura-y-estructura)
-11. [Instalación sin Docker](#instalación-sin-docker)
-12. [Crédito: qué viene del profesor y qué agregamos](#crédito-qué-viene-del-profesor-y-qué-agregamos)
-13. [Decisiones y supuestos](#decisiones-y-supuestos)
+5. [Guion de demostración de la Iteración 3 (HU-26 a HU-33)](#guion-de-demostración-de-la-iteración-3-hu-26-a-hu-33)
+6. [Verificación de requerimientos no funcionales](#verificación-de-requerimientos-no-funcionales)
+7. [Reglas implementadas](#reglas-implementadas)
+8. [API](#api)
+9. [Datos de demostración](#datos-de-demostración)
+10. [Pruebas](#pruebas)
+11. [Arquitectura y estructura](#arquitectura-y-estructura)
+12. [Instalación sin Docker](#instalación-sin-docker)
+13. [Crédito: qué viene del profesor y qué agregamos](#crédito-qué-viene-del-profesor-y-qué-agregamos)
+14. [Decisiones y supuestos](#decisiones-y-supuestos)
 
 ## Inicio rápido
 
@@ -270,8 +273,8 @@ Continúa el guion anterior, sobre la misma base (después de HU-13). Todos los 
 este guion se comprobaron sobre una base limpia: entrada de ABC123 en C01, salida por Diego,
 GHI789 corregida a C10 y, dentro, KLM45D (M01), JKL321 (C03), STU852 (C04) y GHI789 (C10).
 
-**Orden recomendado antes del video:** si vas a medir RNF-19, hazlo primero (deja datos de
-prueba); luego `docker compose down -v && docker compose up --build -d` y recorre el guion de
+**Orden recomendado antes del video:** si vas a medir RNF-19 o RNF-25, hazlo primero (dejan
+datos de prueba que no se pueden borrar); luego `docker compose down -v && docker compose up --build -d` y recorre el guion de
 la Iteración 1 y después este.
 
 ### HU-15 · Iniciar sesión
@@ -369,6 +372,138 @@ Con el Administrador, en **Celdas → Nueva celda**:
 
 Pulsa **Cerrar sesión**: vuelve a *Ingresar* con "Cerraste sesión.". El botón "atrás" no
 devuelve a ninguna pantalla protegida, y el token anterior responde 401 en `/docs`.
+
+## Guion de demostración de la Iteración 3 (HU-26 a HU-33)
+
+Empieza con la **base limpia**. Todos los valores de este guion se comprobaron sobre una base
+limpia el 20-nov-2026; las fechas entre paréntesis son las de ese día y se mueven con la fecha
+real (la regla está en cada paso):
+
+```bash
+docker compose down -v && docker compose up --build -d
+```
+
+Las semillas traen las tarifas iniciales (MOTO $ 60.000, AUTOMOVIL $ 120.000 y CAMIONETA
+$ 140.000) y dos pagos de ejemplo registrados por Marta: **RC-000001** (STU852, válido, pagado
+por adelantado) y **RC-000002** (ABC123, anulado por el Administrador). Por eso los
+comprobantes de este guion empiezan en RC-000003. Si vienes de los guiones anteriores sobre la
+misma base, QWE456 ya existe (de Paola Ríos, HU-14): sáltate su registro; la celda asignada y
+los números de comprobante serán otros.
+
+### HU-26 · Consultar tarifas
+
+1. Con el Administrador, **Tarifas**: tres tarjetas con `$ 60.000`, `$ 120.000` y `$ 140.000`
+   "al mes · vigente desde …", y el **Historial de tarifas** con autor "Sistema (semillas)".
+2. Con `marta.usuga`: ve las tres tarifas, sin **Nueva tarifa** ni historial. En `/docs`,
+   `POST /tarifas` con su token responde **403**.
+
+### HU-27 · Actualizar tarifa
+
+1. Con el Administrador, **Nueva tarifa** → MOTO. Los valores `999`, `2000001` y `1000.5`
+   muestran "La tarifa debe ser un valor entero en pesos, sin decimales, entre $ 1.000 y
+   $ 2.000.000." y no se envía nada. En `/docs`, los mismos valores responden **422**.
+2. `1000` → **Guardar tarifa** → "¿Fijar la tarifa mensual de MOTO de $ 60.000 a $ 1.000? Rige
+   desde este momento para los pagos siguientes; los pagos ya registrados conservan su monto."
+   → **Sí, guardar la tarifa** → "Nueva tarifa de MOTO: $ 1.000 al mes, vigente desde …".
+3. Vuelve a poner MOTO en `60000`. El historial muestra las dos tarifas nuevas de MOTO con el
+   nombre del Administrador como autor, y la de las semillas se conserva. Que los pagos
+   anteriores conservan su monto se ve en HU-30, paso 5.
+
+### HU-28 · Registrar y consultar clientes
+
+1. Con el Administrador, **Clientes → Registrar cliente**: CC, `1020304050`, `Sofía Vargas`,
+   `3109876543`, `sofia.vargas@example.com` → "Cliente Sofía Vargas registrado (CC 1020304050).
+   Para asociarle un vehículo, regístralo en Vehículos." El detalle muestra "Registrado:
+   {fecha y hora} · {Administrador}" y "Sin vehículos".
+2. El mismo documento con otro nombre: debajo del número, "Ya existe un cliente con el
+   documento CC 1020304050." (en `/docs`, **409**; dos registros simultáneos dejan uno solo,
+   `test_dos_registros_simultaneos_del_mismo_documento_dejan_uno`).
+3. Valores fuera de límite: documento `1234`, nombre `Al`, teléfono `300` y correo `ana@`
+   muestran sus cuatro mensajes y no se envía nada.
+4. Buscar `laura` → Laura Gómez con ABC123 y KLM45D. Con Marta: busca y abre el detalle, sin
+   **Registrar cliente**; `POST /clientes` responde **403**.
+5. **Vehículos** (Administrador): registra `QWE456`, Kia, 2024, Gris, AUTOMOVIL, cliente
+   **Sofía Vargas**.
+
+### HU-29 · Consultar estado de la mensualidad
+
+Con Marta, **Pagos**, busca cada placa:
+
+| Placa | Lo que muestra |
+| --- | --- |
+| QWE456 | **Sin mensualidad**: "No tiene mensualidad. No puede entrar hasta que pague." Tarifa vigente $ 120.000 al mes |
+| ABC123 | **Vigente**: "Vigente hasta el {fin} · Faltan 20 días. Puede entrar." (10/12/2026) y, en **Periodos anulados**, "Del … al … · RC-000002 · Anulado (no cuenta)" |
+| STU852 | **Vigente**, con **Pagado hacia adelante** "Del 11/12/2026 al 10/01/2027 · RC-000001"; los días cuentan hasta el final del periodo pagado (Faltan 51 días) |
+| DEF456 | **Vencida**: "Venció el {hace 5 días}. No puede entrar hasta que pague." |
+| PQR98B | **Pagada a futuro**: "Pagada a partir del {mañana}. Hoy no puede entrar." |
+| ZZZ999 | "La placa ZZZ999 no está registrada. Revísala o registra el vehículo en Vehículos." |
+
+### HU-30 · Registrar pago
+
+1. Con Marta, **Control de acceso**, entrada de `QWE456` → "El vehículo no tiene mensualidad
+   vigente. No puede ingresar."
+2. **Pagos**: `QWE456`, 1 mes, Efectivo → **Revisar pago** → **Resumen del pago**: "Del {hoy}
+   al {día anterior a la misma fecha del mes siguiente}" (del 20/11/2026 al 19/12/2026),
+   "1 mes × $ 120.000", **Monto a pagar $ 120.000**. **Volver y corregir** no registra nada.
+   Revisa otra vez y **Confirmar pago** → "Pago registrado. Comprobante RC-000003. El vehículo
+   queda al día hasta el 19/12/2026." y el comprobante, registrado por Marta.
+   **Imprimir comprobante** imprime solo el comprobante.
+3. **Control de acceso**: QWE456 entra de inmediato, en **C01** (base limpia).
+4. Renovación anticipada: **Registrar otro pago** → QWE456, 2 meses, Transferencia. Sin
+   referencia: "La referencia es obligatoria para transferencia y tarjeta."; con `TRX-0001`, el
+   resumen empieza el día siguiente al vencimiento (del 20/12/2026 al 19/02/2027), "2 meses ×
+   $ 120.000", $ 240.000 → **RC-000004**.
+5. Cambio de tarifa entre el resumen y la confirmación: Marta revisa un pago de `DEF456`, 1 mes,
+   Efectivo ($ 140.000). En otra ventana, el Administrador cambia CAMIONETA a `150000`. Marta
+   confirma → "La tarifa cambió después del resumen: el monto ahora es $ 150.000. Revisa el
+   nuevo resumen y confirma otra vez.", con el resumen ya actualizado y sin registrar nada.
+   **Confirmar pago** otra vez → **RC-000005** por $ 150.000. Devuelve CAMIONETA a `140000`:
+   RC-000005 conserva su monto.
+6. Tope de 12 meses: QWE456, 6 meses → resumen del 20/02/2027 al 19/08/2027 por $ 720.000 →
+   **RC-000006**. Otros 6 meses: "El pago dejaría la mensualidad vigente hasta el 19/02/2028:
+   lo máximo es 12 meses desde hoy (20/11/2027). Registra menos meses."
+7. En `/docs`, `POST /pagos`: meses `0`, `7` o `1.5`, método `CHEQUE` o efectivo con referencia
+   → **422**; un `monto_confirmado` distinto del calculado → **409** con el monto vigente.
+
+### HU-31 · Consultar pagos y comprobante
+
+1. **Pagos registrados**, placa `qwe456` → 3 pagos (RC-000006, RC-000004 y RC-000003) con
+   comprobante, fecha, placa, cliente, periodo, meses, monto, método, estado y responsable.
+2. Estado **Anulado** → solo RC-000002 (ABC123), registrado por Marta.
+3. Un filtro sin resultados (por ejemplo, método Tarjeta) → "No hay pagos que coincidan con los
+   filtros."; un rango con la fecha inicial posterior a la final → "La fecha inicial no puede
+   ser posterior a la fecha final."
+4. Abre **RC-000003**: el detalle muestra el comprobante completo.
+
+### HU-32 · Anular pago
+
+1. Con el Administrador, detalle de **RC-000003**: no hay botón **Anular pago** y se explica
+   "Este pago no se puede anular: solo se anula el pago del último periodo del vehículo, y
+   QWE456 tiene un periodo posterior. Para corregirlo, anula primero el pago más reciente."
+2. Detalle de **RC-000006** → **Anular pago**. Motivo `corto` → "El motivo debe tener de 10 a
+   200 caracteres."; con `Error de digitación` → **Continuar** → "¿Anular el pago RC-000006 de
+   QWE456 por $ 720.000 (del 20/02/2027 al 19/08/2027)? Esta acción no se puede deshacer." →
+   **Sí, anular el pago** → "Pago RC-000006 anulado. Su periodo ya no habilita la entrada del
+   vehículo QWE456." El comprobante muestra **PAGO ANULADO**, quién lo anuló, cuándo y el motivo.
+3. **Pagos** → QWE456: vigente hasta el 19/02/2027, con RC-000006 en **Periodos anulados**.
+   Ahora RC-000004 es el último periodo y sí se puede anular. QWE456 sigue dentro: anular no
+   saca a nadie del parqueadero.
+4. Con Marta, el detalle de cualquier pago no muestra **Anular pago**;
+   `POST /pagos/{id}/anular` responde **403**.
+
+### HU-33 · Resumen de recaudo
+
+Con el Administrador, **Recaudo** (por defecto, el mes en curso):
+
+- **Total recaudado (pagos válidos):** $ 630.000 en 4 pagos (RC-000001, RC-000003, RC-000004
+  y RC-000005).
+- **Pagos anulados (no suman):** $ 840.000 en 2 pagos (RC-000002 y RC-000006).
+- **Por método:** Efectivo 3 · $ 390.000; Transferencia 1 · $ 240.000; Tarjeta 0 · $ 0.
+- **Por tipo de vehículo:** MOTO 0 · $ 0; AUTOMOVIL 3 · $ 480.000; CAMIONETA 1 · $ 150.000.
+- Un rango sin pagos (por ejemplo, enero de 2026): todo en $ 0 y "No hay pagos registrados en
+  este rango."; un rango invertido se rechaza (en `/docs`, **422**).
+- Marta no ve **Recaudo** en el menú, `/consultas/recaudo` la devuelve al Inicio y
+  `GET /reportes/recaudo` responde **403**.
 
 ## Verificación de requerimientos no funcionales
 
@@ -549,6 +684,57 @@ que da cada navegador, como prueba de cuál se ejecutó. Las
 contraseñas salen de `.env` a través de Docker Compose; no aparecen en el código, en las
 capturas (los campos muestran puntos) ni en el reporte, y el recorrido lo comprueba al final.
 
+### Iteración 3 · RNF-22 a RNF-28
+
+| RNF | Cómo se cumple | Cómo verificarlo |
+| --- | --- | --- |
+| RNF-22 Exactitud monetaria | Pesos enteros en columnas `integer` (tipo exacto); la base exige `monto = valor_mensual * meses`; formato `$ 120.000` en el backend (`formatear_pesos`) y en Angular (`formatoPesos`, escrito a mano para que sea igual en todos los navegadores) | `test_reglas_pagos.py`, `reglas-pagos.spec.ts`, `test_pago_reglas_en_sus_limites` (tipo de columna) |
+| RNF-23 Concurrencia en pagos | `SELECT … FOR UPDATE` de la fila del vehículo al registrar y al anular; exclusión parcial de periodos pagados y no anulados en la base; comprobante único con secuencia e índice único | `test_pagos_concurrencia_postgres.py` (dos pagos simultáneos → periodos consecutivos; pago y anulación simultáneos), `test_exclusion_parcial_de_periodos_pagados` |
+| RNF-24 Inmutabilidad | Sin `PATCH` ni `DELETE` de pagos ni tarifas en la API; triggers que rechazan, aunque se intente en la base, borrar o vaciar pagos y tarifas, editar tarifas y cualquier cambio de un pago que no sea VALIDO → ANULADO una vez | `test_pago_no_se_edita_ni_se_borra_aunque_se_intente_en_la_base`, `test_tarifa_no_se_edita_ni_se_borra…` |
+| RNF-25 Tiempo de respuesta | Medido con `scripts/medir_rnf25.py` (mismo método de RNF-19) con 4 solicitudes simultáneas: **cumple** | [`docs/evidencias/rnf25.md`](docs/evidencias/rnf25.md) (ver abajo) |
+| RNF-26 Compatibilidad | Recorrido de las 10 pantallas de la Iteración 3 con Playwright en Docker: Chrome, Edge y Firefox | [`docs/evidencias/rnf26/reporte.md`](docs/evidencias/rnf26/reporte.md) (ver abajo) |
+| RNF-27 Confirmación de operaciones de dinero | Resumen calculado por el servidor antes de registrar; `monto_confirmado` evita registrar un monto que no se vio; anular exige motivo y una confirmación que nombra el pago; una tarifa nueva también se confirma | Guion HU-30 y HU-32; `pagos.spec.ts`, `pago-detalle.spec.ts`, `tarifas.spec.ts` |
+| RNF-28 Fechas en hora de Colombia | El "hoy" de los periodos, del tope y del estado es el día de Bogotá (`hoy_bogota`); los filtros de pagos y el recaudo usan días de Bogotá; las fechas se muestran en America/Bogota | `test_reglas_pagos.py`, `test_listado_con_filtros`, `test_resumen_por_metodo_y_tipo_con_anulados_aparte` |
+
+### RNF-25 · Tiempo de respuesta de los pagos
+
+```bash
+docker compose down -v && docker compose up --build -d      # base limpia
+backend/.venv/bin/python scripts/medir_rnf25.py
+docker compose down -v && docker compose up --build -d      # volver a la base limpia
+```
+
+Resultado del 20-nov-2026 (commit `717246b`, Intel Celeron N4020 de 2 núcleos, 7,5 GiB), con 4
+solicitudes simultáneas y 40 muestras por operación:
+
+| Operación | p95 (ms) | Límite (ms) | ¿Cumple? |
+| --- | ---: | ---: | --- |
+| Registrar pago | 934 | 1000 | Sí |
+| Consultar estado de la mensualidad | 340 | 1000 | Sí |
+| Consultar pagos | 579 | 1000 | Sí |
+| Resumen de recaudo | 336 | 1000 | Sí |
+
+Registrar pago es la operación más cercana al límite: escribe el pago y su periodo con
+confirmación en disco, y en este equipo cada escritura tarda unos 200 ms aun de una en una
+(igual que en RNF-19). Los pagos de la medición no se pueden borrar (RNF-24); por eso se
+mide sobre una base limpia que después se recrea. Detalle en
+[`docs/evidencias/rnf25.md`](docs/evidencias/rnf25.md).
+
+### RNF-26 · Capturas de la Iteración 3 en Chrome, Edge y Firefox
+
+```bash
+docker compose --profile e2e run --rm --build e2e-rnf26
+```
+
+Usa la misma imagen y el mismo reporte de RNF-20 (la variable `RECORRIDO=rnf26` elige el
+recorrido) y tampoco **modifica datos**: el pago llega hasta el resumen, que es una consulta,
+y la tarifa y la anulación hasta su confirmación, que se cancelan. El comprobante es el del
+pago de ejemplo de las semillas. Las 10 pantallas: `tarifas_administrador`,
+`confirmar_tarifa`, `clientes`, `registrar_cliente_errores`, `pagos_estado`, `pagos_resumen`,
+`comprobante`, `confirmar_anulacion`, `recaudo` y `operador_pagos`. Se guardan en
+`docs/evidencias/rnf26/` (`RNF-26_chrome_01_tarifas_administrador.png`, …) con su `reporte.md`.
+Resultado del 20-nov-2026: **las 10 pantallas funcionan en los tres navegadores**.
+
 ## Reglas implementadas
 
 | Regla | Dónde se aplica |
@@ -559,7 +745,14 @@ capturas (los campos muestran puntos) ni en el reporte, y el recorrido lo compru
 | Todo vehículo pertenece a un cliente; un cliente puede tener varios | FK `vehiculo.cliente_id` NOT NULL |
 | No se puede cambiar el tipo de un vehículo que está dentro | Servicio de vehículos (409) |
 | Mensualidad **por vehículo**, de fecha a fecha (31-ene → 28/29-feb); vigente si inicio ≤ hoy ≤ fin | Dominio y servicio de mensualidades |
-| Solo entran vehículos con mensualidad vigente | Servicio de estancias (409) |
+| Solo entran vehículos con mensualidad vigente **y no anulada** (Iteración 3) | Servicio de estancias (409), `periodo_valido()` |
+| Iteración 3: el periodo pagado empieza el día siguiente al último fin no anulado (si es hoy o después) o hoy, y termina el día anterior a la misma fecha N meses después (31-ene + 1 → 28-feb) | `app/domain/pagos.py` (`inicio_de_periodo`, `fin_de_periodo`) |
+| Iteración 3: de 1 a 6 meses por pago; el fin no puede pasar de hoy + 12 meses | Dominio, API (422/409), CHECK `meses BETWEEN 1 AND 6` y pantalla |
+| Iteración 3: el monto lo calcula el sistema (tarifa vigente × meses) y queda guardado | Dominio, CHECK `monto = valor_mensual * meses`, FK compuesta a la tarifa |
+| Iteración 3: referencia obligatoria (4 a 30) en transferencia y tarjeta, vacía en efectivo | Dominio, API (422), CHECK `ck_pago_referencia` y pantalla |
+| Iteración 3: solo el Administrador anula, con motivo de 10 a 200 caracteres, y solo el último periodo | Permiso `pagos:anular`, servicio de pagos (409), CHECK `ck_pago_anulacion` |
+| Iteración 3: tarifa entre $ 1.000 y $ 2.000.000; nunca se edita (cada cambio crea una nueva) | Dominio, API (422), CHECK y trigger `tarifa_sin_cambios` |
+| Iteración 3: cliente con tipo (CC, CE, PA) y número de 5 a 15 letras o números, único por tipo y número; nombre de 3 a 80; teléfono de 10 dígitos | Dominio, API (422/409), CHECK e índice único `uq_cliente_tipo_documento` y pantalla |
 | 80 celdas: C01–C70 de carro y M01–M10 de moto; automóvil y camioneta usan celda de carro | Semillas, CHECK `tipo IN ('MOTO','CARRO')` |
 | El sistema asigna la celda: libre, del tipo correcto y la que lleva más tiempo libre (las nunca usadas primero) | `orden_de_asignacion` en el dominio y `ORDER BY disponible_desde NULLS FIRST, codigo` |
 | Dos porterías a la vez nunca reciben la misma celda ni abren dos entradas del mismo vehículo | `SELECT … FOR UPDATE SKIP LOCKED` + índices únicos parciales del profesor |
@@ -594,6 +787,12 @@ la sesión no se haya cerrado. Qué puede hacer cada rol se define en un solo lu
 | `celdas:gestionar` | | ✔ | `POST /celdas`, `PATCH /celdas/{id}`, `POST /celdas/{id}/inhabilitar` y `/rehabilitar` |
 | `vehiculos:gestionar` | | ✔ | `POST`, `PATCH` y `DELETE` de `/vehiculos` |
 | `cuentas:gestionar` | | ✔ | `/cuentas/...`, `GET /operadores`, `GET /operadores/{id}` |
+| `pagos` (Iteración 3) | ✔ | ✔ | `/pagos/estado/{placa}`, `/pagos/cotizacion`, `POST /pagos`, `GET /pagos`, `GET /pagos/{id}` |
+| `tarifas:ver` (Iteración 3) | ✔ | ✔ | `GET /tarifas` |
+| `pagos:anular` (Iteración 3) | | ✔ | `POST /pagos/{id}/anular` |
+| `tarifas:gestionar` (Iteración 3) | | ✔ | `POST /tarifas`, `GET /tarifas/historial` |
+| `clientes:gestionar` (Iteración 3) | | ✔ | `POST /clientes` |
+| `recaudo:ver` (Iteración 3) | | ✔ | `GET /reportes/recaudo` |
 
 | Método y ruta | Descripción |
 | --- | --- |
@@ -611,8 +810,16 @@ la sesión no se haya cerrado. Qué puede hacer cada rol se define en un solo lu
 
 | Método y ruta | Descripción |
 | --- | --- |
-| `GET /clientes`, `GET /clientes/{id}`, `GET /clientes/{id}/vehiculos` | Clientes (solo lectura) y sus vehículos con estado de mensualidad |
-| `GET /vehiculos/{id}/mensualidades` | Mensualidades del vehículo y si cada una está vigente |
+| `GET /clientes?buscar`, `GET /clientes/{id}`, `GET /clientes/{id}/vehiculos` | **Cambió (Iteración 3):** búsqueda por nombre o documento; cada cliente trae `tipo_documento`, `registrado_en`, `registrado_por` y sus vehículos. Ambos roles |
+| `POST /clientes` | **Iteración 3, Administrador:** `tipo_documento`, `documento`, `nombre`, `telefono`, `correo` opcional → 201. Documento repetido (tipo y número, sin distinguir mayúsculas): 409 "Ya existe un cliente con el documento CC …" |
+| `GET /vehiculos/{id}/mensualidades` | Mensualidades del vehículo y si cada una está vigente. **Iteración 3:** también las anuladas, con `comprobante` y `pago_estado` |
+| `GET /tarifas` · `GET /tarifas/historial?tipo` · `POST /tarifas` | **Iteración 3:** tarifa vigente de cada tipo (ambos roles); historial con autor y tarifa nueva `{tipo_vehiculo, valor}` (Administrador). No hay `PATCH` ni `DELETE` |
+| `GET /pagos/estado/{placa}` | **Iteración 3:** estado (`VIGENTE`, `VENCIDA`, `SIN_MENSUALIDAD`, `PAGADA_A_FUTURO`), periodo actual, periodos futuros y anulados, vencimiento, días restantes, inicio de un pago nuevo, fin máximo y tarifa |
+| `GET /pagos/cotizacion?placa&meses` | **Iteración 3:** el resumen (periodo, valor mensual y monto) que se confirma antes de registrar. No guarda nada |
+| `POST /pagos` | **Iteración 3:** `placa`, `meses`, `metodo`, `referencia`, `monto_confirmado` → 201 con el comprobante. 409 si el monto confirmado no coincide con el calculado (la tarifa cambió), si no hay tarifa o si se pasaría del tope de 12 meses. El responsable es la sesión |
+| `GET /pagos?placa&desde&hasta&metodo&estado&offset&limit` · `GET /pagos/{id}` | **Iteración 3:** listado paginado (días de Bogotá) y detalle con el comprobante, los datos de anulación y `anulable` |
+| `POST /pagos/{id}/anular` | **Iteración 3, Administrador:** `motivo` (10 a 200) → el pago queda ANULADO. 409 si ya estaba anulado o si no es el pago del último periodo |
+| `GET /reportes/recaudo?desde&hasta` | **Iteración 3, Administrador:** total de pagos válidos por método y por tipo de vehículo, y anulados aparte, por la fecha del pago |
 | `POST /estancias/entrada` | **Cambió:** recibe solo `placa` (Iteración 2: ya no recibe `operador_id`; el responsable es la persona de la sesión); responde con la celda asignada |
 | `POST /estancias/salida` | Responde además con `duracion_segundos` y `permanencia` ("2 h 15 min") |
 | `GET /estancias/vehiculo/{placa}` | (Profesor) estado del vehículo: dentro o fuera y su celda |
@@ -657,6 +864,13 @@ calculan a partir de **hoy**, para que la demostración siempre tenga todos los 
 | PQR98B | Moto | Andrés Cano | Empieza mañana (hoy no está vigente) |
 | STU852 | Automóvil | Andrés Cano | Vigente |
 
+**Iteración 3:** las semillas crean también las tarifas iniciales (MOTO $ 60.000, AUTOMOVIL
+$ 120.000 y CAMIONETA $ 140.000, solo si el tipo no tiene tarifa) y dos pagos de ejemplo
+registrados por Marta, calculados con las mismas reglas del servicio: **RC-000001**, un mes en
+efectivo de STU852 que empieza el día siguiente a su vencimiento (renovación anticipada), y
+**RC-000002**, un mes por transferencia de ABC123 que el Administrador anuló. Los casos de la
+tabla de arriba no cambian. Los pagos solo se siembran si existen las cuentas semilla.
+
 ### Historial de 7 días para capturas (opcional, NO se ejecuta al arrancar)
 
 `backend/app/demo.py` crea estancias cerradas de los últimos 7 días y 5 vehículos dentro
@@ -693,8 +907,8 @@ cd frontend && npm ci && npm test -- --watch=false   # frontend (Vitest); requie
 
 `backend-tests` usa un PostgreSQL **aparte** (`db-test`, en memoria): las pruebas nunca
 tocan los datos de la demostración. Resultado al cerrar la Iteración 1: 244 pruebas de
-backend y 58 de frontend. **Al cerrar la Iteración 2: 474 de backend y 113 de frontend**,
-todas aprobadas.
+backend y 58 de frontend. Al cerrar la Iteración 2: 474 de backend y 113 de frontend.
+**Al cerrar la Iteración 3: 757 de backend y 159 de frontend**, todas aprobadas.
 
 | Tipo | Archivos | Qué comprueban |
 | --- | --- | --- |
@@ -710,6 +924,11 @@ todas aprobadas.
 | Iteración 2 · extremo a extremo | `e2e/nf02.spec.ts` (`docker compose --profile e2e run --rm --build e2e`) | RNF-20: las 10 pantallas en Chrome, Edge y Firefox, con capturas y reporte; no cuenta en los totales de arriba |
 | Iteración 2 · migraciones | `tests/test_migraciones_ea2_postgres.py`, `test_migracion_0008_postgres.py` | Restricciones de 0006–0008 y su aplicación sobre datos de la EA1 sin perder la autoría; validación de los CHECK solo si los datos los cumplen |
 | Iteración 2 · plan de pruebas PP-02 | `e2e/plan/` y `scripts/ejecutar_plan_pruebas.sh` | Los 44 casos del plan (US, PE, CE y NF) contra el sistema real, con evidencia por caso; no cuenta en los totales de arriba (ver la sección siguiente) |
+| Iteración 3 · reglas | `tests/test_reglas_pagos.py`, `src/app/utils/reglas-pagos.spec.ts` | Fin del periodo (fin de mes, bisiesto, 6 meses, cambio de año, encadenados sin huecos), inicio, tope de 12 meses, estado y días restantes, monto, formato `$ 120.000` y todos los valores límite de la tabla de reglas |
+| Iteración 3 · migraciones e inmutabilidad | `tests/test_migraciones_ea3_postgres.py`, `test_migracion_0011_postgres.py` | CHECK, FK compuestas y exclusión parcial; triggers que rechazan editar, borrar o vaciar; aplicación de 0009–0011 sobre datos de la EA1 y la EA2 (periodos que se tocan, como JKL321) sin modificarlos; validación de los CHECK de cliente solo si los datos cumplen |
+| Iteración 3 · pagos | `tests/test_pagos_postgres.py`, `test_vigencia_anulados_postgres.py`, `test_pagos_concurrencia_postgres.py`, `pagos/*.spec.ts`, `consulta-pagos/*.spec.ts`, `pago-detalle/*.spec.ts` | HU-29 a HU-32 con sus límites; el periodo anulado no deja entrar; cambio de tarifa entre resumen y confirmación; concurrencia: dos pagos del mismo vehículo a la vez y pago frente a anulación |
+| Iteración 3 · tarifas, clientes y recaudo | `tests/test_tarifas_postgres.py`, `test_clientes_postgres.py`, `test_recaudo_postgres.py`, `test_seed_postgres.py`, `tarifas/*.spec.ts`, `clientes/*.spec.ts`, `recaudo/*.spec.ts` | HU-26 a HU-28 y HU-33 con sus límites, permisos (403) y dos registros simultáneos del mismo documento; semillas de tarifas y pagos |
+| Iteración 3 · extremo a extremo | `e2e/rnf26.spec.ts` (`docker compose --profile e2e run --rm --build e2e-rnf26`) | RNF-26: las 10 pantallas de la Iteración 3 en Chrome, Edge y Firefox; no cuenta en los totales de arriba |
 
 ### Ejecución automatizada del plan de pruebas de la EA2 (PP-02)
 
@@ -764,8 +983,9 @@ Presentación   frontend/src/app/*            Angular: pantallas, formularios, l
                backend/app/routers/*         FastAPI: rutas, sin lógica de negocio
 Dominio        backend/app/domain/reglas.py  Reglas puras (sin BD): placa, modelo, mensualidad,
                                              tipo de celda, orden de asignación, permanencia, fechas
+               backend/app/domain/pagos.py   Iteración 3: periodo, estado, tope, monto, tarifa, cliente
 Servicios      backend/app/services/*        Casos de uso: transacciones, bloqueos, errores públicos
-Persistencia   backend/app/models.py         SQLAlchemy + restricciones; migraciones Alembic 0001–0005
+Persistencia   backend/app/models.py         SQLAlchemy + restricciones; migraciones Alembic 0001–0011
 ```
 
 ```text
@@ -779,27 +999,32 @@ AutosColombia/
 ├── docs/evidencias/rnf19.md    # (nuestro) evidencia de RNF-19 (y rnf19.csv con los datos crudos)
 ├── scripts/medir_rnf19.py      # (nuestro) medición automática de RNF-19
 ├── docs/evidencias/rnf20/      # (nuestro) capturas de RNF-20 por navegador y reporte.md
-├── e2e/                        # (nuestro) recorrido de RNF-20 con Playwright en Docker (caso NF-02)
+├── docs/evidencias/rnf25.md    # (nuestro) evidencia de RNF-25 (y rnf25.csv) · Iteración 3
+├── scripts/medir_rnf25.py      # (nuestro) medición automática de RNF-25 · Iteración 3
+├── docs/evidencias/rnf26/      # (nuestro) capturas de RNF-26 por navegador y reporte.md · Iteración 3
+├── e2e/                        # (nuestro) recorridos de RNF-20 y RNF-26 con Playwright en Docker
 ├── backend/
 │   ├── Dockerfile              # (nuestro) migra, carga semillas e inicia la API
 │   ├── app/
 │   │   ├── domain/reglas.py    # (nuestro) reglas de negocio puras
+│   │   ├── domain/pagos.py     # (nuestro) reglas de pagos, tarifas y clientes (Iteración 3)
 │   │   ├── models.py           # (profesor + nuestro) Cliente, Mensualidad, CorreccionCelda, Novedad
 │   │   ├── schemas/ services/ routers/
 │   │   ├── seed.py             # (nuestro) semillas
 │   │   └── demo.py             # (nuestro) datos de demostración opcionales
-│   ├── migrations/versions/    # 0001–0002 del profesor; 0003–0008 nuestras
+│   ├── migrations/versions/    # 0001–0002 del profesor; 0003–0011 nuestras
 │   └── tests/
 └── frontend/
     ├── Dockerfile              # (nuestro) compila Angular y lo sirve con nginx
     ├── nginx/default.conf      # (nuestro) proxy de la API dentro de Docker
-    └── src/app/                # control-acceso, estancia-acciones, ocupacion, historial, vehiculos, celdas, …
+    └── src/app/                # control-acceso, …, celdas, cuentas; Iteración 3: pagos, consulta-pagos, pago-detalle, comprobante, tarifas, clientes, recaudo
 ```
 
 Nginx hace dentro de Docker lo mismo que `frontend/proxy.conf.json` en desarrollo: el
 navegador llama a `/vehiculos`, `/estancias`, `/reportes`, etc. en el mismo origen y nginx
 lo reenvía al backend, así que no hace falta CORS. Las pantallas usan rutas `/gestion/…` y
-`/consultas/…` para no chocar con las rutas de la API.
+`/consultas/…` para no chocar con las rutas de la API. Por eso la pantalla de registrar pagos
+es `/registrar-pago` y no `/pagos`, que es un prefijo de la API (Iteración 3).
 
 ### Migraciones
 
@@ -813,10 +1038,15 @@ lo reenvía al backend, así que no hace falta CORS. Las pantallas usan rutas `/
 | 0006 | Nuestra (Iteración 2) | `cuenta_usuario` (usuario único sin distinguir mayúsculas, hash bcrypt de costo ≥ 12, rol, estado) y `auditoria_cuenta`; `operador.telefono` opcional; nombre de 3 a 80 (`NOT VALID`) |
 | 0007 | Nuestra (Iteración 2) | `celda.ubicacion` y `celda.habilitada`, formato del código según el tipo (`NOT VALID`), único `upper(codigo)`, índices de historial y `auditoria_celda` |
 | 0008 | Nuestra (Iteración 2) | Valida en toda la tabla `ck_celda_tipo` y `ck_celda_codigo_formato` si todas las celdas los cumplen; si no, los deja `NOT VALID` y avisa qué códigos fallan |
+| 0009 | Nuestra (Iteración 3) | `cliente.tipo_documento` (los existentes quedan en CC), `registrado_en` y `registrado_por_cuenta_id`; único por tipo y número sin distinguir mayúsculas; CHECK de documento, nombre y teléfono (`NOT VALID`); tabla `tarifa` con trigger que impide editarla o borrarla |
+| 0010 | Nuestra (Iteración 3) | Tabla `pago` (comprobante por secuencia, FK compuesta a la tarifa, monto = valor × meses, referencia según el método, anulación una sola vez con trigger); `mensualidad.pago_id` y `pago_estado` (copia mantenida con `ON UPDATE CASCADE`); exclusión parcial de periodos pagados y no anulados (`btree_gist`); avisa las superposiciones antiguas sin modificarlas |
+| 0011 | Nuestra (Iteración 3) | Valida los CHECK de cliente de la 0009 si todos los clientes los cumplen; si no, los deja `NOT VALID` y avisa con los ids |
 
 No se modificó ninguna migración existente. Las migraciones 0006 y 0007 se aplican sobre una
 base con datos de la EA1 sin perder la autoría de las estancias, correcciones y novedades (lo
-comprueba `backend/tests/test_migraciones_ea2_postgres.py`, que también prueba la bajada). El esquema resultante está en
+comprueba `backend/tests/test_migraciones_ea2_postgres.py`, que también prueba la bajada). Las
+0009–0011 se aplican sobre datos de la EA1 y la EA2 sin modificarlos, incluidos los periodos de
+la semilla que se tocan (`test_migraciones_ea3_postgres.py`). El esquema resultante está en
 [`docs/modelo_fisico.sql`](docs/modelo_fisico.sql) y su diccionario de datos en
 [`docs/diccionario_datos.md`](docs/diccionario_datos.md).
 
@@ -917,6 +1147,11 @@ y su guía `AGENTS.md` también se conserva.
 | `frontend/src/app/vehiculos/*`, `celdas/*` | Selector de cliente, validaciones, columna de mensualidad; tipo de celda MOTO o CARRO. |
 | `frontend/src/app/models/*.ts`, `services/estancias.service.ts` | Contratos y llamadas nuevas. |
 | `frontend/src/app/app.routes.ts`, `app.html`, `frontend/proxy.conf.json` | Pantallas Ocupación e Historial; rutas `/clientes` y `/reportes` en el proxy. |
+| `backend/app/models.py` (Iteración 3) | `Cliente`: tipo de documento, quién y cuándo lo registró, único por tipo y número y CHECK de formato. `Mensualidad`: `pago_id`, `pago_estado`, FK compuesta y exclusión parcial. Modelos nuevos `Tarifa` y `Pago`. |
+| `backend/app/services/estancia.py` (Iteración 3) | La entrada exige un periodo vigente **no anulado** (`periodo_valido()`). |
+| `backend/app/main.py` (Iteración 3) | Registro de los routers de pagos y tarifas y de sus errores. |
+| `backend/tests/test_vehiculos_postgres.py`, `test_estancias_postgres.py` (Iteración 3) | Mismo propósito. Los clientes de prueba se crean con `datos_cliente()` de `conftest.py`, porque los datos anteriores (`telefono="001"`, `documento="TEST-…"`) no cumplen los CHECK de cliente de la 0009. |
+| `frontend/src/app/app.ts`, `app.routes.ts`, `app.spec.ts`, `frontend/proxy.conf.json`, `frontend/src/styles.css` (Iteración 3) | Opciones y rutas de Pagos, Pagos registrados, Recaudo, Clientes y Tarifas; `/tarifas` y `/pagos` en el proxy; estilos de impresión del comprobante. **Cambió el propósito de las pruebas del menú** de `app.spec.ts`: esperan las opciones de la Iteración 3 y que el Operador no vea Recaudo. |
 
 ## Decisiones y supuestos
 
@@ -959,8 +1194,29 @@ y su guía `AGENTS.md` también se conserva.
   más). El rol nunca va en el token: se lee de la base en cada solicitud. Desactivar una
   cuenta o cerrar sesión sube su `version_sesion`, y los tokens anteriores dejan de valer
   aunque la cuenta se reactive. `/health` sigue siendo público.
-- **Mensualidad:** por vehículo; vigente si inicio ≤ hoy ≤ fin, con "hoy" en Bogotá. La
-  tarifa (carro o moto) no se guarda porque los pagos son de la Iteración 3.
+- **Mensualidad:** por vehículo; vigente si inicio ≤ hoy ≤ fin y no está anulada, con "hoy" en
+  Bogotá. Desde la Iteración 3 cada pago genera su periodo; los periodos anteriores no tienen
+  pago y siguen siendo válidos (D10), con su regla de fin original.
+- **Iteración 3 (superposición de periodos):** una restricción de exclusión sobre todos los
+  periodos no es posible: PostgreSQL no admite `EXCLUDE … NOT VALID` y algunos periodos antiguos
+  ya se tocan (los dos de JKL321 en las semillas). Por eso la base solo impide que se crucen dos
+  periodos pagados y no anulados; entre uno pagado y uno antiguo lo garantiza el servicio con el
+  bloqueo de la fila del vehículo (RNF-23). La migración 0010 avisa las superposiciones antiguas
+  sin modificarlas.
+- **Iteración 3 (estado del pago en el periodo):** `mensualidad.pago_estado` es una copia del
+  estado del pago que mantiene la propia base con una FK compuesta `ON UPDATE CASCADE`: al anular,
+  el periodo cambia en la misma sentencia. Así la regla de entrada sigue leyendo solo
+  `mensualidad`.
+- **Iteración 3 (monto confirmado):** el navegador nunca decide el monto. Envía el que vio en el
+  resumen (`monto_confirmado`); si la tarifa cambió entretanto, el servidor no registra el pago
+  (409) y la pantalla muestra el resumen nuevo para confirmar otra vez. El periodo no se compara:
+  dos pagos simultáneos del mismo vehículo deben quedar consecutivos (RNF-23).
+- **Iteración 3 (trazabilidad, D18):** pagos y tarifas no se editan, así que la propia fila guarda
+  quién y cuándo los creó (y, en el pago, quién lo anuló, cuándo y por qué); el cliente guarda
+  quién lo registró. No hay tablas de auditoría nuevas.
+- **Iteración 3 (pruebas que limpian pagos):** las pruebas de concurrencia confirman datos y, como
+  los triggers impiden borrar pagos, su limpieza desactiva esos triggers solo dentro de su propia
+  transacción (lo puede hacer el dueño de la base de pruebas; la aplicación nunca lo hace).
 - **Asignación de celda:** entre las celdas libres del tipo correcto, primero las nunca
   usadas y luego la que quedó libre hace más tiempo; si empatan, por código.
 - **Concurrencia:** `FOR UPDATE SKIP LOCKED` al elegir la celda, una nueva comprobación con
