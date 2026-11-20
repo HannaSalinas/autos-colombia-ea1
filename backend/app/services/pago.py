@@ -134,6 +134,12 @@ def estado(session: Session, placa: str) -> EstadoMensualidadRespuesta:
     def respuesta(p: Periodo) -> PeriodoRespuesta:
         return PeriodoRespuesta(fecha_inicio=p.inicio, fecha_fin=p.fin, comprobante=comprobantes.get((p.inicio, p.fin)))
 
+    anulados = session.execute(
+        select(Mensualidad.fecha_inicio, Mensualidad.fecha_fin, Pago.comprobante)
+        .join(Pago, Pago.id == Mensualidad.pago_id)
+        .where(Mensualidad.vehiculo_id == vehiculo.id, Mensualidad.pago_estado == "ANULADO")
+        .order_by(Mensualidad.fecha_inicio.desc(), Mensualidad.id.desc())
+    ).all()
     cliente = _cliente(session, vehiculo.cliente_id)
     tarifa = tarifa_vigente(session, vehiculo.tipo)
     return EstadoMensualidadRespuesta(
@@ -144,6 +150,7 @@ def estado(session: Session, placa: str) -> EstadoMensualidadRespuesta:
         estado=resultado.estado,
         periodo_actual=respuesta(resultado.actual) if resultado.actual else None,
         periodos_futuros=[respuesta(p) for p in resultado.futuros],
+        periodos_anulados=[PeriodoRespuesta(fecha_inicio=i, fecha_fin=f, comprobante=c) for i, f, c in anulados],
         vence=resultado.vence, dias_restantes=resultado.dias_restantes,
         inicio_nuevo_periodo=inicio_de_periodo(resultado.ultimo_fin, hoy), fin_maximo=tope_de_adelanto(hoy),
         tarifa=TarifaVigente(id=tarifa.id, tipo_vehiculo=tarifa.tipo_vehiculo, valor=tarifa.valor) if tarifa else None,

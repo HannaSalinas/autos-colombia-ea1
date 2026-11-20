@@ -77,6 +77,8 @@ class EstadoMensualidadRespuesta(BaseModel):
     estado: Literal["VIGENTE", "VENCIDA", "SIN_MENSUALIDAD", "PAGADA_A_FUTURO"]
     periodo_actual: PeriodoRespuesta | None
     periodos_futuros: list[PeriodoRespuesta]
+    # Se muestran marcados como anulados, pero no cuentan para el estado (HU-29 criterio 3, caso ME-04).
+    periodos_anulados: list[PeriodoRespuesta]
     vence: date | None
     dias_restantes: int | None
     # Para registrar un pago: inicio que tendría (D13), fin máximo permitido (hoy + 12 meses) y tarifa.

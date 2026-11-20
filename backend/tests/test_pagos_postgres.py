@@ -54,6 +54,7 @@ def test_estado_sin_mensualidad(api_y_sesion):
     estado = api.get(f"/pagos/estado/{v.placa}").json()
     assert estado["estado"] == "SIN_MENSUALIDAD" and estado["periodo_actual"] is None
     assert estado["periodos_futuros"] == [] and estado["vence"] is None and estado["dias_restantes"] is None
+    assert estado["periodos_anulados"] == []
     assert estado["cliente"]["nombre"] == "Paola Ríos" and estado["cliente"]["tipo_documento"] == "CC"
     assert estado["placa"] == v.placa and estado["tipo_vehiculo"] == "AUTOMOVIL"
     assert estado["inicio_nuevo_periodo"] == hoy.isoformat()
@@ -96,11 +97,18 @@ def test_estado_vence_hoy_vencida_y_pagada_a_futuro(api_y_sesion):
     assert e["estado"] == "PAGADA_A_FUTURO" and e["periodo_actual"] is None and len(e["periodos_futuros"]) == 1
 
 
-def test_estado_ignora_periodos_anulados(api_y_sesion):
+def test_estado_ignora_periodos_anulados_pero_los_muestra_marcados(api_y_sesion):
     api, session = api_y_sesion
     v, hoy = vehiculo(session), hoy_bogota()
-    periodo_pagado(session, v, hoy - timedelta(days=2), hoy + timedelta(days=27), crear_cuenta(session).id, anulado=True)
-    assert api.get(f"/pagos/estado/{v.placa}").json()["estado"] == "SIN_MENSUALIDAD"
+    pago, _ = periodo_pagado(session, v, hoy - timedelta(days=2), hoy + timedelta(days=27), crear_cuenta(session).id,
+                             anulado=True)
+    estado = api.get(f"/pagos/estado/{v.placa}").json()
+    assert estado["estado"] == "SIN_MENSUALIDAD" and estado["periodo_actual"] is None
+    # ME-04: el periodo anulado aparece aparte, marcado como anulado, y no cuenta para el estado.
+    assert estado["periodos_anulados"] == [{"fecha_inicio": (hoy - timedelta(days=2)).isoformat(),
+                                            "fecha_fin": (hoy + timedelta(days=27)).isoformat(),
+                                            "comprobante": pago.comprobante}]
+    assert estado["inicio_nuevo_periodo"] == hoy.isoformat()
 
 
 def test_estado_placa_normalizada_e_inexistente(api_y_sesion):
