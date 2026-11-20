@@ -1,0 +1,270 @@
+<section class="management" aria-labelledby="pagos-titulo">
+  <header class="heading">
+    <div>
+      <span class="eyebrow">MENSUALIDADES</span>
+      <h1 id="pagos-titulo">Pagos</h1>
+      <p>
+        Busca la placa, revisa el estado de su mensualidad y registra el pago. El periodo y el monto
+        los calcula el sistema.
+      </p>
+    </div>
+    <a class="enlace" routerLink="/consultas/pagos">Ver pagos registrados</a>
+  </header>
+
+  <section class="panel" aria-label="Buscar vehículo">
+    <form [formGroup]="busqueda" (ngSubmit)="buscar()" class="buscar-placa" novalidate>
+      <div class="field">
+        <label for="placa">Placa</label>
+        <input
+          id="placa"
+          type="text"
+          formControlName="placa"
+          maxlength="12"
+          autocapitalize="characters"
+          autocomplete="off"
+          placeholder="ABC123"
+          [attr.aria-invalid]="!!errorBusqueda()"
+          aria-describedby="placa-error"
+        />
+      </div>
+      <button type="submit" class="primary" [disabled]="ocupado()">
+        {{ buscando() ? 'Buscando…' : 'Consultar estado' }}
+      </button>
+    </form>
+    @if (errorBusqueda()) {
+      <p id="placa-error" class="notice error" role="alert">{{ errorBusqueda() }}</p>
+    }
+  </section>
+
+  @if (estado(); as e) {
+    <section class="panel" aria-labelledby="estado-titulo">
+      <div class="list-heading">
+        <h2 id="estado-titulo">
+          <span class="placa-grande">{{ e.placa }}</span>
+          <span
+            class="status-tag"
+            [class.ok]="e.estado === 'VIGENTE'"
+            [class.busy]="e.estado === 'PAGADA_A_FUTURO'"
+            [class.off]="e.estado === 'VENCIDA' || e.estado === 'SIN_MENSUALIDAD'"
+            >{{ estados[e.estado] }}</span
+          >
+        </h2>
+      </div>
+      <dl class="datos">
+        <div>
+          <dt>Vehículo</dt>
+          <dd>{{ e.tipo_vehiculo }} · {{ e.marca }} · {{ e.color }}</dd>
+        </div>
+        <div>
+          <dt>Cliente</dt>
+          <dd>
+            {{ e.cliente.nombre }} · {{ e.cliente.tipo_documento }} {{ e.cliente.documento }} ·
+            {{ e.cliente.telefono }}
+          </dd>
+        </div>
+        <div>
+          <dt>Mensualidad</dt>
+          <dd>
+            @switch (e.estado) {
+              @case ('VIGENTE') {
+                Vigente hasta el {{ fecha(e.vence) }} · {{ diasRestantes(e.dias_restantes) }}. Puede
+                entrar.
+              }
+              @case ('VENCIDA') {
+                Venció el {{ fecha(e.vence) }}. No puede entrar hasta que pague.
+              }
+              @case ('PAGADA_A_FUTURO') {
+                Pagada a partir del {{ fecha(e.periodos_futuros[0]?.fecha_inicio) }}. Hoy no puede
+                entrar.
+              }
+              @default {
+                No tiene mensualidad. No puede entrar hasta que pague.
+              }
+            }
+          </dd>
+        </div>
+        @if (e.periodo_actual; as p) {
+          <div>
+            <dt>Periodo actual</dt>
+            <dd>
+              Del {{ fecha(p.fecha_inicio) }} al {{ fecha(p.fecha_fin) }}
+              @if (p.comprobante) {
+                · {{ p.comprobante }}
+              }
+            </dd>
+          </div>
+        }
+        <div>
+          <dt>Pagado hacia adelante</dt>
+          <dd>
+            @for (p of e.periodos_futuros; track p.fecha_inicio) {
+              <span class="periodo"
+                >Del {{ fecha(p.fecha_inicio) }} al {{ fecha(p.fecha_fin) }}
+                @if (p.comprobante) {
+                  · {{ p.comprobante }}
+                }
+              </span>
+            } @empty {
+              Ningún periodo
+            }
+          </dd>
+        </div>
+        @if (e.periodos_anulados.length) {
+          <div>
+            <dt>Periodos anulados</dt>
+            <dd>
+              @for (p of e.periodos_anulados; track p.comprobante) {
+                <span class="periodo anulado"
+                  >Del {{ fecha(p.fecha_inicio) }} al {{ fecha(p.fecha_fin) }} ·
+                  {{ p.comprobante }} · Anulado (no cuenta)</span
+                >
+              }
+            </dd>
+          </div>
+        }
+        <div>
+          <dt>Tarifa vigente</dt>
+          <dd>
+            @if (e.tarifa) {
+              {{ pesos(e.tarifa.valor) }} al mes ({{ e.tipo_vehiculo }})
+            } @else {
+              Sin tarifa definida para {{ e.tipo_vehiculo }}
+            }
+          </dd>
+        </div>
+      </dl>
+      @if (!e.tarifa) {
+        <p class="notice warning" role="note">
+          No hay tarifa definida para {{ e.tipo_vehiculo }}: el Administrador debe definirla en
+          Tarifas antes de registrar el pago.
+        </p>
+      }
+    </section>
+
+    @if (comprobante(); as pago) {
+      <section class="panel" aria-label="Pago registrado">
+        <p class="notice success" role="status">
+          Pago registrado. Comprobante {{ pago.comprobante }}. El vehículo queda al día hasta el
+          {{ fecha(pago.fecha_fin) }}.
+        </p>
+        <app-comprobante [pago]="pago" />
+        <div class="actions acciones-comprobante">
+          <button type="button" class="primary" (click)="imprimir()">Imprimir comprobante</button
+          ><button type="button" (click)="nuevoPago()">Registrar otro pago</button
+          ><a class="enlace" [routerLink]="['/consultas/pagos', pago.id]">Ver detalle del pago</a>
+        </div>
+      </section>
+    } @else if (resumen(); as r) {
+      <section class="panel resumen" aria-labelledby="resumen-titulo">
+        <h2 id="resumen-titulo" #tituloResumen tabindex="-1">Resumen del pago</h2>
+        <p class="hint">Revisa los datos con el cliente antes de confirmar.</p>
+        @if (avisoTarifa()) {
+          <p class="notice warning" role="alert">{{ avisoTarifa() }}</p>
+        }
+        <dl class="datos">
+          <div>
+            <dt>Placa</dt>
+            <dd>{{ r.placa }} · {{ r.tipo_vehiculo }}</dd>
+          </div>
+          <div>
+            <dt>Cliente</dt>
+            <dd>{{ r.cliente_nombre }}</dd>
+          </div>
+          <div>
+            <dt>Periodo</dt>
+            <dd>Del {{ fecha(r.fecha_inicio) }} al {{ fecha(r.fecha_fin) }}</dd>
+          </div>
+          <div>
+            <dt>Meses</dt>
+            <dd>{{ meses(r.meses) }} × {{ pesos(r.valor_mensual) }}</dd>
+          </div>
+          <div>
+            <dt>Método</dt>
+            <dd>
+              {{ metodo(form.controls.metodo.value) }}
+              @if (form.controls.referencia.value) {
+                · Referencia {{ form.controls.referencia.value }}
+              }
+            </dd>
+          </div>
+          <div class="total">
+            <dt>Monto a pagar</dt>
+            <dd>{{ pesos(r.monto) }}</dd>
+          </div>
+        </dl>
+        @if (errorPago()) {
+          <p class="notice error" role="alert">{{ errorPago() }}</p>
+        }
+        <div class="actions">
+          <button type="button" class="primary" (click)="confirmar()" [disabled]="ocupado()">
+            {{ registrando() ? 'Registrando…' : 'Confirmar pago' }}</button
+          ><button type="button" (click)="volver()" [disabled]="registrando()">
+            Volver y corregir
+          </button>
+        </div>
+      </section>
+    } @else {
+      <section class="panel" aria-labelledby="formulario-titulo">
+        <h2 id="formulario-titulo">Registrar pago</h2>
+        <p class="hint">
+          El nuevo periodo empezaría el {{ fecha(e.inicio_nuevo_periodo) }}. Se puede pagar por
+          adelantado hasta el {{ fecha(e.fin_maximo) }} (12 meses desde hoy).
+        </p>
+        @if (errorPago()) {
+          <p class="notice error" role="alert">{{ errorPago() }}</p>
+        }
+        <form [formGroup]="form" (ngSubmit)="revisar()" novalidate>
+          <fieldset [disabled]="ocupado() || !e.tarifa">
+            <legend class="sr-only">Datos del pago</legend>
+            <div class="form-grid tres">
+              <div class="field">
+                <label for="meses">Meses</label>
+                <select
+                  id="meses"
+                  formControlName="meses"
+                  [attr.aria-invalid]="!!error('meses')"
+                  aria-describedby="meses-error"
+                >
+                  @for (n of opcionesMeses; track n) {
+                    <option [ngValue]="n">{{ meses(n) }}</option>
+                  }
+                </select>
+                <span id="meses-error" class="field-error">{{ error('meses') }}</span>
+              </div>
+              <div class="field">
+                <label for="metodo">Método de pago</label>
+                <select id="metodo" formControlName="metodo">
+                  @for (m of metodos; track m.valor) {
+                    <option [value]="m.valor">{{ m.etiqueta }}</option>
+                  }
+                </select>
+                <span class="field-error"></span>
+              </div>
+              @if (referenciaVisible()) {
+                <div class="field">
+                  <label for="referencia">Referencia</label>
+                  <input
+                    id="referencia"
+                    type="text"
+                    formControlName="referencia"
+                    maxlength="40"
+                    autocomplete="off"
+                    [attr.aria-invalid]="!!error('referencia')"
+                    aria-describedby="referencia-error referencia-ayuda"
+                  />
+                  <span id="referencia-ayuda" class="hint">De 4 a 30 letras, números o guion.</span>
+                  <span id="referencia-error" class="field-error">{{ error('referencia') }}</span>
+                </div>
+              }
+            </div>
+            <div class="actions">
+              <button type="submit" class="primary">
+                {{ calculando() ? 'Calculando…' : 'Revisar pago' }}
+              </button>
+            </div>
+          </fieldset>
+        </form>
+      </section>
+    }
+  }
+</section>

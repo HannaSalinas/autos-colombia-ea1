@@ -14,3 +14,20 @@ a:focus-visible {
   outline: 3px solid #94610e;
   outline-offset: 6px;
 }
+
+/* Iteración 3: al imprimir el comprobante de pago solo se ve el comprobante. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .comprobante,
+  .comprobante * {
+    visibility: visible;
+  }
+  .comprobante {
+    position: absolute;
+    left: 0;
+    top: 0;
+    border: 0;
+  }
+}

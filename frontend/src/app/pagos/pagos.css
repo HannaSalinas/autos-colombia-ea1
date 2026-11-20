@@ -1,0 +1,71 @@
+.buscar-placa {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.buscar-placa .field {
+  flex: 1 1 220px;
+  max-width: 320px;
+}
+.enlace {
+  color: #214c43;
+  font-weight: 600;
+  font-size: 14px;
+}
+.placa-grande {
+  font-size: 24px;
+  letter-spacing: 2px;
+  margin-right: 12px;
+}
+.datos {
+  margin: 0;
+}
+.datos div {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #e6ebe5;
+}
+.datos dt {
+  color: #5d7063;
+  font-size: 14px;
+}
+.datos dd {
+  margin: 0;
+  font-size: 14px;
+  color: #203a33;
+}
+.periodo {
+  display: block;
+}
+.periodo.anulado {
+  color: #9b1c1c;
+  text-decoration: line-through;
+}
+.resumen {
+  border-color: #214c43;
+}
+.resumen h2:focus-visible {
+  outline: 3px solid #aa7b2e;
+  outline-offset: 4px;
+}
+.total dt,
+.total dd {
+  font-size: 18px;
+  font-weight: 700;
+}
+.resumen .actions {
+  margin-top: 18px;
+}
+.acciones-comprobante {
+  margin-top: 18px;
+  align-items: center;
+}
+@media (max-width: 560px) {
+  .datos div {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}

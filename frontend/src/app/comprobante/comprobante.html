@@ -1,0 +1,80 @@
+<article
+  class="comprobante"
+  [class.anulado]="pago().estado === 'ANULADO'"
+  aria-labelledby="comprobante-titulo"
+>
+  <header class="encabezado">
+    <div class="marca">
+      <span class="marca-ac" aria-hidden="true">AC</span><span>Autos Colombia</span>
+    </div>
+    <div class="numero">
+      <h2 id="comprobante-titulo">Comprobante de pago</h2>
+      <p class="codigo">{{ pago().comprobante }}</p>
+    </div>
+  </header>
+  @if (pago().estado === 'ANULADO') {
+    <p class="sello" role="note">PAGO ANULADO</p>
+  }
+  <dl>
+    <div>
+      <dt>Fecha del pago</dt>
+      <dd>{{ fechaHora(pago().fecha) }}</dd>
+    </div>
+    <div>
+      <dt>Placa</dt>
+      <dd>
+        <span class="placa">{{ pago().placa }}</span> · {{ pago().tipo_vehiculo }}
+      </dd>
+    </div>
+    <div>
+      <dt>Cliente</dt>
+      <dd>
+        {{ pago().cliente_nombre }} · {{ pago().cliente_tipo_documento }}
+        {{ pago().cliente_documento }}
+      </dd>
+    </div>
+    <div>
+      <dt>Periodo</dt>
+      <dd>Del {{ fechaCorta(pago().fecha_inicio) }} al {{ fechaCorta(pago().fecha_fin) }}</dd>
+    </div>
+    <div>
+      <dt>Meses</dt>
+      <dd>{{ pago().meses }}</dd>
+    </div>
+    <div>
+      <dt>Valor mensual</dt>
+      <dd>{{ pesos(pago().valor_mensual) }}</dd>
+    </div>
+    <div>
+      <dt>Método</dt>
+      <dd>
+        {{ metodo(pago().metodo) }}
+        @if (pago().referencia) {
+          · Referencia {{ pago().referencia }}
+        }
+      </dd>
+    </div>
+    <div>
+      <dt>Registrado por</dt>
+      <dd>{{ pago().registrado_por }}</dd>
+    </div>
+    <div>
+      <dt>Estado</dt>
+      <dd>{{ estados[pago().estado] }}</dd>
+    </div>
+    <div class="total">
+      <dt>Total pagado</dt>
+      <dd>{{ pesos(pago().monto) }}</dd>
+    </div>
+  </dl>
+  @if (pago().estado === 'ANULADO') {
+    <section class="anulacion" aria-label="Datos de la anulación">
+      <p>Anulado por {{ pago().anulado_por }} el {{ fechaHora(pago().anulado_en) }}.</p>
+      <p>Motivo: {{ pago().motivo_anulacion }}</p>
+    </section>
+  }
+  <footer>
+    Este comprobante registra un pago ya realizado de la mensualidad del vehículo. No es una factura
+    electrónica.
+  </footer>
+</article>
