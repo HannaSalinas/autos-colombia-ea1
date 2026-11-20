@@ -152,3 +152,41 @@ def api_y_sesion():
                     app.dependency_overrides.pop(get_session, None)
         finally:
             transaction.rollback()
+
+
+# --- Iteración 3: tarifas y periodos pagados para las pruebas ---
+
+def crear_tarifa(sesion, tipo: str = "AUTOMOVIL", valor: int = 120000):
+    """Tarifa nueva del tipo indicado, vigente desde este instante (hora del reloj, no la de la
+    transacción: dos tarifas del mismo tipo en una prueba no chocan en uq_tarifa_tipo_desde)."""
+    from datetime import datetime, timezone
+    from app.models import Tarifa
+    tarifa = Tarifa(tipo_vehiculo=tipo, valor=valor, vigente_desde=datetime.now(timezone.utc))
+    sesion.add(tarifa)
+    sesion.flush()
+    return tarifa
+
+
+def periodo_pagado(sesion, vehiculo, inicio, fin, cuenta_id: int, tarifa=None, meses: int = 1,
+                   anulado: bool = False):
+    """Pago + su periodo escritos directamente (sin el servicio). Con anulado=True, el pago queda
+    ANULADO y la base actualiza la copia del estado en el periodo (ON UPDATE CASCADE)."""
+    from datetime import datetime, timezone
+    from app.models import Mensualidad, Pago
+    tarifa = tarifa or crear_tarifa(sesion, vehiculo.tipo)
+    pago = Pago(meses=meses, tarifa_id=tarifa.id, tipo_vehiculo=tarifa.tipo_vehiculo, valor_mensual=tarifa.valor,
+                monto=tarifa.valor * meses, metodo="EFECTIVO", fecha=datetime.now(timezone.utc),
+                registrado_por_cuenta_id=cuenta_id)
+    sesion.add(pago)
+    sesion.flush()
+    periodo = Mensualidad(vehiculo_id=vehiculo.id, fecha_inicio=inicio, fecha_fin=fin, pago_id=pago.id,
+                          pago_estado="VALIDO")
+    sesion.add(periodo)
+    sesion.flush()
+    if anulado:
+        pago.estado, pago.anulado_en = "ANULADO", datetime.now(timezone.utc)
+        pago.anulado_por_cuenta_id, pago.motivo_anulacion = cuenta_id, "Anulado en la preparación de la prueba"
+        sesion.flush()
+        sesion.refresh(periodo)
+    sesion.refresh(pago)
+    return pago, periodo

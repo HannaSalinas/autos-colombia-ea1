@@ -19,6 +19,7 @@ from app.database import get_engine
 from app.domain.reglas import ZONA_BOGOTA, mensualidad_vigente, orden_de_asignacion, tipo_celda_para
 from app.models import Celda, CorreccionCelda, Estancia, Mensualidad, Novedad, Operador, Vehiculo
 from app.seed import OPERADORES
+from app.services.mensualidad import periodo_valido
 
 DIAS_DE_HISTORIAL = 7
 ABIERTAS = ["ABC123", "KLM45D", "GHI789", "JKL321", "STU852"]   # todas con mensualidad vigente hoy
@@ -49,7 +50,7 @@ def generar(session: Session, ahora: datetime, semilla: int = 20261025) -> dict[
     celdas = {tipo: list(session.scalars(select(Celda).where(Celda.tipo == tipo).order_by(Celda.codigo)))
               for tipo in ("CARRO", "MOTO")}
     mensualidades: dict[int, list[Mensualidad]] = {}
-    for m in session.scalars(select(Mensualidad)):
+    for m in session.scalars(select(Mensualidad).where(periodo_valido())):   # sin periodos anulados
         mensualidades.setdefault(m.vehiculo_id, []).append(m)
 
     def vigente(vehiculo: Vehiculo, dia: date) -> bool:

@@ -17,6 +17,7 @@ from app.schemas.estancia import (
     NovedadCrear, NovedadRespuesta,
 )
 from app.schemas.vehiculo import VehiculoRespuesta
+from app.services.mensualidad import periodo_valido
 
 
 class EstanciaError(Exception):
@@ -115,9 +116,11 @@ class ServicioEstancia:
             raise EstanciaError(404, "Vehículo no encontrado.")
         operador = self._operador(operador_id)
         hoy = hoy_bogota()
-        # Misma regla que app.domain.reglas.mensualidad_vigente: inicio <= hoy <= fin.
+        # Misma regla que app.domain.reglas.mensualidad_vigente: inicio <= hoy <= fin. Iteración 3: el
+        # periodo no debe estar anulado (periodo_valido).
         if not self.session.scalar(select(exists().where(
-            Mensualidad.vehiculo_id == vehiculo.id, Mensualidad.fecha_inicio <= hoy, Mensualidad.fecha_fin >= hoy
+            Mensualidad.vehiculo_id == vehiculo.id, Mensualidad.fecha_inicio <= hoy, Mensualidad.fecha_fin >= hoy,
+            periodo_valido(),
         ))):
             raise EstanciaError(409, "El vehículo no tiene mensualidad vigente. No puede ingresar.")
         if self.session.scalar(select(Estancia.id).where(
