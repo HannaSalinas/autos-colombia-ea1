@@ -159,8 +159,11 @@ def test_api_de_clientes_solo_lectura(api_y_sesion):
     assert api.get(f"/clientes/{sin_correo.id}/vehiculos").json() == []
     assert api.get("/clientes/9223372036854775807").status_code == 404
     assert api.get("/clientes/0").status_code == 422
-    # No hay escritura de clientes en esta iteración.
-    assert api.post("/clientes", json={}).status_code == 405
+    # Iteración 3 (D15): registrar clientes existe (un cuerpo vacío se rechaza con 422), pero no hay
+    # edición ni eliminación de clientes (D17). Las pruebas del registro están en test_clientes_postgres.py.
+    assert api.post("/clientes", json={}).status_code == 422
+    assert api.patch(f"/clientes/{con_correo.id}", json={"nombre": "Otro"}).status_code == 405
+    assert api.delete(f"/clientes/{con_correo.id}").status_code == 405
 
 
 @pytest.mark.parametrize("sql", [

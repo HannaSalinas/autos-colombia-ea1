@@ -4,13 +4,14 @@ from fastapi import APIRouter, Depends, Path, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_session
-from app.domain.permisos import VEHICULOS_VER
-from app.routers.dependencias import requiere
-from app.schemas.cliente import ClienteRespuesta, ClientesPagina
+from app.domain.permisos import CLIENTES_GESTIONAR, VEHICULOS_VER
+from app.routers.dependencias import Sesion, requiere
+from app.schemas.cliente import ClienteCrear, ClienteRespuesta, ClientesPagina
 from app.schemas.vehiculo import VehiculoDetalle
 from app.services import cliente as service
 
-# Solo lectura; se consultan junto con los vehículos (Iteración 2: ambos roles).
+# Ambos roles consultan (se consultan junto con los vehículos). Iteración 3 (D15): solo el
+# Administrador registra clientes; sin edición ni eliminación en esta iteración.
 router = APIRouter(prefix="/clientes", tags=["Clientes"], dependencies=[Depends(requiere(VEHICULOS_VER))])
 DatabaseSession = Annotated[Session, Depends(get_session)]
 ClientId = Annotated[int, Path(ge=1, le=9223372036854775807)]
@@ -21,8 +22,14 @@ def list_all(
     session: DatabaseSession,
     offset: Annotated[int, Query(ge=0, le=9223372036854775807)] = 0,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    buscar: Annotated[str | None, Query(max_length=80)] = None,
 ):
-    return service.list_clients(session, offset, limit)
+    return service.list_clients(session, offset, limit, buscar)
+
+
+@router.post("", response_model=ClienteRespuesta, status_code=201, dependencies=[Depends(requiere(CLIENTES_GESTIONAR))])
+def create(data: ClienteCrear, session: DatabaseSession, sesion: Sesion):
+    return service.create_client(session, data, sesion)
 
 
 @router.get("/{id}", response_model=ClienteRespuesta)
