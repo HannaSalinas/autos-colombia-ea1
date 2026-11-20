@@ -64,7 +64,8 @@ export const routes: Routes = [
   },
   // Iteración 3: pagos de mensualidad (ambos roles; anular solo el Administrador, dentro del detalle).
   {
-    path: 'pagos',
+    // No es /pagos: ese prefijo es de la API y nginx lo envía al backend.
+    path: 'registrar-pago',
     title: 'Pagos | Autos Colombia',
     canActivate: [accesoGuard],
     data: { permiso: PERMISOS.pagos },

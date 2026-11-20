@@ -100,7 +100,7 @@ export class Pagos {
       // En efectivo no hay referencia: se limpia para no enviar un dato que el servidor rechazaría.
       if (metodo === 'EFECTIVO') this.form.controls.referencia.setValue('');
     });
-    // Desde otra pantalla se puede llegar con la placa: /pagos?placa=ABC123.
+    // Desde otra pantalla se puede llegar con la placa: /registrar-pago?placa=ABC123.
     const placa = inject(ActivatedRoute).snapshot.queryParamMap.get('placa');
     if (placa) {
       this.busqueda.setValue({ placa });
