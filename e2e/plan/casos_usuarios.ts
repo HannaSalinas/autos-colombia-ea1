@@ -6,8 +6,11 @@ import {
 } from './contexto';
 import { crearCuenta, cuenta, E, entrar, idCuenta, NOMBRES, tomarCarro } from './escenario';
 
-const MENU_ADMIN = ['Inicio', 'Control de acceso', 'Ocupación', 'Historial', 'Vehículos', 'Celdas', 'Cuentas de usuario'];
-const MENU_OPERADOR = ['Inicio', 'Control de acceso', 'Ocupación', 'Historial', 'Vehículos', 'Celdas'];
+// Iteración 3: el menú incluye las pantallas de pagos, clientes y tarifas (Recaudo solo para el Administrador).
+const MENU_ADMIN = ['Inicio', 'Control de acceso', 'Pagos', 'Ocupación', 'Historial', 'Pagos registrados', 'Recaudo',
+  'Vehículos', 'Clientes', 'Tarifas', 'Celdas', 'Cuentas de usuario'];
+const MENU_OPERADOR = ['Inicio', 'Control de acceso', 'Pagos', 'Ocupación', 'Historial', 'Pagos registrados',
+  'Vehículos', 'Clientes', 'Tarifas', 'Celdas'];
 const AVISO_SESION = 'Tu sesión venció o fue cerrada. Ingresa de nuevo.';
 const CREDENCIALES = 'Usuario o contraseña inválidos.';
 const DESACTIVADA = 'Tu cuenta está desactivada. Contacta al administrador.';
