@@ -1,6 +1,6 @@
-# Diccionario de datos — Autos Colombia (Iteraciones 1 y 2)
+# Diccionario de datos — Autos Colombia (Iteraciones 1, 2 y 3)
 
-Base de datos PostgreSQL 17, esquema `public`, con las migraciones Alembic **0001–0008**
+Base de datos PostgreSQL 17, esquema `public`, con las migraciones Alembic **0001–0011**
 aplicadas. Se armó a partir del esquema real exportado en [`modelo_fisico.sql`](modelo_fisico.sql)
 (`pg_dump --schema-only`).
 
@@ -15,18 +15,21 @@ Convenciones:
   (`texto ~ '[^[:space:]]'`).
 - Todas las FK usan `ON DELETE RESTRICT`: no se puede borrar una fila que otra tabla esté usando.
 - La columna **Origen** indica qué migración creó la tabla o la restricción. Las 0001 y 0002
-  son del profesor; de la 0003 a la 0005 son nuestras (Iteración 1) y la 0006 y la 0007
-  también (Iteración 2), igual que la 0008.
+  son del profesor; de la 0003 a la 0005 son nuestras (Iteración 1); la 0006, la 0007 y la 0008
+  también (Iteración 2), y de la 0009 a la 0011 (Iteración 3).
+- Los montos son pesos colombianos enteros en columnas `integer` (tipo exacto, nunca de punto
+  flotante; RNF-22).
 - `NOT VALID` significa que la restricción se aplica a las filas nuevas y modificadas, pero
   no revisa las que ya existían cuando se creó. La migración 0008 valida los CHECK de celda
   (`ck_celda_tipo` y `ck_celda_codigo_formato`) en toda la tabla cuando todas las celdas los
   cumplen; si alguna no los cumple, quedan `NOT VALID` y la migración avisa qué códigos fallan.
-  En esta base las 80 celdas cumplen, así que los dos están validados.
+  En esta base las 80 celdas cumplen, así que los dos están validados. La 0011 hace lo mismo con
+  los CHECK de cliente de la 0009 (documento, nombre y teléfono); en una base nueva quedan validados.
 
 ## Relaciones
 
 ```text
-cliente 1 ──< N vehiculo 1 ──< N mensualidad
+cliente 1 ──< N vehiculo 1 ──< N mensualidad 1 ──o 1 pago >── 1 tarifa   (Iteración 3)
                 vehiculo 1 ──< N estancia >── 1 celda
                 operador 1 ──< N estancia            (operador de entrada y de salida)
                 estancia 1 ──< N correccion_celda    (celda anterior y celda nueva → celda)
@@ -35,13 +38,19 @@ cliente 1 ──< N vehiculo 1 ──< N mensualidad
                 operador 1 ──  1 cuenta_usuario      (la persona y su cuenta de acceso)
           cuenta_usuario 1 ──< N auditoria_cuenta    (cuenta auditada y cuenta que actuó)
                    celda 1 ──< N auditoria_celda >── 1 cuenta_usuario (cuenta que actuó)
+          cuenta_usuario 1 ──< N pago, tarifa, cliente (quién registró, anuló o definió; D18)
 ```
+
+Cada pago genera exactamente un periodo (`mensualidad.pago_id`, único). Los periodos anteriores a
+la Iteración 3 no tienen pago (`pago_id` NULL) y siguen siendo válidos (D10).
 
 | Tabla | Para qué sirve | Origen |
 | --- | --- | --- |
-| `cliente` | Propietario de uno o varios vehículos | 0003 |
+| `cliente` | Propietario de uno o varios vehículos | 0003 (+ 0009, 0011) |
 | `vehiculo` | Vehículo registrado y asociado a su cliente | 0001 (+ 0003) |
-| `mensualidad` | Periodo pagado de un vehículo, de fecha a fecha | 0003 |
+| `mensualidad` | Periodo de mensualidad de un vehículo (fin inclusivo) | 0003 (+ 0010) |
+| `tarifa` | Tarifa mensual por tipo de vehículo; nunca se edita | 0009 |
+| `pago` | Pago de una mensualidad; genera un periodo; solo pasa de VALIDO a ANULADO | 0010 |
 | `celda` | Las celdas del parqueadero (80 sembradas) | 0001 (+ 0004, 0007) |
 | `operador` | La persona: responsable de cada movimiento y dueña de una cuenta | 0001 (+ 0006) |
 | `cuenta_usuario` | Credenciales, rol y estado de acceso de una persona | 0006 |
@@ -50,26 +59,35 @@ cliente 1 ──< N vehiculo 1 ──< N mensualidad
 | `estancia` | Una entrada y su salida (abierta mientras el vehículo está dentro) | 0002 |
 | `correccion_celda` | Cambio de celda de una estancia abierta, con motivo | 0005 |
 | `novedad` | Hecho registrado durante una estancia (rayón, golpe, …) | 0005 |
-| `alembic_version` | Versión de migración aplicada (`0008`); la usa Alembic | Alembic |
+| `alembic_version` | Versión de migración aplicada (`0011`); la usa Alembic | Alembic |
 
 ## cliente
 
 | Columna | Tipo | Nulo | Llave | Descripción |
 | --- | --- | --- | --- | --- |
 | `id` | bigint (identity) | No | PK | Identificador |
-| `documento` | text | No | UQ | Documento de identidad, único |
-| `nombre` | text | No | | Nombre completo |
-| `telefono` | text | No | | Teléfono de contacto |
+| `documento` | text | No | UQ (con el tipo) | Número de documento: 5 a 15 letras o números, en mayúsculas |
+| `nombre` | text | No | | Nombre completo (3 a 80 caracteres) |
+| `telefono` | text | No | | Teléfono de contacto (10 dígitos) |
 | `correo` | text | Sí | | Correo electrónico (opcional) |
+| `tipo_documento` | text | No | UQ (con el documento) | `CC`, `CE` o `PA`. Los clientes anteriores quedaron con `CC` (0009) |
+| `registrado_en` | timestamptz | Sí | | Cuándo lo registró el Administrador. NULL = anterior a la Iteración 3 o semilla |
+| `registrado_por_cuenta_id` | bigint | Sí | FK → `cuenta_usuario.id` | Quién lo registró (D18). NULL = anterior o semilla |
 
 | Restricción | Tipo | Regla | Origen |
 | --- | --- | --- | --- |
 | `cliente_pkey` | PRIMARY KEY | `id` | 0003 |
-| `uq_cliente_documento` | UNIQUE | `documento` | 0003 |
 | `ck_cliente_documento_no_vacio` | CHECK | `documento` no vacío | 0003 |
 | `ck_cliente_nombre_no_vacio` | CHECK | `nombre` no vacío | 0003 |
 | `ck_cliente_telefono_no_vacio` | CHECK | `telefono` no vacío | 0003 |
 | `ck_cliente_correo_formato` | CHECK | `correo IS NULL` o con forma `algo@dominio.ext` | 0003 |
+| `uq_cliente_tipo_documento` | Índice único | (`tipo_documento`, `upper(documento)`): único por tipo y número, sin distinguir mayúsculas. Reemplaza al `uq_cliente_documento` de la 0003 | 0009 |
+| `ck_cliente_tipo_documento` | CHECK | `tipo_documento` en (`CC`, `CE`, `PA`) | 0009 |
+| `ck_cliente_documento_formato` | CHECK | `documento ~ '^[A-Z0-9]{5,15}$'` (NOT VALID; validado por la 0011 si todos cumplen) | 0009 |
+| `ck_cliente_nombre_longitud` | CHECK | 3 a 80 caracteres, sin espacios al inicio ni al final (NOT VALID; validado por la 0011) | 0009 |
+| `ck_cliente_telefono_formato` | CHECK | `telefono ~ '^[0-9]{10}$'` (NOT VALID; validado por la 0011) | 0009 |
+| `ck_cliente_registro` | CHECK | Si tiene `registrado_por_cuenta_id`, tiene `registrado_en` | 0009 |
+| `fk_cliente_registrado_por` | FOREIGN KEY | `registrado_por_cuenta_id` → `cuenta_usuario(id)`, ON DELETE RESTRICT | 0009 |
 
 ## vehiculo
 
@@ -108,7 +126,9 @@ CHECK fijo. Lo validan la API (`app/domain/reglas.py`) y el formulario.
 | `id` | bigint (identity) | No | PK | Identificador |
 | `vehiculo_id` | bigint | No | FK → `vehiculo.id` | Vehículo al que pertenece (la mensualidad es por vehículo) |
 | `fecha_inicio` | date | No | | Primer día del periodo |
-| `fecha_fin` | date | No | | Último día del periodo (mismo día del mes siguiente) |
+| `fecha_fin` | date | No | | Último día del periodo, incluido. Periodos anteriores: mismo día del mes siguiente. Pagados desde la Iteración 3: día anterior a la misma fecha N meses después (D13) |
+| `pago_id` | bigint | Sí | UQ, FK → `pago` | Pago que generó el periodo (1 a 1). NULL = periodo anterior a la Iteración 3 (D10) |
+| `pago_estado` | text | Sí | FK → `pago` | Copia del estado del pago (`VALIDO` o `ANULADO`) que mantiene la propia base |
 
 | Restricción | Tipo | Regla | Origen |
 | --- | --- | --- | --- |
@@ -116,8 +136,90 @@ CHECK fijo. Lo validan la API (`app/domain/reglas.py`) y el formulario.
 | `fk_mensualidad_vehiculo` | FOREIGN KEY | `vehiculo_id` → `vehiculo(id)`, ON DELETE RESTRICT | 0003 |
 | `ck_mensualidad_fechas` | CHECK | `fecha_fin > fecha_inicio` | 0003 |
 | `ix_mensualidad_vehiculo_fin` | Índice | (`vehiculo_id`, `fecha_fin`): buscar la mensualidad vigente | 0003 |
+| `uq_mensualidad_pago` | UNIQUE | `pago_id`: un pago genera un solo periodo | 0010 |
+| `fk_mensualidad_pago` | FOREIGN KEY | (`pago_id`, `pago_estado`) → `pago(id, estado)`, ON UPDATE CASCADE, ON DELETE RESTRICT. Al anular el pago, la base actualiza `pago_estado` en la misma sentencia | 0010 |
+| `ck_mensualidad_pago` | CHECK | `(pago_id IS NULL) = (pago_estado IS NULL)` | 0010 |
+| `ex_mensualidad_pagada_sin_superposicion` | EXCLUDE (GiST) | `vehiculo_id WITH =`, `daterange(fecha_inicio, fecha_fin, '[]') WITH &&`, `WHERE (pago_estado = 'VALIDO')`: dos periodos pagados y no anulados del mismo vehículo no se cruzan | 0010 |
 
-Una mensualidad está vigente si `fecha_inicio <= hoy <= fecha_fin`, con "hoy" en Bogotá.
+Una mensualidad está vigente si `fecha_inicio <= hoy <= fecha_fin` y no está anulada
+(`pago_estado` NULL o `VALIDO`), con "hoy" en Bogotá.
+
+**Por qué la exclusión es parcial (RNF-23).** PostgreSQL no admite `EXCLUDE … NOT VALID`: la
+restricción se revisa completa al crearla, y algunos periodos antiguos ya se tocan (en las
+semillas, los dos de JKL321 comparten un día). Por eso solo cubre periodos pagados y no anulados.
+Entre un periodo pagado y uno antiguo, la no superposición la garantiza el servicio bloqueando la
+fila del vehículo (`SELECT … FOR UPDATE`). La migración 0010 avisa las superposiciones antiguas que
+encuentra, sin modificarlas.
+
+## tarifa
+
+| Columna | Tipo | Nulo | Llave | Descripción |
+| --- | --- | --- | --- | --- |
+| `id` | bigint (identity) | No | PK | Identificador |
+| `tipo_vehiculo` | text | No | | `MOTO`, `AUTOMOVIL` o `CAMIONETA` |
+| `valor` | integer | No | | Valor mensual en pesos enteros |
+| `vigente_desde` | timestamptz | No | | Desde cuándo rige (hora del servidor). La vigente de cada tipo es la más reciente |
+| `definida_por_cuenta_id` | bigint | Sí | FK → `cuenta_usuario.id` | Quién la definió (D18). NULL = semillas |
+
+| Restricción | Tipo | Regla | Origen |
+| --- | --- | --- | --- |
+| `tarifa_pkey` | PRIMARY KEY | `id` | 0009 |
+| `ck_tarifa_tipo_vehiculo` | CHECK | `tipo_vehiculo` en (`MOTO`, `AUTOMOVIL`, `CAMIONETA`) | 0009 |
+| `ck_tarifa_valor` | CHECK | `valor BETWEEN 1000 AND 2000000` | 0009 |
+| `uq_tarifa_tipo_desde` | UNIQUE | (`tipo_vehiculo`, `vigente_desde`) | 0009 |
+| `uq_tarifa_id_tipo_valor` | UNIQUE | (`id`, `tipo_vehiculo`, `valor`): destino de la FK compuesta del pago | 0009 |
+| `fk_tarifa_definida_por` | FOREIGN KEY | `definida_por_cuenta_id` → `cuenta_usuario(id)`, ON DELETE RESTRICT | 0009 |
+| `tarifa_sin_cambios`, `tarifa_sin_vaciar` | TRIGGER | Rechazan UPDATE, DELETE y TRUNCATE (RNF-24, D12) | 0009 |
+
+## pago
+
+| Columna | Tipo | Nulo | Llave | Descripción |
+| --- | --- | --- | --- | --- |
+| `id` | bigint (identity) | No | PK | Identificador |
+| `comprobante` | text | No | UQ | `RC-000001`…`RC-999999`, tomado de la secuencia `pago_comprobante_seq` |
+| `meses` | smallint | No | | Meses que cubre (1 a 6) |
+| `tarifa_id` | bigint | No | FK → `tarifa` | Tarifa con la que se cobró |
+| `tipo_vehiculo` | text | No | FK → `tarifa` | Tipo con que se cobró (copia de la tarifa) |
+| `valor_mensual` | integer | No | FK → `tarifa` | Valor mensual cobrado (copia de la tarifa) |
+| `monto` | integer | No | | Total: `valor_mensual × meses`, en pesos enteros |
+| `metodo` | text | No | | `EFECTIVO`, `TRANSFERENCIA` o `TARJETA` (informativo, D16) |
+| `referencia` | text | Sí | | Obligatoria en transferencia y tarjeta (4 a 30 letras, números o guion); NULL en efectivo |
+| `fecha` | timestamptz | No | | Hora del servidor al registrar |
+| `registrado_por_cuenta_id` | bigint | No | FK → `cuenta_usuario.id` | Responsable: la cuenta de la sesión (RF-36) |
+| `estado` | text | No | | `VALIDO` o `ANULADO` |
+| `anulado_en` | timestamptz | Sí | | Cuándo se anuló |
+| `anulado_por_cuenta_id` | bigint | Sí | FK → `cuenta_usuario.id` | Quién lo anuló (Administrador) |
+| `motivo_anulacion` | text | Sí | | Por qué (10 a 200 caracteres) |
+
+| Restricción | Tipo | Regla | Origen |
+| --- | --- | --- | --- |
+| `pago_pkey` | PRIMARY KEY | `id` | 0010 |
+| `uq_pago_comprobante` | UNIQUE | `comprobante` (RNF-23) | 0010 |
+| `uq_pago_id_estado` | UNIQUE | (`id`, `estado`): destino de la FK compuesta de `mensualidad` | 0010 |
+| `fk_pago_tarifa` | FOREIGN KEY | (`tarifa_id`, `tipo_vehiculo`, `valor_mensual`) → `tarifa(id, tipo_vehiculo, valor)`: la copia es la de una tarifa real | 0010 |
+| `fk_pago_registrado_por`, `fk_pago_anulado_por` | FOREIGN KEY | → `cuenta_usuario(id)`, ON DELETE RESTRICT | 0010 |
+| `ck_pago_comprobante_formato` | CHECK | `comprobante ~ '^RC-[0-9]{6}$'` | 0010 |
+| `ck_pago_meses` | CHECK | `meses BETWEEN 1 AND 6` | 0010 |
+| `ck_pago_monto` | CHECK | `monto = valor_mensual * meses` (D11) | 0010 |
+| `ck_pago_metodo` | CHECK | `metodo` en (`EFECTIVO`, `TRANSFERENCIA`, `TARJETA`) | 0010 |
+| `ck_pago_referencia` | CHECK | Efectivo: NULL; otro método: `IS NOT NULL` y `~ '^[A-Za-z0-9-]{4,30}$'` | 0010 |
+| `ck_pago_estado` | CHECK | `estado` en (`VALIDO`, `ANULADO`) | 0010 |
+| `ck_pago_anulacion` | CHECK | VALIDO: sin datos de anulación. ANULADO: con `anulado_en` (≥ `fecha`), `anulado_por_cuenta_id` y motivo de 10 a 200 caracteres sin espacios exteriores | 0010 |
+| `ix_pago_fecha` | Índice | `fecha`: filtros por rango y resumen de recaudo | 0010 |
+| `pago_sin_cambios`, `pago_sin_vaciar` | TRIGGER | Rechazan DELETE, TRUNCATE y todo UPDATE que no sea el paso único de VALIDO a ANULADO con sus datos de anulación (RNF-24) | 0010 |
+
+## Triggers, funciones y extensión (Iteración 3)
+
+| Objeto | Qué hace | Origen |
+| --- | --- | --- |
+| `tarifa_inmutable()` | Función de los triggers de `tarifa`: siempre rechaza con el código 23001 (`restrict_violation`) | 0009 |
+| `pago_solo_anular()` | Función de los triggers de `pago`: deja pasar solo VALIDO → ANULADO sin cambiar ninguna otra columna fija | 0010 |
+| `mensualidad_pagada_inmutable()` | Trigger `mensualidad_pagada_sin_cambios`: un periodo pagado no se borra ni cambia de fechas, vehículo o pago; deja pasar la cascada de `pago_estado`. Un periodo antiguo no se puede vincular a un pago | 0010 |
+| `mensualidad_sin_vaciar()` | Trigger `mensualidad_pagada_sin_vaciar`: rechaza TRUNCATE si hay periodos pagados | 0010 |
+| `btree_gist` | Extensión que permite combinar `=` y `&&` en la restricción de exclusión | 0010 |
+| `pago_comprobante_seq` | Secuencia del comprobante (1 a 999999, sin ciclo), propiedad de `pago.comprobante` | 0010 |
+
+Los periodos anteriores a la Iteración 3 (sin pago) no quedan afectados por estos triggers.
 
 ## celda
 
@@ -306,14 +408,14 @@ novedades de la EA1 sigan apuntando a la misma fila y conserven su responsable.
 
 | Columna | Tipo | Nulo | Llave | Descripción |
 | --- | --- | --- | --- | --- |
-| `version_num` | varchar(32) | No | PK (`alembic_version_pkc`) | Última migración aplicada: `0008` |
+| `version_num` | varchar(32) | No | PK (`alembic_version_pkc`) | Última migración aplicada: `0011` |
 
 ## Reglas que no están en la base
 
 Estas reglas dependen de la fecha de hoy o de otras filas, así que no se pueden escribir
 como CHECK. Las validan los servicios del backend, dentro de transacciones con bloqueos:
 
-- Solo entra un vehículo con mensualidad vigente hoy (en Bogotá).
+- Solo entra un vehículo con mensualidad vigente hoy (en Bogotá) y no anulada.
 - La celda asignada es del tipo del vehículo: MOTO → `MOTO`; AUTOMOVIL y CAMIONETA → `CARRO`.
 - No se cambia el tipo de un vehículo que está dentro, ni el tipo de una celda ocupada.
 - Las correcciones y novedades solo se registran sobre estancias abiertas. La celda nueva
@@ -327,6 +429,16 @@ incumplan:
 - Una celda ocupada no se puede inhabilitar.
 - El código y el tipo de una celda con historial, o que esté ocupada, no se pueden cambiar.
 - Un administrador no puede desactivar su propia cuenta ni la del último administrador activo.
+
+Reglas de la Iteración 3 que dependen de la fecha o de otras filas (servicio `app/services/pago.py`,
+con bloqueo `FOR UPDATE` de la fila del vehículo):
+
+- El nuevo periodo empieza el día siguiente al último fin no anulado si es hoy o posterior; si no,
+  hoy (D13). Su fin no puede pasar de hoy + 12 meses.
+- El monto es la tarifa vigente del tipo × meses (D11). Si no coincide con el que se confirmó en el
+  resumen (`monto_confirmado`), el pago no se registra (409).
+- Solo se anula el pago VÁLIDO del último periodo no anulado del vehículo (D14).
+- Que todo pago tenga su periodo lo garantiza el servicio (se insertan en la misma transacción).
 
 ## Cómo regenerarlo
 

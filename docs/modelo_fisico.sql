@@ -1,12 +1,12 @@
--- Modelo físico de la base de datos de Autos Colombia (Iteraciones 1 y 2).
--- Esquema real exportado del contenedor, con las migraciones 0001–0008 aplicadas:
+-- Modelo físico de la base de datos de Autos Colombia (Iteraciones 1, 2 y 3).
+-- Esquema real exportado del contenedor, con las migraciones 0001–0011 aplicadas:
 --   docker compose exec -T db pg_dump --schema-only --no-owner --no-privileges > docs/modelo_fisico.sql
 -- Las líneas \restrict / \unrestrict las agrega pg_dump (PostgreSQL 17.6 o superior) como protección de psql.
 --
 -- PostgreSQL database dump
 --
 
-\restrict yD8mmha9kEpJHvgSSiPv5x42oggpjPbGR1UdVpcLzDyjZ6P7GXidSc4chVJpiCb
+\restrict Xd1mHnToKMLkpAdAubeVyy6uLCkJi6FAxES8JxhjGB4NPH5TaMWUgzQfxdQa2xV
 
 -- Dumped from database version 17.11
 -- Dumped by pg_dump version 17.11
@@ -22,6 +22,103 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
+
+--
+-- Name: btree_gist; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS btree_gist WITH SCHEMA public;
+
+
+--
+-- Name: EXTENSION btree_gist; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON EXTENSION btree_gist IS 'support for indexing common datatypes in GiST';
+
+
+--
+-- Name: mensualidad_pagada_inmutable(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.mensualidad_pagada_inmutable() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF TG_OP = 'DELETE' THEN
+        IF OLD.pago_id IS NOT NULL THEN
+            RAISE EXCEPTION 'Un periodo pagado no se elimina: para dejarlo sin efecto se anula su pago.'
+                USING ERRCODE = '23001';
+        END IF;
+        RETURN OLD;
+    END IF;
+    IF OLD.pago_id IS NULL AND NEW.pago_id IS NOT NULL THEN
+        RAISE EXCEPTION 'Un periodo existente no se puede vincular a un pago: cada pago genera su propio periodo.'
+            USING ERRCODE = '23001';
+    END IF;
+    -- Lo único que cambia en un periodo pagado es la copia del estado de su pago (ON UPDATE CASCADE).
+    IF OLD.pago_id IS NOT NULL
+       AND (NEW.vehiculo_id, NEW.fecha_inicio, NEW.fecha_fin, NEW.pago_id)
+           IS DISTINCT FROM (OLD.vehiculo_id, OLD.fecha_inicio, OLD.fecha_fin, OLD.pago_id) THEN
+        RAISE EXCEPTION 'Un periodo pagado no se edita: para corregirlo se anula su pago y se registra otro.'
+            USING ERRCODE = '23001';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: mensualidad_sin_vaciar(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.mensualidad_sin_vaciar() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM mensualidad WHERE pago_id IS NOT NULL) THEN
+        RAISE EXCEPTION 'Un periodo pagado no se elimina: para dejarlo sin efecto se anula su pago.'
+            USING ERRCODE = '23001';
+    END IF;
+    RETURN NULL;
+END;
+$$;
+
+
+--
+-- Name: pago_solo_anular(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.pago_solo_anular() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF TG_OP = 'UPDATE' THEN
+        IF OLD.estado = 'VALIDO' AND NEW.estado = 'ANULADO'
+           AND (NEW.id, NEW.comprobante, NEW.meses, NEW.tarifa_id, NEW.tipo_vehiculo, NEW.valor_mensual, NEW.monto, NEW.metodo, NEW.referencia, NEW.fecha, NEW.registrado_por_cuenta_id)
+               IS NOT DISTINCT FROM (OLD.id, OLD.comprobante, OLD.meses, OLD.tarifa_id, OLD.tipo_vehiculo, OLD.valor_mensual, OLD.monto, OLD.metodo, OLD.referencia, OLD.fecha, OLD.registrado_por_cuenta_id) THEN
+            RETURN NEW;
+        END IF;
+    END IF;
+    RAISE EXCEPTION 'Un pago no se edita ni se elimina: solo puede pasar una vez de VALIDO a ANULADO, con sus datos de anulación.'
+        USING ERRCODE = '23001';
+END;
+$$;
+
+
+--
+-- Name: tarifa_inmutable(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.tarifa_inmutable() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    RAISE EXCEPTION 'Las tarifas no se editan ni se eliminan: para cambiar el valor se crea una tarifa nueva.'
+        USING ERRCODE = '23001';
+END;
+$$;
+
 
 SET default_tablespace = '';
 
@@ -140,10 +237,18 @@ CREATE TABLE public.cliente (
     nombre text NOT NULL,
     telefono text NOT NULL,
     correo text,
+    tipo_documento text NOT NULL,
+    registrado_en timestamp with time zone,
+    registrado_por_cuenta_id bigint,
     CONSTRAINT ck_cliente_correo_formato CHECK (((correo IS NULL) OR (correo ~ '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$'::text))),
+    CONSTRAINT ck_cliente_documento_formato CHECK ((documento ~ '^[A-Z0-9]{5,15}$'::text)),
     CONSTRAINT ck_cliente_documento_no_vacio CHECK ((documento ~ '[^[:space:]]'::text)),
+    CONSTRAINT ck_cliente_nombre_longitud CHECK ((((char_length(nombre) >= 3) AND (char_length(nombre) <= 80)) AND (nombre !~ '^[[:space:]]|[[:space:]]$'::text))),
     CONSTRAINT ck_cliente_nombre_no_vacio CHECK ((nombre ~ '[^[:space:]]'::text)),
-    CONSTRAINT ck_cliente_telefono_no_vacio CHECK ((telefono ~ '[^[:space:]]'::text))
+    CONSTRAINT ck_cliente_registro CHECK (((registrado_por_cuenta_id IS NULL) OR (registrado_en IS NOT NULL))),
+    CONSTRAINT ck_cliente_telefono_formato CHECK ((telefono ~ '^[0-9]{10}$'::text)),
+    CONSTRAINT ck_cliente_telefono_no_vacio CHECK ((telefono ~ '[^[:space:]]'::text)),
+    CONSTRAINT ck_cliente_tipo_documento CHECK ((tipo_documento = ANY (ARRAY['CC'::text, 'CE'::text, 'PA'::text])))
 );
 
 
@@ -266,7 +371,10 @@ CREATE TABLE public.mensualidad (
     vehiculo_id bigint NOT NULL,
     fecha_inicio date NOT NULL,
     fecha_fin date NOT NULL,
-    CONSTRAINT ck_mensualidad_fechas CHECK ((fecha_fin > fecha_inicio))
+    pago_id bigint,
+    pago_estado text,
+    CONSTRAINT ck_mensualidad_fechas CHECK ((fecha_fin > fecha_inicio)),
+    CONSTRAINT ck_mensualidad_pago CHECK (((pago_id IS NULL) = (pago_estado IS NULL)))
 );
 
 
@@ -342,6 +450,98 @@ ALTER TABLE public.operador ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
 
 
 --
+-- Name: pago; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.pago (
+    id bigint NOT NULL,
+    comprobante text NOT NULL,
+    meses smallint NOT NULL,
+    tarifa_id bigint NOT NULL,
+    tipo_vehiculo text NOT NULL,
+    valor_mensual integer NOT NULL,
+    monto integer NOT NULL,
+    metodo text NOT NULL,
+    referencia text,
+    fecha timestamp with time zone DEFAULT now() NOT NULL,
+    registrado_por_cuenta_id bigint NOT NULL,
+    estado text DEFAULT 'VALIDO'::text NOT NULL,
+    anulado_en timestamp with time zone,
+    anulado_por_cuenta_id bigint,
+    motivo_anulacion text,
+    CONSTRAINT ck_pago_anulacion CHECK ((((estado = 'VALIDO'::text) AND (anulado_en IS NULL) AND (anulado_por_cuenta_id IS NULL) AND (motivo_anulacion IS NULL)) OR ((estado = 'ANULADO'::text) AND (anulado_en IS NOT NULL) AND (anulado_por_cuenta_id IS NOT NULL) AND (motivo_anulacion IS NOT NULL) AND ((char_length(motivo_anulacion) >= 10) AND (char_length(motivo_anulacion) <= 200)) AND (motivo_anulacion !~ '^[[:space:]]|[[:space:]]$'::text) AND (anulado_en >= fecha)))),
+    CONSTRAINT ck_pago_comprobante_formato CHECK ((comprobante ~ '^RC-[0-9]{6}$'::text)),
+    CONSTRAINT ck_pago_estado CHECK ((estado = ANY (ARRAY['VALIDO'::text, 'ANULADO'::text]))),
+    CONSTRAINT ck_pago_meses CHECK (((meses >= 1) AND (meses <= 6))),
+    CONSTRAINT ck_pago_metodo CHECK ((metodo = ANY (ARRAY['EFECTIVO'::text, 'TRANSFERENCIA'::text, 'TARJETA'::text]))),
+    CONSTRAINT ck_pago_monto CHECK ((monto = (valor_mensual * meses))),
+    CONSTRAINT ck_pago_referencia CHECK ((((metodo = 'EFECTIVO'::text) AND (referencia IS NULL)) OR ((metodo <> 'EFECTIVO'::text) AND (referencia IS NOT NULL) AND (referencia ~ '^[A-Za-z0-9-]{4,30}$'::text))))
+);
+
+
+--
+-- Name: pago_comprobante_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.pago_comprobante_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    MAXVALUE 999999
+    CACHE 1;
+
+
+--
+-- Name: pago_comprobante_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.pago_comprobante_seq OWNED BY public.pago.comprobante;
+
+
+--
+-- Name: pago_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.pago ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.pago_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: tarifa; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tarifa (
+    id bigint NOT NULL,
+    tipo_vehiculo text NOT NULL,
+    valor integer NOT NULL,
+    vigente_desde timestamp with time zone DEFAULT now() NOT NULL,
+    definida_por_cuenta_id bigint,
+    CONSTRAINT ck_tarifa_tipo_vehiculo CHECK ((tipo_vehiculo = ANY (ARRAY['MOTO'::text, 'AUTOMOVIL'::text, 'CAMIONETA'::text]))),
+    CONSTRAINT ck_tarifa_valor CHECK (((valor >= 1000) AND (valor <= 2000000)))
+);
+
+
+--
+-- Name: tarifa_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.tarifa ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.tarifa_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
 -- Name: vehiculo; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -376,6 +576,13 @@ ALTER TABLE public.vehiculo ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
     NO MAXVALUE
     CACHE 1
 );
+
+
+--
+-- Name: pago comprobante; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.pago ALTER COLUMN comprobante SET DEFAULT ('RC-'::text || lpad((nextval('public.pago_comprobante_seq'::regclass))::text, 6, '0'::text));
 
 
 --
@@ -451,6 +658,14 @@ ALTER TABLE ONLY public.estancia
 
 
 --
+-- Name: mensualidad ex_mensualidad_pagada_sin_superposicion; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mensualidad
+    ADD CONSTRAINT ex_mensualidad_pagada_sin_superposicion EXCLUDE USING gist (vehiculo_id WITH =, daterange(fecha_inicio, fecha_fin, '[]'::text) WITH &&) WHERE ((pago_estado = 'VALIDO'::text));
+
+
+--
 -- Name: mensualidad mensualidad_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -475,6 +690,22 @@ ALTER TABLE ONLY public.operador
 
 
 --
+-- Name: pago pago_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.pago
+    ADD CONSTRAINT pago_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: tarifa tarifa_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tarifa
+    ADD CONSTRAINT tarifa_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: celda uq_celda_codigo; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -483,19 +714,51 @@ ALTER TABLE ONLY public.celda
 
 
 --
--- Name: cliente uq_cliente_documento; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.cliente
-    ADD CONSTRAINT uq_cliente_documento UNIQUE (documento);
-
-
---
 -- Name: cuenta_usuario uq_cuenta_usuario_operador; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.cuenta_usuario
     ADD CONSTRAINT uq_cuenta_usuario_operador UNIQUE (operador_id);
+
+
+--
+-- Name: mensualidad uq_mensualidad_pago; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mensualidad
+    ADD CONSTRAINT uq_mensualidad_pago UNIQUE (pago_id);
+
+
+--
+-- Name: pago uq_pago_comprobante; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.pago
+    ADD CONSTRAINT uq_pago_comprobante UNIQUE (comprobante);
+
+
+--
+-- Name: pago uq_pago_id_estado; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.pago
+    ADD CONSTRAINT uq_pago_id_estado UNIQUE (id, estado);
+
+
+--
+-- Name: tarifa uq_tarifa_id_tipo_valor; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tarifa
+    ADD CONSTRAINT uq_tarifa_id_tipo_valor UNIQUE (id, tipo_vehiculo, valor);
+
+
+--
+-- Name: tarifa uq_tarifa_tipo_desde; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tarifa
+    ADD CONSTRAINT uq_tarifa_tipo_desde UNIQUE (tipo_vehiculo, vigente_desde);
 
 
 --
@@ -585,6 +848,13 @@ CREATE INDEX ix_novedad_estancia ON public.novedad USING btree (estancia_id);
 
 
 --
+-- Name: ix_pago_fecha; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_pago_fecha ON public.pago USING btree (fecha);
+
+
+--
 -- Name: ix_vehiculo_cliente; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -596,6 +866,13 @@ CREATE INDEX ix_vehiculo_cliente ON public.vehiculo USING btree (cliente_id);
 --
 
 CREATE UNIQUE INDEX uq_celda_codigo_ci ON public.celda USING btree (upper(codigo));
+
+
+--
+-- Name: uq_cliente_tipo_documento; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_cliente_tipo_documento ON public.cliente USING btree (tipo_documento, upper(documento));
 
 
 --
@@ -617,6 +894,48 @@ CREATE UNIQUE INDEX uq_estancia_celda_abierta ON public.estancia USING btree (ce
 --
 
 CREATE UNIQUE INDEX uq_estancia_vehiculo_abierta ON public.estancia USING btree (vehiculo_id) WHERE (salida IS NULL);
+
+
+--
+-- Name: mensualidad mensualidad_pagada_sin_cambios; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER mensualidad_pagada_sin_cambios BEFORE DELETE OR UPDATE ON public.mensualidad FOR EACH ROW EXECUTE FUNCTION public.mensualidad_pagada_inmutable();
+
+
+--
+-- Name: mensualidad mensualidad_pagada_sin_vaciar; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER mensualidad_pagada_sin_vaciar BEFORE TRUNCATE ON public.mensualidad FOR EACH STATEMENT EXECUTE FUNCTION public.mensualidad_sin_vaciar();
+
+
+--
+-- Name: pago pago_sin_cambios; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER pago_sin_cambios BEFORE DELETE OR UPDATE ON public.pago FOR EACH ROW EXECUTE FUNCTION public.pago_solo_anular();
+
+
+--
+-- Name: pago pago_sin_vaciar; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER pago_sin_vaciar BEFORE TRUNCATE ON public.pago FOR EACH STATEMENT EXECUTE FUNCTION public.pago_solo_anular();
+
+
+--
+-- Name: tarifa tarifa_sin_cambios; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER tarifa_sin_cambios BEFORE DELETE OR UPDATE ON public.tarifa FOR EACH ROW EXECUTE FUNCTION public.tarifa_inmutable();
+
+
+--
+-- Name: tarifa tarifa_sin_vaciar; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER tarifa_sin_vaciar BEFORE TRUNCATE ON public.tarifa FOR EACH STATEMENT EXECUTE FUNCTION public.tarifa_inmutable();
 
 
 --
@@ -649,6 +968,14 @@ ALTER TABLE ONLY public.auditoria_cuenta
 
 ALTER TABLE ONLY public.auditoria_cuenta
     ADD CONSTRAINT fk_auditoria_cuenta_cuenta FOREIGN KEY (cuenta_id) REFERENCES public.cuenta_usuario(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: cliente fk_cliente_registrado_por; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.cliente
+    ADD CONSTRAINT fk_cliente_registrado_por FOREIGN KEY (registrado_por_cuenta_id) REFERENCES public.cuenta_usuario(id) ON DELETE RESTRICT;
 
 
 --
@@ -724,6 +1051,14 @@ ALTER TABLE ONLY public.estancia
 
 
 --
+-- Name: mensualidad fk_mensualidad_pago; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mensualidad
+    ADD CONSTRAINT fk_mensualidad_pago FOREIGN KEY (pago_id, pago_estado) REFERENCES public.pago(id, estado) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
 -- Name: mensualidad fk_mensualidad_vehiculo; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -748,6 +1083,38 @@ ALTER TABLE ONLY public.novedad
 
 
 --
+-- Name: pago fk_pago_anulado_por; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.pago
+    ADD CONSTRAINT fk_pago_anulado_por FOREIGN KEY (anulado_por_cuenta_id) REFERENCES public.cuenta_usuario(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: pago fk_pago_registrado_por; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.pago
+    ADD CONSTRAINT fk_pago_registrado_por FOREIGN KEY (registrado_por_cuenta_id) REFERENCES public.cuenta_usuario(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: pago fk_pago_tarifa; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.pago
+    ADD CONSTRAINT fk_pago_tarifa FOREIGN KEY (tarifa_id, tipo_vehiculo, valor_mensual) REFERENCES public.tarifa(id, tipo_vehiculo, valor) ON DELETE RESTRICT;
+
+
+--
+-- Name: tarifa fk_tarifa_definida_por; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tarifa
+    ADD CONSTRAINT fk_tarifa_definida_por FOREIGN KEY (definida_por_cuenta_id) REFERENCES public.cuenta_usuario(id) ON DELETE RESTRICT;
+
+
+--
 -- Name: vehiculo fk_vehiculo_cliente; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -759,5 +1126,5 @@ ALTER TABLE ONLY public.vehiculo
 -- PostgreSQL database dump complete
 --
 
-\unrestrict yD8mmha9kEpJHvgSSiPv5x42oggpjPbGR1UdVpcLzDyjZ6P7GXidSc4chVJpiCb
+\unrestrict Xd1mHnToKMLkpAdAubeVyy6uLCkJi6FAxES8JxhjGB4NPH5TaMWUgzQfxdQa2xV
 
