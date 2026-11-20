@@ -1,6 +1,6 @@
 """Las semillas crean los casos de demostración y no duplican al repetirse (con rollback)."""
 
-from datetime import timedelta
+from datetime import date, timedelta
 
 from sqlalchemy import func, select
 
@@ -82,3 +82,50 @@ def test_semillas_crean_cuentas_sobre_las_personas_de_la_ea1(api_y_sesion):
     respuesta = api.post("/auth/login", json={"usuario": "marta.usuga", "contrasena": "marta1234"},
                          headers={"Authorization": ""})
     assert respuesta.status_code == 200 and respuesta.json()["cuenta"]["rol"] == "OPERADOR"
+
+
+# --- Iteración 3: tarifas iniciales y pagos de ejemplo ---
+
+def test_semillas_crean_tarifas_y_pagos_de_ejemplo(api_y_sesion):
+    from app.config import CredencialesSemilla
+    from app.models import CuentaUsuario, Pago, Tarifa
+
+    api, session = api_y_sesion
+    if session.scalar(select(func.count()).select_from(CuentaUsuario)
+                      .where(CuentaUsuario.nombre_usuario.in_(["marta.usuga", "diego.arango"]))):
+        import pytest
+        pytest.skip("La base ya tiene las cuentas semilla.")
+    credenciales = CredencialesSemilla(admin_usuario="admin.semilla", admin_nombre="Administrador de prueba",
+                                       admin_contrasena="admin1234", marta_contrasena="marta1234",
+                                       diego_contrasena="diego1234")
+    hoy = hoy_bogota()
+    creados = sembrar(session, hoy, credenciales)
+    assert creados["pagos"] == 2
+    # Tarifas del documento (D12), definidas por las semillas.
+    vigentes = {v["tipo_vehiculo"]: v["tarifa"] for v in api.get("/tarifas").json()}
+    assert {t: v["valor"] for t, v in vigentes.items()} == {"MOTO": 60000, "AUTOMOVIL": 120000, "CAMIONETA": 140000}
+    # STU852: renovación anticipada, válida: sigue vigente y tiene un periodo pagado hacia adelante.
+    stu = api.get("/pagos/estado/STU852").json()
+    assert stu["estado"] == "VIGENTE" and len(stu["periodos_futuros"]) == 1
+    futuro = stu["periodos_futuros"][0]
+    assert futuro["comprobante"].startswith("RC-")
+    assert futuro["fecha_inicio"] == (date.fromisoformat(stu["periodo_actual"]["fecha_fin"]) + timedelta(days=1)).isoformat()
+    # ABC123: su pago de ejemplo está anulado; no cuenta para el estado, pero se muestra.
+    abc = api.get("/pagos/estado/ABC123").json()
+    assert abc["estado"] == "VIGENTE" and abc["periodos_futuros"] == [] and len(abc["periodos_anulados"]) == 1
+    pagos = {p.estado: p for p in session.scalars(select(Pago).where(Pago.id.in_(
+        select(Pago.id).order_by(Pago.id.desc()).limit(2))))}
+    assert pagos["VALIDO"].metodo == "EFECTIVO" and pagos["VALIDO"].monto == 120000
+    assert pagos["ANULADO"].metodo == "TRANSFERENCIA" and pagos["ANULADO"].motivo_anulacion
+    marta = session.scalar(select(CuentaUsuario).where(CuentaUsuario.nombre_usuario == "marta.usuga"))
+    admin = session.scalar(select(CuentaUsuario).where(CuentaUsuario.nombre_usuario == "admin.semilla"))
+    assert {p.registrado_por_cuenta_id for p in pagos.values()} == {marta.id}
+    assert pagos["ANULADO"].anulado_por_cuenta_id == admin.id
+    # Los casos de la EA1 siguen igual (los usan las pruebas, el e2e y el guion).
+    assert api.get("/pagos/estado/MNO654").json()["estado"] == "SIN_MENSUALIDAD"
+    assert api.get("/pagos/estado/DEF456").json()["estado"] == "VENCIDA"
+    # Idempotente: ni tarifas ni pagos nuevos al repetir.
+    antes = session.scalar(select(func.count()).select_from(Tarifa))
+    otra = sembrar(session, hoy, credenciales)
+    assert otra["tarifas"] == 0 and otra["pagos"] == 0
+    assert session.scalar(select(func.count()).select_from(Tarifa)) == antes

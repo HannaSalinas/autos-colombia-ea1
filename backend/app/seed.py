@@ -4,18 +4,26 @@ Uso: python -m app.seed
 
 Iteración 2: también crea la cuenta del Administrador y las de Marta y Diego (rol Operador),
 con las contraseñas de .env. Una cuenta que ya existe no se toca (nunca se cambia su contraseña).
+
+Iteración 3: crea las tarifas iniciales (si el tipo no tiene ninguna) y dos pagos de ejemplo
+registrados por Marta: uno válido de STU852 (renovación anticipada) y uno de ABC123 que el
+Administrador anuló. Los casos de mensualidad de la EA1 (vencida, vence hoy, sin mensualidad...) no
+se tocan: los usan las pruebas, el e2e y el guion del README.
 """
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import ConfigurationError, CredencialesSemilla, load_seed_credentials
 from app.database import get_engine
+from app.domain.pagos import calcular_monto, fin_de_periodo, inicio_de_periodo
 from app.domain.reglas import TOTAL_CELDAS, fin_de_mensualidad, hoy_bogota, sumar_meses
-from app.models import AuditoriaCuenta, Celda, Cliente, CuentaUsuario, Mensualidad, Operador, Vehiculo
+from app.models import AuditoriaCuenta, Celda, Cliente, CuentaUsuario, Mensualidad, Operador, Pago, Tarifa, Vehiculo
+from app.services.mensualidad import periodo_valido
 from app.services.seguridad import hash_contrasena
+from app.services.tarifa import tarifa_vigente
 
 # 80 celdas: C01–C70 para carros y M01–M10 para motos.
 CELDAS = [(f"C{n:02d}", "CARRO") for n in range(1, TOTAL_CELDAS["CARRO"] + 1)] + [
@@ -47,6 +55,14 @@ VEHICULOS = [
     ("MNO654", "CAMIONETA", "Kia", 2025, "Verde", "1005678901", "sin_mensualidad"),
     ("PQR98B", "MOTO", "Suzuki", 2026, "Rojo", "1006789012", "empieza_manana"),
     ("STU852", "AUTOMOVIL", "Nissan", 2018, "Negro", "1006789012", "vigente"),
+]
+
+# Iteración 3: tarifas iniciales del documento (D12) y pagos de ejemplo.
+TARIFAS = [("MOTO", 60000), ("AUTOMOVIL", 120000), ("CAMIONETA", 140000)]
+# placa, meses, método, referencia, motivo de anulación (None = el pago queda válido)
+PAGOS = [
+    ("STU852", 1, "EFECTIVO", None, None),
+    ("ABC123", 1, "TRANSFERENCIA", "TRX-SEMILLA-01", "Pago de ejemplo registrado dos veces por error."),
 ]
 
 
@@ -104,9 +120,59 @@ def sembrar_cuentas(session: Session, credenciales: CredencialesSemilla) -> int:
     return creadas
 
 
+def sembrar_tarifas(session: Session) -> int:
+    """Una tarifa por tipo de vehículo, solo si el tipo todavía no tiene ninguna (nunca se cambia una
+    existente). definida_por NULL = la definieron las semillas."""
+    creadas = 0
+    for tipo, valor in TARIFAS:
+        if tarifa_vigente(session, tipo) is None:
+            session.add(Tarifa(tipo_vehiculo=tipo, valor=valor, vigente_desde=datetime.now(timezone.utc)))
+            creadas += 1
+    session.flush()
+    return creadas
+
+
+def sembrar_pagos(session: Session, hoy: date, credenciales: CredencialesSemilla) -> int:
+    """Pagos de ejemplo con las mismas reglas del servicio (D11, D13). Un vehículo que ya tiene algún
+    pago no se toca. Los registra Marta; el anulado lo anuló el Administrador."""
+    def cuenta(usuario: str) -> CuentaUsuario | None:
+        return session.scalar(select(CuentaUsuario).where(func.lower(CuentaUsuario.nombre_usuario) == usuario))
+
+    marta, admin = cuenta("marta.usuga"), cuenta(credenciales.admin_usuario)
+    if marta is None or admin is None:
+        return 0
+    creados = 0
+    for placa, meses, metodo, referencia, motivo in PAGOS:
+        vehiculo = session.scalar(select(Vehiculo).where(Vehiculo.placa == placa))
+        if vehiculo is None or session.scalar(select(Mensualidad.id).where(
+                Mensualidad.vehiculo_id == vehiculo.id, Mensualidad.pago_id.is_not(None))) is not None:
+            continue
+        ultimo_fin = session.scalar(select(func.max(Mensualidad.fecha_fin))
+                                    .where(Mensualidad.vehiculo_id == vehiculo.id, periodo_valido()))
+        inicio = inicio_de_periodo(ultimo_fin, hoy)
+        tarifa = tarifa_vigente(session, vehiculo.tipo)
+        ahora = datetime.now(timezone.utc)
+        pago = Pago(meses=meses, tarifa_id=tarifa.id, tipo_vehiculo=tarifa.tipo_vehiculo, valor_mensual=tarifa.valor,
+                    monto=calcular_monto(tarifa.valor, meses), metodo=metodo, referencia=referencia, fecha=ahora,
+                    registrado_por_cuenta_id=marta.id)
+        session.add(pago)
+        session.flush()
+        session.add(Mensualidad(vehiculo_id=vehiculo.id, fecha_inicio=inicio, fecha_fin=fin_de_periodo(inicio, meses),
+                                pago_id=pago.id, pago_estado="VALIDO"))
+        session.flush()
+        if motivo:
+            # Pasa una sola vez de VALIDO a ANULADO; la base actualiza la copia del estado del periodo.
+            pago.estado, pago.anulado_en = "ANULADO", ahora
+            pago.anulado_por_cuenta_id, pago.motivo_anulacion = admin.id, motivo
+            session.flush()
+        creados += 1
+    return creados
+
+
 def sembrar(session: Session, hoy: date, credenciales: CredencialesSemilla | None = None) -> dict[str, int]:
     """Sin credenciales no crea cuentas (así las pruebas de datos no dependen de .env)."""
-    creados = {"celdas": 0, "operadores": 0, "cuentas": 0, "clientes": 0, "vehiculos": 0, "mensualidades": 0}
+    creados = {"celdas": 0, "operadores": 0, "cuentas": 0, "clientes": 0, "vehiculos": 0, "mensualidades": 0,
+               "tarifas": 0, "pagos": 0}
     existentes = set(session.scalars(select(Celda.codigo)))
     for codigo, tipo in CELDAS:
         if codigo not in existentes:
@@ -138,9 +204,12 @@ def sembrar(session: Session, hoy: date, credenciales: CredencialesSemilla | Non
         for inicio, fin in mensualidades(caso, hoy):
             session.add(Mensualidad(vehiculo_id=vehiculo.id, fecha_inicio=inicio, fecha_fin=fin))
             creados["mensualidades"] += 1
+    creados["tarifas"] = sembrar_tarifas(session)
     if credenciales is not None:
         session.flush()
         creados["cuentas"] = sembrar_cuentas(session, credenciales)
+        session.flush()
+        creados["pagos"] = sembrar_pagos(session, hoy, credenciales)
     return creados
 
 
