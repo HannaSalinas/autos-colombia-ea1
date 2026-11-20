@@ -73,7 +73,8 @@ describe('Navegación', () => {
 
   it('el Operador ve solo las opciones de su lista de permisos', () => {
     const el = montar(OPERADOR).nativeElement as HTMLElement;
-    // Iteración 3: Pagos y Pagos registrados también son del Operador (D14).
+    // Iteración 3: el Operador registra y consulta pagos (D14) y consulta clientes y tarifas;
+    // Recaudo es solo del Administrador (RE-04).
     expect(enlaces(el)).toEqual([
       'Inicio',
       'Control de acceso',
@@ -82,10 +83,13 @@ describe('Navegación', () => {
       'Historial',
       'Pagos registrados',
       'Vehículos',
+      'Clientes',
+      'Tarifas',
       'Celdas',
     ]);
     expect(el.textContent).not.toContain('Operadores');
     expect(el.textContent).not.toContain('Cuentas de usuario'); // HU-16.1
+    expect(el.textContent).not.toContain('Recaudo');
     expect(el.textContent).toContain('Marta Úsuga (Portería 1)');
     expect(el.textContent).toContain('Operador · marta.usuga');
   });
@@ -99,7 +103,10 @@ describe('Navegación', () => {
       'Ocupación',
       'Historial',
       'Pagos registrados',
+      'Recaudo',
       'Vehículos',
+      'Clientes',
+      'Tarifas',
       'Celdas',
       'Cuentas de usuario',
     ]);

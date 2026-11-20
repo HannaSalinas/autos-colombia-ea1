@@ -85,5 +85,26 @@ export const routes: Routes = [
     data: { permiso: PERMISOS.pagos },
     loadComponent: () => import('./pago-detalle/pago-detalle').then((m) => m.PagoDetalleComponent),
   },
+  {
+    path: 'consultas/recaudo',
+    title: 'Recaudo | Autos Colombia',
+    canActivate: [accesoGuard],
+    data: { permiso: PERMISOS.recaudoVer },
+    loadComponent: () => import('./recaudo/recaudo').then((m) => m.RecaudoComponent),
+  },
+  {
+    path: 'gestion/clientes',
+    title: 'Clientes | Autos Colombia',
+    canActivate: [accesoGuard],
+    data: { permiso: PERMISOS.vehiculosVer },
+    loadComponent: () => import('./clientes/clientes').then((m) => m.Clientes),
+  },
+  {
+    path: 'gestion/tarifas',
+    title: 'Tarifas | Autos Colombia',
+    canActivate: [accesoGuard],
+    data: { permiso: PERMISOS.tarifasVer },
+    loadComponent: () => import('./tarifas/tarifas').then((m) => m.Tarifas),
+  },
   { path: '**', redirectTo: '' },
 ];

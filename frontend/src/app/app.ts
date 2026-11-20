@@ -22,7 +22,11 @@ export const MENU: readonly OpcionMenu[] = [
   { ruta: '/consultas/ocupacion', etiqueta: 'Ocupación', permiso: PERMISOS.consultas },
   { ruta: '/consultas/historial', etiqueta: 'Historial', permiso: PERMISOS.consultas },
   { ruta: '/consultas/pagos', etiqueta: 'Pagos registrados', permiso: PERMISOS.pagos },
+  { ruta: '/consultas/recaudo', etiqueta: 'Recaudo', permiso: PERMISOS.recaudoVer },
   { ruta: '/gestion/vehiculos', etiqueta: 'Vehículos', permiso: PERMISOS.vehiculosVer },
+  // Iteración 3: ambos roles consultan clientes y tarifas; registrar y cambiar es del Administrador.
+  { ruta: '/gestion/clientes', etiqueta: 'Clientes', permiso: PERMISOS.vehiculosVer },
+  { ruta: '/gestion/tarifas', etiqueta: 'Tarifas', permiso: PERMISOS.tarifasVer },
   { ruta: '/gestion/celdas', etiqueta: 'Celdas', permiso: PERMISOS.celdasVer },
   { ruta: '/gestion/cuentas', etiqueta: 'Cuentas de usuario', permiso: PERMISOS.cuentasGestionar },
 ];
