@@ -1,13 +1,14 @@
 import { defineConfig } from '@playwright/test';
 
 /**
- * RNF-20 (caso de prueba NF-02): el mismo recorrido en tres navegadores.
+ * RNF-20 y RNF-26 (caso de prueba NF-02 de los planes PP-02 y PP-03): el mismo recorrido en tres navegadores.
  * - Un navegador a la vez (workers: 1): el equipo tiene 2 núcleos y así las capturas son estables.
  * - Sin trazas, videos ni reporte HTML: las trazas guardan lo que se escribe (las contraseñas).
  */
 export default defineConfig({
   testDir: '.',
-  testMatch: 'nf02.spec.ts',
+  // RECORRIDO=rnf26 (EA3) ejecuta las pantallas de la Iteración 3; por defecto, las de la EA2.
+  testMatch: process.env.RECORRIDO === 'rnf26' ? 'rnf26.spec.ts' : 'nf02.spec.ts',
   // Se ejecuta con el usuario del equipo: los archivos internos de Playwright van a /tmp.
   outputDir: '/tmp/test-results',
   fullyParallel: false,

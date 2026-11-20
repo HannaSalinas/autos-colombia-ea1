@@ -1,13 +1,14 @@
 /** Antes del recorrido: espera a que el sistema responda y limpia las capturas de una ejecución anterior. */
 import { readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
-import { RESULTADOS, SALIDA, asegurarCarpetas, variable } from './comun';
+import { PREFIJO, RESULTADOS, SALIDA, asegurarCarpetas, variable } from './comun';
 
 export default async function preparar(): Promise<void> {
   const base = process.env.BASE_URL ?? 'http://frontend';
   asegurarCarpetas();
   for (const nombre of readdirSync(SALIDA)) {
-    if (/^NF-02_.*\.png$/.test(nombre) || nombre === 'reporte.md') rmSync(join(SALIDA, nombre));
+    if ((nombre.startsWith(`${PREFIJO}_`) && nombre.endsWith('.png')) || nombre === 'reporte.md')
+      rmSync(join(SALIDA, nombre));
   }
   rmSync(RESULTADOS, { recursive: true, force: true });
   asegurarCarpetas();

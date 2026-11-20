@@ -1,5 +1,5 @@
 /**
- * Después del recorrido: arma docs/evidencias/rnf20/reporte.md con el navegador, su versión y el
+ * Después del recorrido: arma reporte.md en docs/evidencias/rnf20/ (o rnf26/) con el navegador, su versión y el
  * resultado de cada pantalla, y comprueba que ningún valor de .env quedó en el reporte ni en los
  * nombres de las capturas.
  */
@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import {
   NAVEGADORES,
   PANTALLAS,
+  REPORTE,
   RESULTADOS,
   SALIDA,
   archivo,
@@ -44,12 +45,12 @@ export default async function reporte(): Promise<void> {
   const cumple = resultados.length === orden.length && todas.length > 0 && todas.every((p) => p.estado === 'Sí');
 
   const lineas = [
-    '# Evidencia de RNF-20: compatibilidad de navegadores (caso NF-02)',
+    REPORTE.titulo,
     '',
     `Pruebas de extremo a extremo con Playwright 1.64.1 dentro de Docker, el ${fecha} (hora de`,
-    `Bogotá), sobre el commit \`${commit()}\`. Comando: \`docker compose --profile e2e run --rm --build e2e\`.`,
+    `Bogotá), sobre el commit \`${commit()}\`. Comando: \`${REPORTE.comando}\`.`,
     'Cada pantalla se verifica (textos, menús y botones esperados) antes de capturarla, y el recorrido',
-    'no modifica datos: las confirmaciones se cancelan y la cuenta "abc" no llega a enviarse.',
+    REPORTE.datos,
     'Los navegadores corren sin ventana (modo headless), con una ventana de 1280 × 900 px; por eso su',
     'identificación dice "HeadlessChrome". La página que dibujan es la misma que con ventana.',
     '',
@@ -84,7 +85,7 @@ export default async function reporte(): Promise<void> {
       return `| ${numero} · ${titulo} | ${celdas.join(' | ')} |`;
     }),
     '',
-    `**Resultado: ${cumple ? 'las 10 pantallas funcionan en los tres navegadores' : 'hay pantallas que no funcionan o no se ejecutaron (ver detalle)'}.**`,
+    `**Resultado: ${cumple ? `las ${PANTALLAS.length} pantallas funcionan en los tres navegadores` : 'hay pantallas que no funcionan o no se ejecutaron (ver detalle)'}.**`,
     '',
   ];
   // Capturas idénticas entre navegadores: se explican en vez de ocultarlas.
@@ -100,7 +101,7 @@ export default async function reporte(): Promise<void> {
     lineas.push(
       '## Capturas idénticas entre Chrome y Edge',
       '',
-      `${iguales} de las 10 capturas de Chrome y de Edge son idénticas byte por byte. Es lo esperado: los`,
+      `${iguales} de las ${PANTALLAS.length} capturas de Chrome y de Edge son idénticas byte por byte. Es lo esperado: los`,
       'dos navegadores usan el mismo motor (Chromium) y las mismas fuentes del contenedor, y la captura es',
       'del contenido de la página, no de la ventana del navegador. Que sí se ejecutaron navegadores',
       'distintos lo muestran la versión y la identificación (user agent) de la tabla de navegadores.',
@@ -124,5 +125,5 @@ export default async function reporte(): Promise<void> {
   const filtrado = secretos().filter((s) => texto.includes(s) || nombres.includes(s));
   if (filtrado.length) throw new Error('Un valor de .env aparece en el reporte o en los archivos: no se guarda el reporte.');
   writeFileSync(join(SALIDA, 'reporte.md'), texto);
-  console.log(`Reporte: docs/evidencias/rnf20/reporte.md · ${cumple ? 'todo funciona' : 'HAY FALLOS'}`);
+  console.log(`Reporte: ${REPORTE.carpeta}/reporte.md · ${cumple ? 'todo funciona' : 'HAY FALLOS'}`);
 }

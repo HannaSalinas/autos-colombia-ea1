@@ -114,6 +114,29 @@ services:
       - ./docs/evidencias/rnf20:/e2e/salida
       - ./.git:/repo-git:ro   # solo para leer el commit que aparece en el reporte
 
+  # RNF-26 (caso NF-02 del plan PP-03): las 10 pantallas de la Iteración 3 en los mismos tres navegadores.
+  # Uso: docker compose --profile e2e run --rm --build e2e-rnf26
+  # No modifica datos (el pago llega hasta el resumen; la tarifa y la anulación hasta su confirmación).
+  # Las capturas y el reporte quedan en docs/evidencias/rnf26/.
+  e2e-rnf26:
+    profiles: ["e2e"]
+    build: ./e2e
+    depends_on:
+      - frontend
+    environment:
+      RECORRIDO: rnf26
+      BASE_URL: http://frontend
+      SALIDA: /e2e/salida
+      TZ: America/Bogota
+      ADMIN_USUARIO: "${ADMIN_USUARIO:?Falta ADMIN_USUARIO en .env (ver .env.example)}"
+      ADMIN_CONTRASENA: "${ADMIN_CONTRASENA:?Falta ADMIN_CONTRASENA en .env (ver .env.example)}"
+      MARTA_CONTRASENA: "${MARTA_CONTRASENA:?Falta MARTA_CONTRASENA en .env (ver .env.example)}"
+    user: "${E2E_UID:-1000}:${E2E_GID:-1000}"
+    shm_size: "1gb"
+    volumes:
+      - ./docs/evidencias/rnf26:/e2e/salida
+      - ./.git:/repo-git:ro
+
   # Plan de pruebas de la EA2 (casos US, PE y CE). Lo lanza scripts/ejecutar_plan_pruebas.sh, que
   # antes recrea la base. Las contraseñas de las cuentas de prueba se generan en memoria dentro del
   # contenedor; las de .env solo pasan como variables de entorno (nunca se escriben).
