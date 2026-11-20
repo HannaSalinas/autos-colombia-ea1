@@ -13,6 +13,13 @@ export const PERMISOS = {
   vehiculosVer: 'vehiculos:ver',
   vehiculosGestionar: 'vehiculos:gestionar',
   cuentasGestionar: 'cuentas:gestionar',
+  // Iteración 3: pagos, tarifas, clientes y recaudo.
+  pagos: 'pagos',
+  pagosAnular: 'pagos:anular',
+  tarifasVer: 'tarifas:ver',
+  tarifasGestionar: 'tarifas:gestionar',
+  clientesGestionar: 'clientes:gestionar',
+  recaudoVer: 'recaudo:ver',
 } as const;
 export type Permiso = (typeof PERMISOS)[keyof typeof PERMISOS];
 
