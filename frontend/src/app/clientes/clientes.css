@@ -1,0 +1,45 @@
+.buscar-cliente {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: end;
+}
+.placa-tag {
+  display: inline-block;
+  margin: 2px 6px 2px 0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #eef3ee;
+  color: #214c43;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 1px;
+  text-decoration: none;
+}
+a.placa-tag:hover {
+  background: #dfe9e2;
+}
+.datos {
+  margin: 0;
+}
+.datos div {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #e6ebe5;
+}
+.datos dt {
+  color: #5d7063;
+  font-size: 14px;
+}
+.datos dd {
+  margin: 0;
+  font-size: 14px;
+}
+@media (max-width: 560px) {
+  .buscar-cliente,
+  .datos div {
+    grid-template-columns: 1fr;
+  }
+}

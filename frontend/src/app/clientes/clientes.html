@@ -1,0 +1,251 @@
+<section class="management" aria-labelledby="clientes-titulo">
+  <header class="heading">
+    <div>
+      <span class="eyebrow">MENSUALIDADES</span>
+      <h1 id="clientes-titulo">Clientes</h1>
+      <p>
+        @if (puedeRegistrar()) {
+          Busca a los clientes y registra a los nuevos para poder asociarles vehículos y cobrarles
+          la mensualidad.
+        } @else {
+          Busca a los clientes por nombre o documento y consulta sus vehículos.
+        }
+      </p>
+    </div>
+    @if (puedeRegistrar()) {
+      <button class="primary" type="button" (click)="nuevo()" [disabled]="guardando()">
+        Registrar cliente
+      </button>
+    }
+  </header>
+  @if (exito()) {
+    <p class="notice success" role="status">{{ exito() }}</p>
+  }
+  @if (errorAccion()) {
+    <p class="notice error" role="alert">{{ errorAccion() }}</p>
+  }
+
+  @if (mostrarFormulario()) {
+    <section class="panel" aria-labelledby="form-cliente-titulo">
+      <h2 id="form-cliente-titulo">Registrar cliente</h2>
+      <p class="hint">El documento es único por tipo y número. El correo es opcional.</p>
+      <form [formGroup]="form" (ngSubmit)="guardar()" novalidate>
+        <fieldset [disabled]="guardando()">
+          <legend class="sr-only">Datos del cliente</legend>
+          <div class="form-grid tres">
+            <div class="field">
+              <label for="tipo-documento">Tipo de documento</label>
+              <select
+                id="tipo-documento"
+                formControlName="tipo_documento"
+                [attr.aria-invalid]="!!errorCampo('tipo_documento')"
+                aria-describedby="tipo-documento-error"
+              >
+                @for (t of tiposDocumento; track t.valor) {
+                  <option [value]="t.valor">{{ t.etiqueta }}</option>
+                }
+              </select>
+              <span id="tipo-documento-error" class="field-error">{{
+                errorCampo('tipo_documento')
+              }}</span>
+            </div>
+            <div class="field">
+              <label for="documento">Número de documento</label>
+              <input
+                id="documento"
+                type="text"
+                formControlName="documento"
+                maxlength="25"
+                autocomplete="off"
+                autocapitalize="characters"
+                [attr.aria-invalid]="!!errorCampo('documento')"
+                aria-describedby="documento-error"
+              />
+              <span id="documento-error" class="field-error">{{ errorCampo('documento') }}</span>
+            </div>
+            <div class="field">
+              <label for="nombre">Nombre completo</label>
+              <input
+                id="nombre"
+                type="text"
+                formControlName="nombre"
+                maxlength="100"
+                autocomplete="off"
+                [attr.aria-invalid]="!!errorCampo('nombre')"
+                aria-describedby="nombre-error"
+              />
+              <span id="nombre-error" class="field-error">{{ errorCampo('nombre') }}</span>
+            </div>
+            <div class="field">
+              <label for="telefono">Teléfono</label>
+              <input
+                id="telefono"
+                type="tel"
+                inputmode="numeric"
+                formControlName="telefono"
+                maxlength="15"
+                autocomplete="off"
+                [attr.aria-invalid]="!!errorCampo('telefono')"
+                aria-describedby="telefono-error"
+              />
+              <span id="telefono-error" class="field-error">{{ errorCampo('telefono') }}</span>
+            </div>
+            <div class="field">
+              <label for="correo">Correo (opcional)</label>
+              <input
+                id="correo"
+                type="email"
+                formControlName="correo"
+                maxlength="120"
+                autocomplete="off"
+                [attr.aria-invalid]="!!errorCampo('correo')"
+                aria-describedby="correo-error"
+              />
+              <span id="correo-error" class="field-error">{{ errorCampo('correo') }}</span>
+            </div>
+          </div>
+          <div class="actions">
+            <button type="submit" class="primary">
+              {{ guardando() ? 'Guardando…' : 'Guardar cliente' }}</button
+            ><button type="button" (click)="cancelar()">Cancelar</button>
+          </div>
+        </fieldset>
+      </form>
+    </section>
+  }
+
+  <section class="panel" aria-label="Buscar clientes">
+    <form [formGroup]="busquedaForm" (ngSubmit)="buscar()" class="buscar-cliente" novalidate>
+      <div class="field">
+        <label for="buscar-cliente">Buscar por nombre o documento</label>
+        <input id="buscar-cliente" type="search" formControlName="buscar" maxlength="80" />
+      </div>
+      <div class="actions">
+        <button type="submit" [disabled]="cargando()">Buscar</button
+        ><button type="button" (click)="limpiar()" [disabled]="cargando()">Limpiar</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel list" aria-label="Listado de clientes" [attr.aria-busy]="cargando()">
+    <div class="list-heading">
+      <h2>
+        Clientes <span class="count">{{ total() }}</span>
+      </h2>
+      <button type="button" (click)="cargar()" [disabled]="cargando()">Actualizar listado</button>
+    </div>
+    @if (cargando()) {
+      <p class="empty" role="status">Cargando clientes…</p>
+    } @else if (errorLista()) {
+      <p class="notice error" role="alert">{{ errorLista() }}</p>
+    } @else if (!items().length) {
+      <p class="empty" role="status">No hay clientes que coincidan con la búsqueda.</p>
+    } @else {
+      <div class="table-scroll">
+        <table>
+          <caption class="sr-only">
+            Clientes, página
+            {{
+              page()
+            }}
+            de
+            {{
+              pages()
+            }}
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Documento</th>
+              <th scope="col">Nombre</th>
+              <th scope="col">Teléfono</th>
+              <th scope="col">Correo</th>
+              <th scope="col">Vehículos</th>
+              <th scope="col">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of items(); track c.id) {
+              <tr>
+                <td>{{ c.tipo_documento }} {{ c.documento }}</td>
+                <th scope="row">{{ c.nombre }}</th>
+                <td>{{ c.telefono }}</td>
+                <td>{{ c.correo || '—' }}</td>
+                <td>
+                  @for (v of c.vehiculos ?? []; track v.id) {
+                    <span class="placa-tag" [attr.title]="v.tipo">{{ v.placa }}</span>
+                  } @empty {
+                    <span class="hint">Sin vehículos</span>
+                  }
+                </td>
+                <td class="row-actions">
+                  <button
+                    type="button"
+                    (click)="verDetalle(c)"
+                    [attr.aria-label]="'Ver detalle de ' + c.nombre"
+                  >
+                    Detalle
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+    <nav class="pagination" aria-label="Paginación de clientes">
+      <button
+        type="button"
+        (click)="cargar(offset() - limit)"
+        [disabled]="cargando() || offset() === 0"
+      >
+        Anterior</button
+      ><span>Página {{ page() }} de {{ pages() }}</span
+      ><button
+        type="button"
+        (click)="cargar(offset() + limit)"
+        [disabled]="cargando() || offset() + limit >= total()"
+      >
+        Siguiente
+      </button>
+    </nav>
+  </section>
+
+  @if (detalle(); as d) {
+    <section class="panel" aria-labelledby="detalle-cliente-titulo">
+      <div class="list-heading">
+        <h2 id="detalle-cliente-titulo">Detalle de {{ d.nombre }}</h2>
+        <button type="button" (click)="detalle.set(null)">Cerrar detalle</button>
+      </div>
+      <dl class="datos">
+        <div>
+          <dt>Documento</dt>
+          <dd>{{ d.tipo_documento }} {{ d.documento }}</dd>
+        </div>
+        <div>
+          <dt>Teléfono</dt>
+          <dd>{{ d.telefono }}</dd>
+        </div>
+        <div>
+          <dt>Correo</dt>
+          <dd>{{ d.correo || 'Sin correo' }}</dd>
+        </div>
+        <div>
+          <dt>Registrado</dt>
+          <dd>{{ registro(d) }}</dd>
+        </div>
+        <div>
+          <dt>Vehículos</dt>
+          <dd>
+            @for (v of d.vehiculos ?? []; track v.id) {
+              <a class="placa-tag" routerLink="/registrar-pago" [queryParams]="{ placa: v.placa }"
+                >{{ v.placa }} · {{ v.tipo }}</a
+              >
+            } @empty {
+              Sin vehículos. Regístralos en Vehículos.
+            }
+          </dd>
+        </div>
+      </dl>
+    </section>
+  }
+</section>
