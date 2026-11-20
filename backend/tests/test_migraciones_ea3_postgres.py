@@ -143,14 +143,16 @@ def test_cliente_registrado_por_y_cuando(conexion):
     falla(conexion, "DELETE FROM cuenta_usuario WHERE id = :a", {"a": admin}, "23503")
 
 
-def test_checks_de_cliente_no_revisan_clientes_antiguos(conexion):
-    # NOT VALID: los clientes de las iteraciones 1 y 2 no se revisan; los nuevos y los modificados, sí.
+def test_checks_de_cliente_validados_en_la_base_de_pruebas(conexion):
+    # La 0009 crea los CHECK de formato NOT VALID; la 0011 los valida si todos los clientes cumplen.
+    # La base de pruebas no tiene clientes antiguos, así que quedan validados
+    # (el caso con clientes que no cumplen está en test_migracion_0011_postgres.py).
     estado = dict(conexion.execute(text(
         "SELECT conname, convalidated FROM pg_constraint WHERE conname LIKE 'ck_cliente_%'"
     )).all())
-    assert estado["ck_cliente_documento_formato"] is False and estado["ck_cliente_nombre_longitud"] is False
-    assert estado["ck_cliente_telefono_formato"] is False
-    # Las columnas nuevas nacieron con datos que cumplen: esos CHECK se validan completos.
+    assert estado["ck_cliente_documento_formato"] is True and estado["ck_cliente_nombre_longitud"] is True
+    assert estado["ck_cliente_telefono_formato"] is True
+    # Las columnas nuevas nacieron con datos que cumplen: esos CHECK se validan completos desde la 0009.
     assert estado["ck_cliente_tipo_documento"] is True and estado["ck_cliente_registro"] is True
 
 
@@ -432,8 +434,15 @@ def test_0009_y_0010_se_aplican_sobre_datos_anteriores_sin_modificarlos(caplog):
                                      "WHERE vehiculo_id = :v ORDER BY id"), {"v": ids["vehiculo"]}).all()
             assert [tuple(f)[:3] for f in despues] == [tuple(f) for f in antes]
             assert all(f.pago_id is None and f.pago_estado is None for f in despues)
+            # 0011: el cliente antiguo no cumple ninguno de los tres CHECK: quedan NOT VALID.
+            assert dict(c.execute(text(
+                "SELECT conname, convalidated FROM pg_constraint WHERE conname IN ('ck_cliente_documento_formato', "
+                "'ck_cliente_nombre_longitud', 'ck_cliente_telefono_formato')")).all()) == {
+                "ck_cliente_documento_formato": False, "ck_cliente_nombre_longitud": False,
+                "ck_cliente_telefono_formato": False}
         avisos = [r.getMessage() for r in caplog.records if r.levelno == logging.WARNING]
         assert any("periodos antiguos que se superponen" in a and "ZZX321" in a for a in avisos)
+        assert sum("queda NOT VALID" in a and str(ids["cliente"]) in a for a in avisos) == 3
 
         # Ida y vuelta con un pago registrado: la bajada también funciona con datos.
         with engine.begin() as c:

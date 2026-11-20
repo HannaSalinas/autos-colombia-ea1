@@ -35,8 +35,8 @@ class Cliente(Base):
         CheckConstraint("telefono ~ '[^[:space:]]'", name="ck_cliente_telefono_no_vacio"),
         CheckConstraint("correo IS NULL OR correo ~ '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$'",
                         name="ck_cliente_correo_formato"),
-        # Agregados en la migración 0009 (Iteración 3). Los de formato son NOT VALID: no revisan
-        # clientes antiguos, sí los nuevos y los modificados.
+        # Agregados en la migración 0009 (Iteración 3). Los de formato nacen NOT VALID: no revisan
+        # clientes antiguos, sí los nuevos y los modificados. La 0011 los valida si todos cumplen.
         CheckConstraint("tipo_documento IN (" + ", ".join(f"'{t}'" for t in TIPOS_DOCUMENTO) + ")",
                         name="ck_cliente_tipo_documento"),
         CheckConstraint("registrado_por_cuenta_id IS NULL OR registrado_en IS NOT NULL", name="ck_cliente_registro"),
