@@ -164,7 +164,7 @@ export class Tarifas {
           this.mostrarFormulario.set(false);
           this.confirmando.set(false);
           this.exito.set(
-            `Nueva tarifa de ${tarifa.tipo_vehiculo}: ${formatoPesos(tarifa.valor)} al mes, vigente desde ${fechaHora(tarifa.vigente_desde)}.`,
+            `Nueva tarifa de ${tarifa.tipo_vehiculo}: ${formatoPesos(tarifa.valor)} al mes, vigente desde ${fechaHora(tarifa.vigente_desde)}`,
           );
           this.cargarVigentes();
           this.cargarHistorial(0);
