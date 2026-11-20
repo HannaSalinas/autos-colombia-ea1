@@ -1,0 +1,56 @@
+.tarjetas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+.tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px;
+  border: 1px solid #dce2dc;
+  border-radius: 12px;
+  background: #f9fbf8;
+}
+.tipo {
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  font-weight: 700;
+  color: #526c60;
+}
+.monto {
+  font-size: 26px;
+  font-weight: 700;
+  color: #203a33;
+  font-variant-numeric: tabular-nums;
+}
+.monto.sin {
+  font-size: 18px;
+  color: #9b1c1c;
+}
+.etiqueta {
+  font-size: 14px;
+  font-weight: 600;
+}
+.valor-actual {
+  padding: 11px 0;
+  font-size: 16px;
+}
+.filtro-tipo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.filtro-tipo select {
+  width: auto;
+}
+.monto-tabla {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 760px) {
+  .tarjetas {
+    grid-template-columns: 1fr;
+  }
+}

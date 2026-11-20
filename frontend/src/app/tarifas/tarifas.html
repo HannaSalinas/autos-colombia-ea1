@@ -1,0 +1,207 @@
+<section class="management" aria-labelledby="tarifas-titulo">
+  <header class="heading">
+    <div>
+      <span class="eyebrow">MENSUALIDADES</span>
+      <h1 id="tarifas-titulo">Tarifas</h1>
+      <p>
+        @if (puedeGestionar()) {
+          Define la tarifa mensual de cada tipo de vehículo. Cada cambio crea una tarifa nueva: las
+          anteriores se conservan en el historial.
+        } @else {
+          Consulta la tarifa mensual vigente de cada tipo de vehículo para informar al cliente.
+        }
+      </p>
+    </div>
+    @if (puedeGestionar()) {
+      <button class="primary" type="button" (click)="nuevaTarifa()" [disabled]="guardando()">
+        Nueva tarifa
+      </button>
+    }
+  </header>
+  @if (exito()) {
+    <p class="notice success" role="status">{{ exito() }}</p>
+  }
+  @if (errorAccion()) {
+    <p class="notice error" role="alert">{{ errorAccion() }}</p>
+  }
+
+  @if (mostrarFormulario()) {
+    <section class="panel" aria-labelledby="form-tarifa-titulo">
+      <h2 id="form-tarifa-titulo">Nueva tarifa</h2>
+      <p class="hint">
+        La nueva tarifa rige desde el momento en que la guardes, para los pagos siguientes. Los
+        pagos ya registrados conservan su monto.
+      </p>
+      <form [formGroup]="form" (ngSubmit)="revisar()" novalidate>
+        <fieldset [disabled]="guardando() || confirmando()">
+          <legend class="sr-only">Datos de la tarifa</legend>
+          <div class="form-grid tres">
+            <div class="field">
+              <label for="tipo-vehiculo">Tipo de vehículo</label>
+              <select
+                id="tipo-vehiculo"
+                formControlName="tipo_vehiculo"
+                [attr.aria-invalid]="!!errorCampo('tipo_vehiculo')"
+                aria-describedby="tipo-vehiculo-error"
+              >
+                <option value="">Selecciona un tipo</option>
+                @for (t of tipos; track t) {
+                  <option [value]="t">{{ t }}</option>
+                }
+              </select>
+              <span id="tipo-vehiculo-error" class="field-error">{{
+                errorCampo('tipo_vehiculo')
+              }}</span>
+            </div>
+            <div class="field">
+              <label for="valor">Valor mensual en pesos</label>
+              <input
+                id="valor"
+                type="text"
+                inputmode="numeric"
+                formControlName="valor"
+                maxlength="12"
+                autocomplete="off"
+                placeholder="120000"
+                [attr.aria-invalid]="!!errorCampo('valor')"
+                aria-describedby="valor-ayuda valor-error"
+              />
+              <span id="valor-ayuda" class="hint"
+                >Solo números, sin puntos ni decimales. De $ 1.000 a $ 2.000.000.</span
+              >
+              <span id="valor-error" class="field-error">{{ errorCampo('valor') }}</span>
+            </div>
+            <div class="field">
+              <span class="etiqueta">Tarifa actual</span>
+              <span class="valor-actual">
+                @if (form.controls.tipo_vehiculo.value) {
+                  {{
+                    actual(form.controls.tipo_vehiculo.value)
+                      ? pesos(actual(form.controls.tipo_vehiculo.value)!.valor)
+                      : 'Sin tarifa'
+                  }}
+                } @else {
+                  —
+                }
+              </span>
+            </div>
+          </div>
+          @if (!confirmando()) {
+            <div class="actions">
+              <button type="submit" class="primary">Guardar tarifa</button
+              ><button type="button" (click)="cancelar()">Cancelar</button>
+            </div>
+          }
+        </fieldset>
+      </form>
+      @if (confirmando()) {
+        <app-confirmacion
+          titulo="Confirmar nueva tarifa"
+          [mensaje]="mensajeConfirmacion()"
+          textoConfirmar="Sí, guardar la tarifa"
+          [ocupado]="guardando()"
+          (confirmar)="guardar()"
+          (cancelar)="confirmando.set(false)"
+        />
+      }
+    </section>
+  }
+
+  <section class="panel" aria-labelledby="vigentes-titulo" [attr.aria-busy]="cargando()">
+    <h2 id="vigentes-titulo">Tarifas vigentes</h2>
+    @if (cargando()) {
+      <p class="empty" role="status">Cargando tarifas…</p>
+    } @else if (error()) {
+      <p class="notice error" role="alert">{{ error() }}</p>
+    } @else {
+      <div class="tarjetas">
+        @for (v of vigentes(); track v.tipo_vehiculo) {
+          <article class="tarjeta" [attr.aria-label]="'Tarifa de ' + v.tipo_vehiculo">
+            <span class="tipo">{{ v.tipo_vehiculo }}</span>
+            @if (v.tarifa; as t) {
+              <span class="monto">{{ pesos(t.valor) }}</span>
+              <span class="hint">al mes · vigente desde {{ fechaHora(t.vigente_desde) }}</span>
+            } @else {
+              <span class="monto sin">Sin tarifa</span>
+              <span class="hint"
+                >Mientras no tenga tarifa no se pueden registrar pagos de este tipo.</span
+              >
+            }
+          </article>
+        }
+      </div>
+    }
+  </section>
+
+  @if (puedeGestionar()) {
+    <section
+      class="panel list"
+      aria-labelledby="historial-titulo"
+      [attr.aria-busy]="cargandoHistorial()"
+    >
+      <div class="list-heading">
+        <h2 id="historial-titulo">
+          Historial de tarifas <span class="count">{{ total() }}</span>
+        </h2>
+        <div class="filtro-tipo">
+          <label for="filtro-tipo">Tipo</label>
+          <select id="filtro-tipo" [formControl]="filtroTipo" (change)="cargarHistorial(0)">
+            <option value="">Todos</option>
+            @for (t of tipos; track t) {
+              <option [value]="t">{{ t }}</option>
+            }
+          </select>
+        </div>
+      </div>
+      @if (cargandoHistorial()) {
+        <p class="empty" role="status">Cargando historial…</p>
+      } @else if (errorHistorial()) {
+        <p class="notice error" role="alert">{{ errorHistorial() }}</p>
+      } @else if (!historial().length) {
+        <p class="empty" role="status">Todavía no hay tarifas registradas.</p>
+      } @else {
+        <div class="table-scroll">
+          <table>
+            <caption class="sr-only">
+              Historial de tarifas, la más reciente primero
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Tipo</th>
+                <th scope="col">Valor mensual</th>
+                <th scope="col">Vigente desde (Bogotá)</th>
+                <th scope="col">Definida por</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (t of historial(); track t.id) {
+                <tr>
+                  <th scope="row">{{ t.tipo_vehiculo }}</th>
+                  <td class="monto-tabla">{{ pesos(t.valor) }}</td>
+                  <td>{{ fechaHora(t.vigente_desde) }}</td>
+                  <td>{{ t.definida_por ?? 'Sistema (semillas)' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+      <nav class="pagination" aria-label="Paginación del historial de tarifas">
+        <button
+          type="button"
+          (click)="cargarHistorial(offset() - limit)"
+          [disabled]="cargandoHistorial() || offset() === 0"
+        >
+          Anterior</button
+        ><span>Página {{ page() }} de {{ pages() }}</span
+        ><button
+          type="button"
+          (click)="cargarHistorial(offset() + limit)"
+          [disabled]="cargandoHistorial() || offset() + limit >= total()"
+        >
+          Siguiente
+        </button>
+      </nav>
+    </section>
+  }
+</section>
