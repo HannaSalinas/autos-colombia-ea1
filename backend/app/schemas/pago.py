@@ -146,3 +146,29 @@ class PagosPagina(BaseModel):
     total: int
     offset: int
     limit: int
+
+
+# --- Resumen de recaudo (RF-39, HU-33) ---
+
+class TotalRecaudo(BaseModel):
+    cantidad: int
+    total: int        # pesos enteros (RNF-22)
+
+
+class RecaudoPorMetodo(TotalRecaudo):
+    metodo: str
+
+
+class RecaudoPorTipo(TotalRecaudo):
+    tipo_vehiculo: str
+
+
+class RecaudoRespuesta(BaseModel):
+    """Válidos y anulados se cuentan por la fecha del pago (RF-39): de lo cobrado en el rango,
+    cuánto quedó válido y cuánto se anuló. Los desgloses traen siempre los tres métodos y tipos."""
+    desde: date
+    hasta: date
+    validos: TotalRecaudo
+    por_metodo: list[RecaudoPorMetodo]
+    por_tipo_vehiculo: list[RecaudoPorTipo]
+    anulados: TotalRecaudo

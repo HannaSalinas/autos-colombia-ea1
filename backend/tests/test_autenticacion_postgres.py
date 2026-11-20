@@ -102,6 +102,7 @@ ADMINISTRATIVAS = {
     # Iteración 3: solo el Administrador anula pagos (D14) y define tarifas (D12).
     ("POST", "/pagos/{id}/anular"), ("POST", "/tarifas"), ("GET", "/tarifas/historial"),
     ("POST", "/clientes"),      # registrar clientes (D15); consultarlos es de ambos roles
+    ("GET", "/reportes/recaudo"),
 }
 
 

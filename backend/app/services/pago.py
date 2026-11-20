@@ -16,14 +16,15 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, aliased
 
 from app.domain.pagos import (
-    Periodo, calcular_monto, estado_mensualidad, fin_de_periodo, formatear_pesos, inicio_de_periodo,
+    METODOS_PAGO, TIPOS_VEHICULO, Periodo, calcular_monto, estado_mensualidad, fin_de_periodo, formatear_pesos, inicio_de_periodo,
     tope_de_adelanto, validar_tope_de_adelanto,
 )
 from app.domain.reglas import hoy_bogota, rango_bogota
 from app.models import Cliente, CuentaUsuario, Mensualidad, Operador, Pago, Tarifa, Vehiculo
 from app.schemas.pago import (
     AnulacionCrear, ClienteResumen, CotizacionRespuesta, EstadoMensualidadRespuesta, PagoCrear, PagoDetalle,
-    PagoResumen, PagosPagina, PeriodoRespuesta, TarifaVigente,
+    PagoResumen, PagosPagina, PeriodoRespuesta, RecaudoPorMetodo, RecaudoPorTipo, RecaudoRespuesta, TarifaVigente,
+    TotalRecaudo,
 )
 from app.services.autenticacion import SesionActual
 from app.services.mensualidad import periodo_valido
@@ -290,3 +291,34 @@ def listar(session: Session, offset: int, limit: int, placa: str | None = None, 
     total = session.scalar(select(func.count()).select_from(consulta.subquery()))
     filas = session.execute(consulta.order_by(Pago.fecha.desc(), Pago.id.desc()).offset(offset).limit(limit)).all()
     return PagosPagina(items=[PagoResumen(**_resumen(f)) for f in filas], total=total, offset=offset, limit=limit)
+
+
+# --- Resumen de recaudo (RF-39, HU-33) ---
+
+@operacion
+def recaudo(session: Session, desde: date, hasta: date) -> RecaudoRespuesta:
+    """Totales por día de Bogotá de la fecha del pago, ambos días incluidos. Sin pagos: todo en 0."""
+    try:
+        inicio, fin = rango_bogota(desde, hasta)
+    except ValueError:
+        raise PagoError(422, "La fecha inicial no puede ser posterior a la fecha final.") from None
+    en_rango = (Pago.fecha >= inicio, Pago.fecha < fin)
+
+    def agrupado(columna) -> dict[str, tuple[int, int]]:
+        filas = session.execute(select(columna, func.count(), func.coalesce(func.sum(Pago.monto), 0))
+                                .where(*en_rango, Pago.estado == "VALIDO").group_by(columna))
+        return {clave: (cantidad, int(total)) for clave, cantidad, total in filas}
+
+    def total(estado: str) -> TotalRecaudo:
+        cantidad, suma = session.execute(select(func.count(), func.coalesce(func.sum(Pago.monto), 0))
+                                         .where(*en_rango, Pago.estado == estado)).one()
+        return TotalRecaudo(cantidad=cantidad, total=int(suma))
+
+    metodos, tipos = agrupado(Pago.metodo), agrupado(Pago.tipo_vehiculo)
+    return RecaudoRespuesta(
+        desde=desde, hasta=hasta, validos=total("VALIDO"), anulados=total("ANULADO"),
+        por_metodo=[RecaudoPorMetodo(metodo=m, cantidad=metodos.get(m, (0, 0))[0], total=metodos.get(m, (0, 0))[1])
+                    for m in METODOS_PAGO],
+        por_tipo_vehiculo=[RecaudoPorTipo(tipo_vehiculo=t, cantidad=tipos.get(t, (0, 0))[0],
+                                          total=tipos.get(t, (0, 0))[1]) for t in TIPOS_VEHICULO],
+    )
