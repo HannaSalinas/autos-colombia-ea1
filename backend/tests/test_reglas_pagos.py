@@ -6,7 +6,7 @@ import pytest
 
 from app.domain.pagos import (
     PAGADA_A_FUTURO, SIN_MENSUALIDAD, VENCIDA, VIGENTE, Periodo, calcular_monto, estado_mensualidad,
-    fin_de_periodo, inicio_de_periodo, normalizar_correo, normalizar_documento, normalizar_referencia,
+    fin_de_periodo, formatear_pesos, inicio_de_periodo, normalizar_correo, normalizar_documento, normalizar_referencia,
     tope_de_adelanto, validar_meses, validar_metodo, validar_motivo_anulacion, validar_telefono,
     validar_tipo_documento, validar_tipo_vehiculo, validar_tope_de_adelanto, validar_valor_tarifa,
 )
@@ -304,3 +304,11 @@ def test_correo_opcional_valido(correo, normalizado):
 def test_correo_invalido(correo):
     with pytest.raises(ValueError, match="formato válido"):
         normalizar_correo(correo)
+
+
+@pytest.mark.parametrize("valor,texto", [
+    (0, "$ 0"), (1_000, "$ 1.000"), (120_000, "$ 120.000"), (2_000_000, "$ 2.000.000"), (12_000_000, "$ 12.000.000"),
+])
+def test_formato_de_pesos(valor, texto):
+    # RNF-22: pesos enteros con el formato $ 120.000.
+    assert formatear_pesos(valor) == texto

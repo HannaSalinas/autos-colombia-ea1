@@ -99,6 +99,8 @@ ADMINISTRATIVAS = {
     ("GET", "/operadores"), ("GET", "/operadores/{id}"),
     ("GET", "/cuentas"), ("POST", "/cuentas"), ("GET", "/cuentas/{id}"),
     ("POST", "/cuentas/{id}/desactivar"), ("POST", "/cuentas/{id}/reactivar"),
+    # Iteración 3: solo el Administrador anula pagos (D14).
+    ("POST", "/pagos/{id}/anular"),
 }
 
 

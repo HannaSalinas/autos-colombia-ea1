@@ -140,6 +140,11 @@ def validar_valor_tarifa(valor: object) -> int:
     return valor
 
 
+def formatear_pesos(valor: int) -> str:
+    """Formato de RNF-22: 120000 -> '$ 120.000' (pesos enteros, punto como separador de miles)."""
+    return f"$ {valor:,}".replace(",", ".")
+
+
 def calcular_monto(valor_mensual: int, meses: int) -> int:
     """El sistema calcula el monto (D11): tarifa vigente × meses. Quien cobra no lo digita."""
     return validar_valor_tarifa(valor_mensual) * validar_meses(meses)
