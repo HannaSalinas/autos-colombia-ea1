@@ -704,20 +704,23 @@ backend/.venv/bin/python scripts/medir_rnf25.py
 docker compose down -v && docker compose up --build -d      # volver a la base limpia
 ```
 
-Resultado del 20-nov-2026 (commit `717246b`, Intel Celeron N4020 de 2 núcleos, 7,5 GiB), con 4
-solicitudes simultáneas y 40 muestras por operación:
+Resultado de la ejecución del plan PP-03 (caso NF-01), el 20-nov-2026 a las 21:26 (commit `c07f1bd`,
+Intel Celeron N4020 de 2 núcleos, 7,5 GiB), con 4 solicitudes simultáneas y 40 muestras por operación:
 
 | Operación | p95 (ms) | Límite (ms) | ¿Cumple? |
 | --- | ---: | ---: | --- |
-| Registrar pago | 934 | 1000 | Sí |
-| Consultar estado de la mensualidad | 340 | 1000 | Sí |
-| Consultar pagos | 579 | 1000 | Sí |
-| Resumen de recaudo | 336 | 1000 | Sí |
+| Registrar pago | 189 | 1000 | Sí |
+| Consultar estado de la mensualidad | 94 | 1000 | Sí |
+| Consultar pagos | 190 | 1000 | Sí |
+| Resumen de recaudo | 92 | 1000 | Sí |
 
-Registrar pago es la operación más cercana al límite: escribe el pago y su periodo con
-confirmación en disco, y en este equipo cada escritura tarda unos 200 ms aun de una en una
-(igual que en RNF-19). Los pagos de la medición no se pueden borrar (RNF-24); por eso se
-mide sobre una base limpia que después se recrea. Detalle en
+Registrar pago es la operación que más varía: escribe el pago y su periodo con confirmación en
+disco, y en este equipo de 2 núcleos depende de lo que esté haciendo el disco en ese momento. El
+mismo día dio p95 de 934 ms (commit `717246b`, primera medición) y 1179 ms en un ensayo del
+orquestador del PP-03 hecho justo después del recorrido de los tres navegadores (ese ensayo no se
+usó como evidencia; el código de la aplicación era el mismo). Las demás operaciones quedaron siempre
+muy por debajo del límite. Los pagos de la medición no se pueden borrar (RNF-24); por eso se mide
+sobre una base limpia que después se recrea. Detalle en
 [`docs/evidencias/rnf25.md`](docs/evidencias/rnf25.md).
 
 ### RNF-26 · Capturas de la Iteración 3 en Chrome, Edge y Firefox
