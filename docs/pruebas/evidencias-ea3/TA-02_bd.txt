@@ -1,0 +1,15 @@
+-- tarifas antes del intento del operador
+SELECT count(*) FROM tarifa;
+-- parámetros: []
+-- resultado:
+count
+-----
+5
+
+-- tarifas después del intento
+SELECT count(*) FROM tarifa;
+-- parámetros: []
+-- resultado:
+count
+-----
+5

@@ -1,5 +1,5 @@
 operacion,simultaneas,muestras,mediana_ms,p95_ms,maximo_ms,limite_ms,cumple
-Registrar pago,4,40,468,934,993,1000,True
-Consultar estado de la mensualidad,4,40,234,340,377,1000,True
-Consultar pagos,4,40,339,579,634,1000,True
-Resumen de recaudo,4,40,206,336,360,1000,True
+Registrar pago,4,40,124,189,233,1000,True
+Consultar estado de la mensualidad,4,40,68,94,108,1000,True
+Consultar pagos,4,40,97,190,206,1000,True
+Resumen de recaudo,4,40,69,92,93,1000,True

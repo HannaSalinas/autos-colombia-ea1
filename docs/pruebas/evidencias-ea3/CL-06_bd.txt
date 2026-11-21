@@ -1,0 +1,7 @@
+-- clientes con CC 7003000077
+SELECT count(*) FROM cliente WHERE documento = '7003000077';
+-- parámetros: []
+-- resultado:
+count
+-----
+0

@@ -1,0 +1,7 @@
+-- pagos del vehículo en la base
+SELECT count(*) FROM pago p JOIN mensualidad m ON m.pago_id = p.id WHERE m.vehiculo_id = $1;
+-- parámetros: [18]
+-- resultado:
+count
+-----
+0

@@ -1,0 +1,226 @@
+[
+  {
+    "sesion": "operador_prueba",
+    "metodo": "POST",
+    "ruta": "/auth/login",
+    "codigo": 200,
+    "solicitud": {
+      "usuario": "operador_prueba",
+      "contrasena": "«omitido»"
+    },
+    "respuesta": {
+      "token": "«omitido»",
+      "tipo": "bearer",
+      "expira_en": "2026-11-21T10:10:27.609552Z",
+      "cuenta": {
+        "id": 6,
+        "nombre_usuario": "operador_prueba",
+        "nombre": "Operador de Prueba",
+        "rol": "OPERADOR",
+        "permisos": [
+          "celdas:ver",
+          "consultas",
+          "estancias",
+          "pagos",
+          "tarifas:ver",
+          "vehiculos:ver"
+        ]
+      }
+    },
+    "nota": "iniciar sesión como operador_prueba"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "GET",
+    "ruta": "/pagos/cotizacion?placa=PPT308&meses=6",
+    "codigo": 200,
+    "respuesta": {
+      "placa": "PPT308",
+      "cliente_nombre": "Cliente del Plan de Pruebas",
+      "tipo_vehiculo": "AUTOMOVIL",
+      "meses": 6,
+      "fecha_inicio": "2026-11-20",
+      "fecha_fin": "2027-05-19",
+      "tarifa_id": 5,
+      "valor_mensual": 120000,
+      "monto": 720000
+    },
+    "nota": "resumen de PPT308, 6 mes(es)"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "POST",
+    "ruta": "/pagos",
+    "codigo": 201,
+    "solicitud": {
+      "placa": "PPT308",
+      "meses": 6,
+      "metodo": "EFECTIVO",
+      "referencia": null,
+      "monto_confirmado": 720000
+    },
+    "respuesta": {
+      "id": 11,
+      "comprobante": "RC-000011",
+      "fecha": "2026-11-21T02:10:27.652693Z",
+      "placa": "PPT308",
+      "cliente_nombre": "Cliente del Plan de Pruebas",
+      "fecha_inicio": "2026-11-20",
+      "fecha_fin": "2027-05-19",
+      "meses": 6,
+      "monto": 720000,
+      "metodo": "EFECTIVO",
+      "estado": "VALIDO",
+      "registrado_por": "Operador de Prueba (operador_prueba)",
+      "vehiculo_id": 17,
+      "tipo_vehiculo": "AUTOMOVIL",
+      "cliente_tipo_documento": "CC",
+      "cliente_documento": "7003000001",
+      "valor_mensual": 120000,
+      "referencia": null,
+      "anulado_en": null,
+      "anulado_por": null,
+      "motivo_anulacion": null,
+      "anulable": true
+    },
+    "nota": "preparación: 6 meses"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "GET",
+    "ruta": "/pagos/cotizacion?placa=PPT308&meses=1",
+    "codigo": 200,
+    "respuesta": {
+      "placa": "PPT308",
+      "cliente_nombre": "Cliente del Plan de Pruebas",
+      "tipo_vehiculo": "AUTOMOVIL",
+      "meses": 1,
+      "fecha_inicio": "2027-05-20",
+      "fecha_fin": "2027-06-19",
+      "tarifa_id": 5,
+      "valor_mensual": 120000,
+      "monto": 120000
+    },
+    "nota": "resumen de PPT308, 1 mes(es)"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "POST",
+    "ruta": "/pagos",
+    "codigo": 201,
+    "solicitud": {
+      "placa": "PPT308",
+      "meses": 1,
+      "metodo": "EFECTIVO",
+      "referencia": null,
+      "monto_confirmado": 120000
+    },
+    "respuesta": {
+      "id": 12,
+      "comprobante": "RC-000012",
+      "fecha": "2026-11-21T02:10:27.751223Z",
+      "placa": "PPT308",
+      "cliente_nombre": "Cliente del Plan de Pruebas",
+      "fecha_inicio": "2027-05-20",
+      "fecha_fin": "2027-06-19",
+      "meses": 1,
+      "monto": 120000,
+      "metodo": "EFECTIVO",
+      "estado": "VALIDO",
+      "registrado_por": "Operador de Prueba (operador_prueba)",
+      "vehiculo_id": 17,
+      "tipo_vehiculo": "AUTOMOVIL",
+      "cliente_tipo_documento": "CC",
+      "cliente_documento": "7003000001",
+      "valor_mensual": 120000,
+      "referencia": null,
+      "anulado_en": null,
+      "anulado_por": null,
+      "motivo_anulacion": null,
+      "anulable": true
+    },
+    "nota": "preparación: 1 mes más (vence a 7 meses de hoy)"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "GET",
+    "ruta": "/pagos/cotizacion?placa=PPT308&meses=6",
+    "codigo": 409,
+    "respuesta": {
+      "detail": "El pago dejaría la mensualidad vigente hasta el 19/12/2027: lo máximo es 12 meses desde hoy (20/11/2027). Registra menos meses."
+    },
+    "nota": "resumen de 6 meses más"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "POST",
+    "ruta": "/pagos",
+    "codigo": 409,
+    "solicitud": {
+      "placa": "PPT308",
+      "meses": 6,
+      "metodo": "EFECTIVO",
+      "monto_confirmado": 720000
+    },
+    "respuesta": {
+      "detail": "El pago dejaría la mensualidad vigente hasta el 19/12/2027: lo máximo es 12 meses desde hoy (20/11/2027). Registra menos meses."
+    },
+    "nota": "intentar pagar 6 meses más"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "GET",
+    "ruta": "/pagos/cotizacion?placa=PPT308&meses=5",
+    "codigo": 200,
+    "respuesta": {
+      "placa": "PPT308",
+      "cliente_nombre": "Cliente del Plan de Pruebas",
+      "tipo_vehiculo": "AUTOMOVIL",
+      "meses": 5,
+      "fecha_inicio": "2027-06-20",
+      "fecha_fin": "2027-11-19",
+      "tarifa_id": 5,
+      "valor_mensual": 120000,
+      "monto": 600000
+    },
+    "nota": "resumen de PPT308, 5 mes(es)"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "POST",
+    "ruta": "/pagos",
+    "codigo": 201,
+    "solicitud": {
+      "placa": "PPT308",
+      "meses": 5,
+      "metodo": "EFECTIVO",
+      "referencia": null,
+      "monto_confirmado": 600000
+    },
+    "respuesta": {
+      "id": 13,
+      "comprobante": "RC-000013",
+      "fecha": "2026-11-21T02:10:27.853620Z",
+      "placa": "PPT308",
+      "cliente_nombre": "Cliente del Plan de Pruebas",
+      "fecha_inicio": "2027-06-20",
+      "fecha_fin": "2027-11-19",
+      "meses": 5,
+      "monto": 600000,
+      "metodo": "EFECTIVO",
+      "estado": "VALIDO",
+      "registrado_por": "Operador de Prueba (operador_prueba)",
+      "vehiculo_id": 17,
+      "tipo_vehiculo": "AUTOMOVIL",
+      "cliente_tipo_documento": "CC",
+      "cliente_documento": "7003000001",
+      "valor_mensual": 120000,
+      "referencia": null,
+      "anulado_en": null,
+      "anulado_por": null,
+      "motivo_anulacion": null,
+      "anulable": true
+    },
+    "nota": "pagar 5 meses (fin dentro del tope)"
+  }
+]

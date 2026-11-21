@@ -1,0 +1,8 @@
+-- los dos pagos siguen válidos
+SELECT comprobante, estado FROM pago WHERE id IN ($1, $2) ORDER BY id;
+-- parámetros: [17,18]
+-- resultado:
+comprobante | estado
+------------+-------
+RC-000017   | VALIDO
+RC-000018   | VALIDO

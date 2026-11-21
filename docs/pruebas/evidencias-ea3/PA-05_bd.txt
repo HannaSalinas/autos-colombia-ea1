@@ -1,0 +1,17 @@
+-- pagos de PA05 después de los rechazos
+SELECT count(*) FROM pago p JOIN mensualidad m ON m.pago_id = p.id WHERE m.vehiculo_id = $1;
+-- parámetros: [16]
+-- resultado:
+count
+-----
+0
+
+-- pagos de PA05
+SELECT m.id, m.fecha_inicio::text AS inicio, m.fecha_fin::text AS fin, p.comprobante, p.estado, p.meses, p.monto, p.metodo
+    FROM mensualidad m LEFT JOIN pago p ON p.id = m.pago_id WHERE m.vehiculo_id = $1 ORDER BY m.fecha_inicio;
+-- parámetros: [16]
+-- resultado:
+id | inicio     | fin        | comprobante | estado | meses | monto  | metodo
+---+------------+------------+-------------+--------+-------+--------+--------
+21 | 2026-11-20 | 2026-12-19 | RC-000009   | VALIDO | 1     | 120000 | TARJETA
+22 | 2026-12-20 | 2027-01-19 | RC-000010   | VALIDO | 1     | 120000 | TARJETA

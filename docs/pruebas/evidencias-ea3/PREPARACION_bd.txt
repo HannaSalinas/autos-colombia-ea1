@@ -1,0 +1,42 @@
+-- comprobar que CC 1020304050 no existe
+SELECT count(*) FROM cliente WHERE documento = $1;
+-- parámetros: ["1020304050"]
+-- resultado:
+count
+-----
+0
+
+-- comprobar que CC 1098765432 no existe
+SELECT count(*) FROM cliente WHERE documento = $1;
+-- parámetros: ["1098765432"]
+-- resultado:
+count
+-----
+0
+
+-- V-VENC (PPV302): periodo vencido hace 5 días
+INSERT INTO mensualidad (vehiculo_id, fecha_inicio, fecha_fin) VALUES ($1, $2, $3)
+      RETURNING id, vehiculo_id, fecha_inicio::text, fecha_fin::text, pago_id;
+-- parámetros: [11,"2026-10-16","2026-11-15"]
+-- resultado:
+id | vehiculo_id | fecha_inicio | fecha_fin  | pago_id
+---+-------------+--------------+------------+--------
+12 | 11          | 2026-10-16   | 2026-11-15 | NULL
+
+-- V-VIG (PPG303): periodo vigente que vence en 10 días
+INSERT INTO mensualidad (vehiculo_id, fecha_inicio, fecha_fin) VALUES ($1, $2, $3)
+      RETURNING id, vehiculo_id, fecha_inicio::text, fecha_fin::text, pago_id;
+-- parámetros: [12,"2026-10-31","2026-11-30"]
+-- resultado:
+id | vehiculo_id | fecha_inicio | fecha_fin  | pago_id
+---+-------------+--------------+------------+--------
+13 | 12          | 2026-10-31   | 2026-11-30 | NULL
+
+-- V-FUT (PPF304): periodo vigente
+INSERT INTO mensualidad (vehiculo_id, fecha_inicio, fecha_fin) VALUES ($1, $2, $3)
+      RETURNING id, vehiculo_id, fecha_inicio::text, fecha_fin::text, pago_id;
+-- parámetros: [13,"2026-11-10","2026-12-10"]
+-- resultado:
+id | vehiculo_id | fecha_inicio | fecha_fin  | pago_id
+---+-------------+--------------+------------+--------
+14 | 13          | 2026-11-10   | 2026-12-10 | NULL

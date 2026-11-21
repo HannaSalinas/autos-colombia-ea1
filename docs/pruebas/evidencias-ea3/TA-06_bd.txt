@@ -1,0 +1,45 @@
+-- tarifas antes de los intentos
+SELECT id, tipo_vehiculo, valor, vigente_desde, definida_por_cuenta_id FROM tarifa ORDER BY id;
+-- parámetros: []
+-- resultado:
+id | tipo_vehiculo | valor   | vigente_desde   | definida_por_cuenta_id
+---+---------------+---------+-----------------+-----------------------
+1  | MOTO          | 60000   | [object Object] | NULL
+2  | AUTOMOVIL     | 120000  | [object Object] | NULL
+3  | CAMIONETA     | 140000  | [object Object] | NULL
+4  | AUTOMOVIL     | 125000  | [object Object] | 4
+5  | AUTOMOVIL     | 120000  | [object Object] | 4
+6  | MOTO          | 1000    | [object Object] | 4
+7  | MOTO          | 2000000 | [object Object] | 4
+8  | MOTO          | 60000   | [object Object] | 4
+
+-- 1. UPDATE del valor de una tarifa
+UPDATE tarifa SET valor = valor + 1000 WHERE id = $1;
+-- parámetros: ["6"]
+-- resultado:
+resultado | codigo | mensaje
+----------+--------+-----------------------------------------------------------------------------------------
+rechazada | 23001  | Las tarifas no se editan ni se eliminan: para cambiar el valor se crea una tarifa nueva.
+
+-- 2. DELETE de una tarifa
+DELETE FROM tarifa WHERE id = $1;
+-- parámetros: ["6"]
+-- resultado:
+resultado | codigo | mensaje
+----------+--------+-----------------------------------------------------------------------------------------
+rechazada | 23001  | Las tarifas no se editan ni se eliminan: para cambiar el valor se crea una tarifa nueva.
+
+-- 3. tarifas después de los intentos
+SELECT id, tipo_vehiculo, valor, vigente_desde, definida_por_cuenta_id FROM tarifa ORDER BY id;
+-- parámetros: []
+-- resultado:
+id | tipo_vehiculo | valor   | vigente_desde   | definida_por_cuenta_id
+---+---------------+---------+-----------------+-----------------------
+1  | MOTO          | 60000   | [object Object] | NULL
+2  | AUTOMOVIL     | 120000  | [object Object] | NULL
+3  | CAMIONETA     | 140000  | [object Object] | NULL
+4  | AUTOMOVIL     | 125000  | [object Object] | 4
+5  | AUTOMOVIL     | 120000  | [object Object] | 4
+6  | MOTO          | 1000    | [object Object] | 4
+7  | MOTO          | 2000000 | [object Object] | 4
+8  | MOTO          | 60000   | [object Object] | 4

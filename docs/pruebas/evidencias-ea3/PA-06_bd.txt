@@ -1,0 +1,10 @@
+-- periodos de PA06
+SELECT m.id, m.fecha_inicio::text AS inicio, m.fecha_fin::text AS fin, p.comprobante, p.estado, p.meses, p.monto, p.metodo
+    FROM mensualidad m LEFT JOIN pago p ON p.id = m.pago_id WHERE m.vehiculo_id = $1 ORDER BY m.fecha_inicio;
+-- parámetros: [17]
+-- resultado:
+id | inicio     | fin        | comprobante | estado | meses | monto  | metodo
+---+------------+------------+-------------+--------+-------+--------+---------
+23 | 2026-11-20 | 2027-05-19 | RC-000011   | VALIDO | 6     | 720000 | EFECTIVO
+24 | 2027-05-20 | 2027-06-19 | RC-000012   | VALIDO | 1     | 120000 | EFECTIVO
+25 | 2027-06-20 | 2027-11-19 | RC-000013   | VALIDO | 5     | 600000 | EFECTIVO

@@ -1,0 +1,84 @@
+[
+  {
+    "sesion": "pantalla",
+    "metodo": "GET",
+    "ruta": "/clientes?offset=0&limit=10&buscar=Laura",
+    "codigo": 200,
+    "respuesta": {
+      "items": [
+        {
+          "id": 1,
+          "tipo_documento": "CC",
+          "documento": "1001234567",
+          "nombre": "Laura Gómez",
+          "telefono": "3001112233",
+          "correo": "laura.gomez@example.com",
+          "registrado_en": null,
+          "registrado_por": null,
+          "vehiculos": [
+            {
+              "id": 1,
+              "placa": "ABC123",
+              "tipo": "AUTOMOVIL"
+            },
+            {
+              "id": 2,
+              "placa": "KLM45D",
+              "tipo": "MOTO"
+            }
+          ]
+        }
+      ],
+      "total": 1,
+      "offset": 0,
+      "limit": 10
+    },
+    "nota": "pantalla Clientes: buscar «Laura»"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "POST",
+    "ruta": "/auth/login",
+    "codigo": 200,
+    "solicitud": {
+      "usuario": "operador_prueba",
+      "contrasena": "«omitido»"
+    },
+    "respuesta": {
+      "token": "«omitido»",
+      "tipo": "bearer",
+      "expira_en": "2026-11-21T10:09:52.518884Z",
+      "cuenta": {
+        "id": 6,
+        "nombre_usuario": "operador_prueba",
+        "nombre": "Operador de Prueba",
+        "rol": "OPERADOR",
+        "permisos": [
+          "celdas:ver",
+          "consultas",
+          "estancias",
+          "pagos",
+          "tarifas:ver",
+          "vehiculos:ver"
+        ]
+      }
+    },
+    "nota": "iniciar sesión como operador_prueba"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "POST",
+    "ruta": "/clientes",
+    "codigo": 403,
+    "solicitud": {
+      "tipo_documento": "CC",
+      "documento": "7003000077",
+      "nombre": "Cliente del Operador",
+      "telefono": "3007700770"
+    },
+    "respuesta": {
+      "detail": "No tienes permiso para esta operación."
+    },
+    "nota": "el operador intenta registrar un cliente"
+  }
+]

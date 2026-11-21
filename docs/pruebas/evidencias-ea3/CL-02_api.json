@@ -1,0 +1,389 @@
+[
+  {
+    "sesion": "admin_prueba",
+    "metodo": "POST",
+    "ruta": "/auth/login",
+    "codigo": 200,
+    "solicitud": {
+      "usuario": "admin_prueba",
+      "contrasena": "«omitido»"
+    },
+    "respuesta": {
+      "token": "«omitido»",
+      "tipo": "bearer",
+      "expira_en": "2026-11-21T10:09:33.264731Z",
+      "cuenta": {
+        "id": 4,
+        "nombre_usuario": "admin_prueba",
+        "nombre": "Administradora de Prueba",
+        "rol": "ADMINISTRADOR",
+        "permisos": [
+          "celdas:gestionar",
+          "celdas:ver",
+          "clientes:gestionar",
+          "consultas",
+          "cuentas:gestionar",
+          "estancias",
+          "pagos",
+          "pagos:anular",
+          "recaudo:ver",
+          "tarifas:gestionar",
+          "tarifas:ver",
+          "vehiculos:gestionar",
+          "vehiculos:ver"
+        ]
+      }
+    },
+    "nota": "iniciar sesión como admin_prueba"
+  },
+  {
+    "sesion": "pantalla",
+    "metodo": "POST",
+    "ruta": "/clientes",
+    "codigo": 201,
+    "solicitud": {
+      "tipo_documento": "CC",
+      "documento": "70030",
+      "nombre": "Ana",
+      "telefono": "3000000005",
+      "correo": null
+    },
+    "respuesta": {
+      "id": 9,
+      "tipo_documento": "CC",
+      "documento": "70030",
+      "nombre": "Ana",
+      "telefono": "3000000005",
+      "correo": null,
+      "registrado_en": "2026-11-21T02:09:42.207649Z",
+      "registrado_por": "Administradora de Prueba (admin_prueba)",
+      "vehiculos": []
+    },
+    "nota": "pantalla Clientes: límites válidos (documento de 5, nombre de 3)"
+  },
+  {
+    "sesion": "pantalla",
+    "metodo": "POST",
+    "ruta": "/clientes",
+    "codigo": 201,
+    "solicitud": {
+      "tipo_documento": "CC",
+      "documento": "700300000000015",
+      "nombre": "Nombre de Ochenta Caracteres para Probar el Límite del Campo Nombre del Cliente.",
+      "telefono": "3000000015",
+      "correo": "cliente.limite@correo.com"
+    },
+    "respuesta": {
+      "id": 10,
+      "tipo_documento": "CC",
+      "documento": "700300000000015",
+      "nombre": "Nombre de Ochenta Caracteres para Probar el Límite del Campo Nombre del Cliente.",
+      "telefono": "3000000015",
+      "correo": "cliente.limite@correo.com",
+      "registrado_en": "2026-11-21T02:09:42.914812Z",
+      "registrado_por": "Administradora de Prueba (admin_prueba)",
+      "vehiculos": []
+    },
+    "nota": "pantalla Clientes: límites válidos (documento de 15, nombre de 80)"
+  },
+  {
+    "sesion": "admin_prueba",
+    "metodo": "POST",
+    "ruta": "/clientes",
+    "codigo": 422,
+    "solicitud": {
+      "tipo_documento": "CC",
+      "documento": "1234",
+      "nombre": "Cliente Límite",
+      "telefono": "3000000000",
+      "correo": null
+    },
+    "respuesta": {
+      "detail": [
+        {
+          "type": "value_error",
+          "loc": [
+            "body",
+            "documento"
+          ],
+          "msg": "Value error, El número de documento debe tener de 5 a 15 caracteres: letras y números, sin espacios ni puntos.",
+          "input": "1234",
+          "ctx": {
+            "error": {}
+          }
+        }
+      ]
+    },
+    "nota": "rechazo por la API: documento de 4"
+  },
+  {
+    "sesion": "admin_prueba",
+    "metodo": "POST",
+    "ruta": "/clientes",
+    "codigo": 422,
+    "solicitud": {
+      "tipo_documento": "CC",
+      "documento": "1234567890123456",
+      "nombre": "Cliente Límite",
+      "telefono": "3000000000",
+      "correo": null
+    },
+    "respuesta": {
+      "detail": [
+        {
+          "type": "value_error",
+          "loc": [
+            "body",
+            "documento"
+          ],
+          "msg": "Value error, El número de documento debe tener de 5 a 15 caracteres: letras y números, sin espacios ni puntos.",
+          "input": "1234567890123456",
+          "ctx": {
+            "error": {}
+          }
+        }
+      ]
+    },
+    "nota": "rechazo por la API: documento de 16"
+  },
+  {
+    "sesion": "admin_prueba",
+    "metodo": "POST",
+    "ruta": "/clientes",
+    "codigo": 422,
+    "solicitud": {
+      "tipo_documento": "CC",
+      "documento": "7003000090",
+      "nombre": "Al",
+      "telefono": "3000000000",
+      "correo": null
+    },
+    "respuesta": {
+      "detail": [
+        {
+          "type": "value_error",
+          "loc": [
+            "body",
+            "nombre"
+          ],
+          "msg": "Value error, El nombre completo debe tener de 3 a 80 caracteres.",
+          "input": "Al",
+          "ctx": {
+            "error": {}
+          }
+        }
+      ]
+    },
+    "nota": "rechazo por la API: nombre de 2"
+  },
+  {
+    "sesion": "admin_prueba",
+    "metodo": "POST",
+    "ruta": "/clientes",
+    "codigo": 422,
+    "solicitud": {
+      "tipo_documento": "CC",
+      "documento": "7003000090",
+      "nombre": "Naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "telefono": "3000000000",
+      "correo": null
+    },
+    "respuesta": {
+      "detail": [
+        {
+          "type": "value_error",
+          "loc": [
+            "body",
+            "nombre"
+          ],
+          "msg": "Value error, El nombre completo debe tener de 3 a 80 caracteres.",
+          "input": "Naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "ctx": {
+            "error": {}
+          }
+        }
+      ]
+    },
+    "nota": "rechazo por la API: nombre de 81"
+  },
+  {
+    "sesion": "admin_prueba",
+    "metodo": "POST",
+    "ruta": "/clientes",
+    "codigo": 422,
+    "solicitud": {
+      "tipo_documento": "CC",
+      "documento": "7003000090",
+      "nombre": "     ",
+      "telefono": "3000000000",
+      "correo": null
+    },
+    "respuesta": {
+      "detail": [
+        {
+          "type": "value_error",
+          "loc": [
+            "body",
+            "nombre"
+          ],
+          "msg": "Value error, El nombre completo debe tener de 3 a 80 caracteres.",
+          "input": "     ",
+          "ctx": {
+            "error": {}
+          }
+        }
+      ]
+    },
+    "nota": "rechazo por la API: nombre solo con espacios"
+  },
+  {
+    "sesion": "admin_prueba",
+    "metodo": "POST",
+    "ruta": "/clientes",
+    "codigo": 422,
+    "solicitud": {
+      "tipo_documento": "CC",
+      "documento": "7003000090",
+      "nombre": "Cliente Límite",
+      "telefono": "300123456",
+      "correo": null
+    },
+    "respuesta": {
+      "detail": [
+        {
+          "type": "value_error",
+          "loc": [
+            "body",
+            "telefono"
+          ],
+          "msg": "Value error, El teléfono debe tener 10 dígitos, sin espacios ni otros caracteres.",
+          "input": "300123456",
+          "ctx": {
+            "error": {}
+          }
+        }
+      ]
+    },
+    "nota": "rechazo por la API: teléfono de 9"
+  },
+  {
+    "sesion": "admin_prueba",
+    "metodo": "POST",
+    "ruta": "/clientes",
+    "codigo": 422,
+    "solicitud": {
+      "tipo_documento": "CC",
+      "documento": "7003000090",
+      "nombre": "Cliente Límite",
+      "telefono": "30012345678",
+      "correo": null
+    },
+    "respuesta": {
+      "detail": [
+        {
+          "type": "value_error",
+          "loc": [
+            "body",
+            "telefono"
+          ],
+          "msg": "Value error, El teléfono debe tener 10 dígitos, sin espacios ni otros caracteres.",
+          "input": "30012345678",
+          "ctx": {
+            "error": {}
+          }
+        }
+      ]
+    },
+    "nota": "rechazo por la API: teléfono de 11"
+  },
+  {
+    "sesion": "admin_prueba",
+    "metodo": "POST",
+    "ruta": "/clientes",
+    "codigo": 422,
+    "solicitud": {
+      "tipo_documento": "CC",
+      "documento": "7003000090",
+      "nombre": "Cliente Límite",
+      "telefono": "300123456a",
+      "correo": null
+    },
+    "respuesta": {
+      "detail": [
+        {
+          "type": "value_error",
+          "loc": [
+            "body",
+            "telefono"
+          ],
+          "msg": "Value error, El teléfono debe tener 10 dígitos, sin espacios ni otros caracteres.",
+          "input": "300123456a",
+          "ctx": {
+            "error": {}
+          }
+        }
+      ]
+    },
+    "nota": "rechazo por la API: teléfono con letras"
+  },
+  {
+    "sesion": "admin_prueba",
+    "metodo": "POST",
+    "ruta": "/clientes",
+    "codigo": 422,
+    "solicitud": {
+      "tipo_documento": "CC",
+      "documento": "7003000090",
+      "nombre": "Cliente Límite",
+      "telefono": "3000000000",
+      "correo": "ana@"
+    },
+    "respuesta": {
+      "detail": [
+        {
+          "type": "value_error",
+          "loc": [
+            "body",
+            "correo"
+          ],
+          "msg": "Value error, El correo no tiene un formato válido (ej. ana@correo.com).",
+          "input": "ana@",
+          "ctx": {
+            "error": {}
+          }
+        }
+      ]
+    },
+    "nota": "rechazo por la API: correo «ana@»"
+  },
+  {
+    "sesion": "admin_prueba",
+    "metodo": "POST",
+    "ruta": "/clientes",
+    "codigo": 422,
+    "solicitud": {
+      "tipo_documento": "CC",
+      "documento": "7003000090",
+      "nombre": "Cliente Límite",
+      "telefono": "3000000000",
+      "correo": "anacorreo.com"
+    },
+    "respuesta": {
+      "detail": [
+        {
+          "type": "value_error",
+          "loc": [
+            "body",
+            "correo"
+          ],
+          "msg": "Value error, El correo no tiene un formato válido (ej. ana@correo.com).",
+          "input": "anacorreo.com",
+          "ctx": {
+            "error": {}
+          }
+        }
+      ]
+    },
+    "nota": "rechazo por la API: correo sin @"
+  }
+]

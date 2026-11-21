@@ -1,0 +1,48 @@
+[
+  {
+    "sesion": "sin sesión",
+    "metodo": "POST",
+    "ruta": "/tarifas",
+    "codigo": 401,
+    "solicitud": {
+      "tipo_vehiculo": "MOTO",
+      "valor": 70000
+    },
+    "respuesta": {
+      "detail": "Debes iniciar sesión para continuar."
+    },
+    "nota": "actualizar tarifa sin sesión"
+  },
+  {
+    "sesion": "sin sesión",
+    "metodo": "POST",
+    "ruta": "/clientes",
+    "codigo": 401,
+    "solicitud": {
+      "tipo_documento": "CC",
+      "documento": "7003000066",
+      "nombre": "Cliente Sin Sesión",
+      "telefono": "3006600660"
+    },
+    "respuesta": {
+      "detail": "Debes iniciar sesión para continuar."
+    },
+    "nota": "registrar cliente sin sesión"
+  },
+  {
+    "sesion": "sin sesión",
+    "metodo": "POST",
+    "ruta": "/pagos",
+    "codigo": 401,
+    "solicitud": {
+      "placa": "PPC309",
+      "meses": 1,
+      "metodo": "EFECTIVO",
+      "monto_confirmado": 120000
+    },
+    "respuesta": {
+      "detail": "Debes iniciar sesión para continuar."
+    },
+    "nota": "registrar pago sin sesión"
+  }
+]

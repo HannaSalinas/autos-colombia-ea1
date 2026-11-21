@@ -1,0 +1,95 @@
+[
+  {
+    "sesion": "operador_prueba",
+    "metodo": "POST",
+    "ruta": "/auth/login",
+    "codigo": 200,
+    "solicitud": {
+      "usuario": "operador_prueba",
+      "contrasena": "«omitido»"
+    },
+    "respuesta": {
+      "token": "«omitido»",
+      "tipo": "bearer",
+      "expira_en": "2026-11-21T10:09:09.915386Z",
+      "cuenta": {
+        "id": 6,
+        "nombre_usuario": "operador_prueba",
+        "nombre": "Operador de Prueba",
+        "rol": "OPERADOR",
+        "permisos": [
+          "celdas:ver",
+          "consultas",
+          "estancias",
+          "pagos",
+          "tarifas:ver",
+          "vehiculos:ver"
+        ]
+      }
+    },
+    "nota": "iniciar sesión como operador_prueba"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "POST",
+    "ruta": "/tarifas",
+    "codigo": 403,
+    "solicitud": {
+      "tipo_vehiculo": "AUTOMOVIL",
+      "valor": 130000
+    },
+    "respuesta": {
+      "detail": "No tienes permiso para esta operación."
+    },
+    "nota": "el operador intenta actualizar la tarifa de AUTOMOVIL"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "GET",
+    "ruta": "/tarifas/historial",
+    "codigo": 403,
+    "respuesta": {
+      "detail": "No tienes permiso para esta operación."
+    },
+    "nota": "el operador pide el historial de gestión"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "GET",
+    "ruta": "/tarifas",
+    "codigo": 200,
+    "respuesta": [
+      {
+        "tipo_vehiculo": "MOTO",
+        "tarifa": {
+          "id": 1,
+          "tipo_vehiculo": "MOTO",
+          "valor": 60000,
+          "vigente_desde": "2026-11-21T02:06:10.481948Z",
+          "definida_por": null
+        }
+      },
+      {
+        "tipo_vehiculo": "AUTOMOVIL",
+        "tarifa": {
+          "id": 5,
+          "tipo_vehiculo": "AUTOMOVIL",
+          "valor": 120000,
+          "vigente_desde": "2026-11-21T02:08:42.662608Z",
+          "definida_por": "Administradora de Prueba (admin_prueba)"
+        }
+      },
+      {
+        "tipo_vehiculo": "CAMIONETA",
+        "tarifa": {
+          "id": 3,
+          "tipo_vehiculo": "CAMIONETA",
+          "valor": 140000,
+          "vigente_desde": "2026-11-21T02:06:10.490118Z",
+          "definida_por": null
+        }
+      }
+    ],
+    "nota": "tarifa vigente de AUTOMOVIL"
+  }
+]

@@ -1,0 +1,23 @@
+-- pagos después del paso 1
+SELECT count(*) FROM pago p JOIN mensualidad m ON m.pago_id = p.id WHERE m.vehiculo_id = $1;
+-- parámetros: [20]
+-- resultado:
+count
+-----
+0
+
+-- pagos después del paso 2
+SELECT count(*) FROM pago p JOIN mensualidad m ON m.pago_id = p.id WHERE m.vehiculo_id = $1;
+-- parámetros: [20]
+-- resultado:
+count
+-----
+0
+
+-- paso 4: monto guardado
+SELECT comprobante, valor_mensual, meses, monto, monto = valor_mensual * meses AS calculado FROM pago WHERE id = $1;
+-- parámetros: [19]
+-- resultado:
+comprobante | valor_mensual | meses | monto  | calculado
+------------+---------------+-------+--------+----------
+RC-000019   | 150000        | 1     | 150000 | true

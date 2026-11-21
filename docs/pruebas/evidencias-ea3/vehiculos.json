@@ -1,0 +1,80 @@
+{
+  "hoy_bogota": "2026-11-20",
+  "vehiculos": {
+    "V-SIN": {
+      "placa": "PPS301",
+      "tipo": "AUTOMOVIL",
+      "uso": "ME-02 y PA-10 (sin periodos)"
+    },
+    "V-VENC": {
+      "placa": "PPV302",
+      "tipo": "AUTOMOVIL",
+      "uso": "ME-02 y PA-01 (periodo vencido hace 5 días)"
+    },
+    "V-VIG": {
+      "placa": "PPG303",
+      "tipo": "CAMIONETA",
+      "uso": "ME-01 y PA-02 (vigente, vence en 10 días)"
+    },
+    "V-FUT": {
+      "placa": "PPF304",
+      "tipo": "AUTOMOVIL",
+      "uso": "ME-03 (periodo vigente y otro pagado por adelantado)"
+    },
+    "PA04-1": {
+      "placa": "PPM305",
+      "tipo": "AUTOMOVIL",
+      "uso": "PA-04 (1 mes)"
+    },
+    "PA04-6": {
+      "placa": "PPN31A",
+      "tipo": "MOTO",
+      "uso": "PA-04 (6 meses)"
+    },
+    "PA05": {
+      "placa": "PPR307",
+      "tipo": "AUTOMOVIL",
+      "uso": "PA-05"
+    },
+    "PA06": {
+      "placa": "PPT308",
+      "tipo": "AUTOMOVIL",
+      "uso": "PA-06"
+    },
+    "PA07": {
+      "placa": "PPC309",
+      "tipo": "AUTOMOVIL",
+      "uso": "PA-07"
+    },
+    "PA08": {
+      "placa": "PPD310",
+      "tipo": "AUTOMOVIL",
+      "uso": "PA-08, AN-03 y AN-05"
+    },
+    "PA09": {
+      "placa": "PPE311",
+      "tipo": "CAMIONETA",
+      "uso": "PA-09"
+    },
+    "TA05": {
+      "placa": "PPH312",
+      "tipo": "AUTOMOVIL",
+      "uso": "TA-05 (pago nuevo)"
+    },
+    "AN01": {
+      "placa": "PPK313",
+      "tipo": "AUTOMOVIL",
+      "uso": "AN-01, ME-04 y AN-04"
+    },
+    "AN02-10": {
+      "placa": "PPL314",
+      "tipo": "AUTOMOVIL",
+      "uso": "AN-02 (motivo de 10)"
+    },
+    "AN02-200": {
+      "placa": "PPL315",
+      "tipo": "AUTOMOVIL",
+      "uso": "AN-02 (motivo de 200)"
+    }
+  }
+}

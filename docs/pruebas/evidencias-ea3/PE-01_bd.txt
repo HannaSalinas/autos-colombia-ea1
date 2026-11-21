@@ -1,0 +1,15 @@
+-- registros antes
+SELECT (SELECT count(*) FROM tarifa) AS tarifas, (SELECT count(*) FROM cliente) AS clientes, (SELECT count(*) FROM pago) AS pagos;
+-- parámetros: []
+-- resultado:
+tarifas | clientes | pagos
+--------+----------+------
+12      | 11       | 20
+
+-- registros después
+SELECT (SELECT count(*) FROM tarifa) AS tarifas, (SELECT count(*) FROM cliente) AS clientes, (SELECT count(*) FROM pago) AS pagos;
+-- parámetros: []
+-- resultado:
+tarifas | clientes | pagos
+--------+----------+------
+12      | 11       | 20

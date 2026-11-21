@@ -1,0 +1,40 @@
+[
+  {
+    "sesion": "pantalla",
+    "metodo": "GET",
+    "ruta": "/pagos/estado/PPG303",
+    "codigo": 200,
+    "respuesta": {
+      "vehiculo_id": 12,
+      "placa": "PPG303",
+      "tipo_vehiculo": "CAMIONETA",
+      "marca": "Plan PP-03",
+      "color": "Gris",
+      "cliente": {
+        "id": 7,
+        "tipo_documento": "CC",
+        "documento": "7003000001",
+        "nombre": "Cliente del Plan de Pruebas",
+        "telefono": "3007003001"
+      },
+      "estado": "VIGENTE",
+      "periodo_actual": {
+        "fecha_inicio": "2026-10-31",
+        "fecha_fin": "2026-11-30",
+        "comprobante": null
+      },
+      "periodos_futuros": [],
+      "periodos_anulados": [],
+      "vence": "2026-11-30",
+      "dias_restantes": 10,
+      "inicio_nuevo_periodo": "2026-12-01",
+      "fin_maximo": "2027-11-20",
+      "tarifa": {
+        "id": 3,
+        "tipo_vehiculo": "CAMIONETA",
+        "valor": 140000
+      }
+    },
+    "nota": "pantalla Pagos: consultar PPG303"
+  }
+]

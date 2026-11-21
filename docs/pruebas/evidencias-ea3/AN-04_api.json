@@ -1,0 +1,52 @@
+[
+  {
+    "sesion": "admin_dos",
+    "metodo": "POST",
+    "ruta": "/auth/login",
+    "codigo": 200,
+    "solicitud": {
+      "usuario": "admin_dos",
+      "contrasena": "«omitido»"
+    },
+    "respuesta": {
+      "token": "«omitido»",
+      "tipo": "bearer",
+      "expira_en": "2026-11-21T10:10:53.438600Z",
+      "cuenta": {
+        "id": 5,
+        "nombre_usuario": "admin_dos",
+        "nombre": "Administrador Dos de Prueba",
+        "rol": "ADMINISTRADOR",
+        "permisos": [
+          "celdas:gestionar",
+          "celdas:ver",
+          "clientes:gestionar",
+          "consultas",
+          "cuentas:gestionar",
+          "estancias",
+          "pagos",
+          "pagos:anular",
+          "recaudo:ver",
+          "tarifas:gestionar",
+          "tarifas:ver",
+          "vehiculos:gestionar",
+          "vehiculos:ver"
+        ]
+      }
+    },
+    "nota": "iniciar sesión como admin_dos"
+  },
+  {
+    "sesion": "admin_dos",
+    "metodo": "POST",
+    "ruta": "/pagos/4/anular",
+    "codigo": 409,
+    "solicitud": {
+      "motivo": "Segundo intento de anulación del mismo pago."
+    },
+    "respuesta": {
+      "detail": "El pago RC-000004 ya está anulado."
+    },
+    "nota": "anular de nuevo un pago ya anulado"
+  }
+]

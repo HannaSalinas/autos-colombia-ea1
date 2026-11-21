@@ -1,0 +1,17 @@
+-- el pago antes del segundo intento
+SELECT p.id, p.comprobante, p.estado, p.monto, p.valor_mensual, p.meses, p.anulado_en, u.nombre_usuario AS anulado_por, p.motivo_anulacion, m.pago_estado
+    FROM pago p LEFT JOIN cuenta_usuario u ON u.id = p.anulado_por_cuenta_id LEFT JOIN mensualidad m ON m.pago_id = p.id WHERE p.id = $1;
+-- parámetros: [4]
+-- resultado:
+id | comprobante | estado  | monto  | valor_mensual | meses | anulado_en      | anulado_por  | motivo_anulacion                                           | pago_estado
+---+-------------+---------+--------+---------------+-------+-----------------+--------------+------------------------------------------------------------+------------
+4  | RC-000004   | ANULADO | 120000 | 120000        | 1     | [object Object] | admin_prueba | El cliente pidió la devolución: pago registrado por error. | ANULADO
+
+-- el pago después del segundo intento
+SELECT p.id, p.comprobante, p.estado, p.monto, p.valor_mensual, p.meses, p.anulado_en, u.nombre_usuario AS anulado_por, p.motivo_anulacion, m.pago_estado
+    FROM pago p LEFT JOIN cuenta_usuario u ON u.id = p.anulado_por_cuenta_id LEFT JOIN mensualidad m ON m.pago_id = p.id WHERE p.id = $1;
+-- parámetros: [4]
+-- resultado:
+id | comprobante | estado  | monto  | valor_mensual | meses | anulado_en      | anulado_por  | motivo_anulacion                                           | pago_estado
+---+-------------+---------+--------+---------------+-------+-----------------+--------------+------------------------------------------------------------+------------
+4  | RC-000004   | ANULADO | 120000 | 120000        | 1     | [object Object] | admin_prueba | El cliente pidió la devolución: pago registrado por error. | ANULADO

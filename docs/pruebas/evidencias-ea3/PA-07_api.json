@@ -1,0 +1,97 @@
+[
+  {
+    "sesion": "pantalla",
+    "metodo": "GET",
+    "ruta": "/pagos/estado/PPC309",
+    "codigo": 200,
+    "respuesta": {
+      "vehiculo_id": 18,
+      "placa": "PPC309",
+      "tipo_vehiculo": "AUTOMOVIL",
+      "marca": "Plan PP-03",
+      "color": "Gris",
+      "cliente": {
+        "id": 7,
+        "tipo_documento": "CC",
+        "documento": "7003000001",
+        "nombre": "Cliente del Plan de Pruebas",
+        "telefono": "3007003001"
+      },
+      "estado": "SIN_MENSUALIDAD",
+      "periodo_actual": null,
+      "periodos_futuros": [],
+      "periodos_anulados": [],
+      "vence": null,
+      "dias_restantes": null,
+      "inicio_nuevo_periodo": "2026-11-20",
+      "fin_maximo": "2027-11-20",
+      "tarifa": {
+        "id": 5,
+        "tipo_vehiculo": "AUTOMOVIL",
+        "valor": 120000
+      }
+    },
+    "nota": "pantalla Pagos: consultar PPC309"
+  },
+  {
+    "sesion": "pantalla",
+    "metodo": "GET",
+    "ruta": "/pagos/cotizacion?placa=PPC309&meses=2",
+    "codigo": 200,
+    "respuesta": {
+      "placa": "PPC309",
+      "cliente_nombre": "Cliente del Plan de Pruebas",
+      "tipo_vehiculo": "AUTOMOVIL",
+      "meses": 2,
+      "fecha_inicio": "2026-11-20",
+      "fecha_fin": "2027-01-19",
+      "tarifa_id": 5,
+      "valor_mensual": 120000,
+      "monto": 240000
+    },
+    "nota": "pantalla Pagos: revisar el pago (2 mes(es), EFECTIVO)"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "POST",
+    "ruta": "/auth/login",
+    "codigo": 200,
+    "solicitud": {
+      "usuario": "operador_prueba",
+      "contrasena": "«omitido»"
+    },
+    "respuesta": {
+      "token": "«omitido»",
+      "tipo": "bearer",
+      "expira_en": "2026-11-21T10:10:12.033831Z",
+      "cuenta": {
+        "id": 6,
+        "nombre_usuario": "operador_prueba",
+        "nombre": "Operador de Prueba",
+        "rol": "OPERADOR",
+        "permisos": [
+          "celdas:ver",
+          "consultas",
+          "estancias",
+          "pagos",
+          "tarifas:ver",
+          "vehiculos:ver"
+        ]
+      }
+    },
+    "nota": "iniciar sesión como operador_prueba"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "GET",
+    "ruta": "/pagos?placa=PPC309",
+    "codigo": 200,
+    "respuesta": {
+      "items": [],
+      "total": 0,
+      "offset": 0,
+      "limit": 20
+    },
+    "nota": "pagos del vehículo después de cancelar"
+  }
+]

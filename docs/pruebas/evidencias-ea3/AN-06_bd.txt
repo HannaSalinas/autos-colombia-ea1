@@ -1,0 +1,51 @@
+-- pagos antes de los intentos (uno válido y uno anulado)
+SELECT p.id, p.comprobante, p.estado, p.monto, p.valor_mensual, p.meses, p.anulado_en, p.anulado_por_cuenta_id, p.motivo_anulacion,
+      m.fecha_inicio::text, m.fecha_fin::text, m.pago_estado FROM pago p JOIN mensualidad m ON m.pago_id = p.id WHERE p.id IN ($1, $2) ORDER BY p.id;
+-- parámetros: [14,4]
+-- resultado:
+id | comprobante | estado  | monto  | valor_mensual | meses | anulado_en      | anulado_por_cuenta_id | motivo_anulacion                                           | fecha_inicio | fecha_fin  | pago_estado
+---+-------------+---------+--------+---------------+-------+-----------------+-----------------------+------------------------------------------------------------+--------------+------------+------------
+4  | RC-000004   | ANULADO | 120000 | 120000        | 1     | [object Object] | 4                     | El cliente pidió la devolución: pago registrado por error. | 2026-11-20   | 2026-12-19 | ANULADO
+14 | RC-000014   | VALIDO  | 120000 | 120000        | 1     | NULL            | NULL                  | NULL                                                       | 2026-11-20   | 2026-12-19 | VALIDO
+
+-- 1. DELETE de un pago
+DELETE FROM pago WHERE id = $1;
+-- parámetros: [14]
+-- resultado:
+resultado | codigo | mensaje
+----------+--------+-------------------------------------------------------------------------------------------------------------
+rechazada | 23001  | Un pago no se edita ni se elimina: solo puede pasar una vez de VALIDO a ANULADO, con sus datos de anulación.
+
+-- 2a. cambiar el monto de un pago (con un valor mensual coherente)
+UPDATE pago SET valor_mensual = valor_mensual + 1, monto = (valor_mensual + 1) * meses WHERE id = $1;
+-- parámetros: [14]
+-- resultado:
+resultado | codigo | mensaje
+----------+--------+-------------------------------------------------------------------------------------------------------------
+rechazada | 23001  | Un pago no se edita ni se elimina: solo puede pasar una vez de VALIDO a ANULADO, con sus datos de anulación.
+
+-- 2b. cambiar las fechas del periodo de un pago
+UPDATE mensualidad SET fecha_fin = fecha_fin + 1 WHERE pago_id = $1;
+-- parámetros: [14]
+-- resultado:
+resultado | codigo | mensaje
+----------+--------+------------------------------------------------------------------------------------
+rechazada | 23001  | Un periodo pagado no se edita: para corregirlo se anula su pago y se registra otro.
+
+-- 3. devolver un pago anulado a VALIDO
+UPDATE pago SET estado = 'VALIDO', anulado_en = NULL, anulado_por_cuenta_id = NULL, motivo_anulacion = NULL WHERE id = $1;
+-- parámetros: [4]
+-- resultado:
+resultado | codigo | mensaje
+----------+--------+-------------------------------------------------------------------------------------------------------------
+rechazada | 23001  | Un pago no se edita ni se elimina: solo puede pasar una vez de VALIDO a ANULADO, con sus datos de anulación.
+
+-- pagos después de los intentos
+SELECT p.id, p.comprobante, p.estado, p.monto, p.valor_mensual, p.meses, p.anulado_en, p.anulado_por_cuenta_id, p.motivo_anulacion,
+      m.fecha_inicio::text, m.fecha_fin::text, m.pago_estado FROM pago p JOIN mensualidad m ON m.pago_id = p.id WHERE p.id IN ($1, $2) ORDER BY p.id;
+-- parámetros: [14,4]
+-- resultado:
+id | comprobante | estado  | monto  | valor_mensual | meses | anulado_en      | anulado_por_cuenta_id | motivo_anulacion                                           | fecha_inicio | fecha_fin  | pago_estado
+---+-------------+---------+--------+---------------+-------+-----------------+-----------------------+------------------------------------------------------------+--------------+------------+------------
+4  | RC-000004   | ANULADO | 120000 | 120000        | 1     | [object Object] | 4                     | El cliente pidió la devolución: pago registrado por error. | 2026-11-20   | 2026-12-19 | ANULADO
+14 | RC-000014   | VALIDO  | 120000 | 120000        | 1     | NULL            | NULL                  | NULL                                                       | 2026-11-20   | 2026-12-19 | VALIDO

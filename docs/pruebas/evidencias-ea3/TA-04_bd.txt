@@ -1,0 +1,15 @@
+-- tarifas antes
+SELECT count(*) FROM tarifa;
+-- parámetros: []
+-- resultado:
+count
+-----
+8
+
+-- tarifas después
+SELECT count(*) FROM tarifa;
+-- parámetros: []
+-- resultado:
+count
+-----
+8

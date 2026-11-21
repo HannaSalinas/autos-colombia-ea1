@@ -1,0 +1,55 @@
+[
+  {
+    "sesion": "pantalla",
+    "metodo": "GET",
+    "ruta": "/reportes/recaudo?desde=2026-11-20&hasta=2026-11-20",
+    "codigo": 200,
+    "respuesta": {
+      "desde": "2026-11-20",
+      "hasta": "2026-11-20",
+      "validos": {
+        "cantidad": 16,
+        "total": 3440000
+      },
+      "por_metodo": [
+        {
+          "cantidad": 13,
+          "total": 2920000,
+          "metodo": "EFECTIVO"
+        },
+        {
+          "cantidad": 1,
+          "total": 280000,
+          "metodo": "TRANSFERENCIA"
+        },
+        {
+          "cantidad": 2,
+          "total": 240000,
+          "metodo": "TARJETA"
+        }
+      ],
+      "por_tipo_vehiculo": [
+        {
+          "cantidad": 1,
+          "total": 360000,
+          "tipo_vehiculo": "MOTO"
+        },
+        {
+          "cantidad": 13,
+          "total": 2650000,
+          "tipo_vehiculo": "AUTOMOVIL"
+        },
+        {
+          "cantidad": 2,
+          "total": 430000,
+          "tipo_vehiculo": "CAMIONETA"
+        }
+      ],
+      "anulados": {
+        "cantidad": 4,
+        "total": 480000
+      }
+    },
+    "nota": "pantalla Recaudo: del 2026-11-20 al 2026-11-20"
+  }
+]

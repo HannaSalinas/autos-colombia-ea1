@@ -1,0 +1,348 @@
+[
+  {
+    "sesion": "operador_prueba",
+    "metodo": "POST",
+    "ruta": "/auth/login",
+    "codigo": 200,
+    "solicitud": {
+      "usuario": "operador_prueba",
+      "contrasena": "«omitido»"
+    },
+    "respuesta": {
+      "token": "«omitido»",
+      "tipo": "bearer",
+      "expira_en": "2026-11-21T10:10:20.540937Z",
+      "cuenta": {
+        "id": 6,
+        "nombre_usuario": "operador_prueba",
+        "nombre": "Operador de Prueba",
+        "rol": "OPERADOR",
+        "permisos": [
+          "celdas:ver",
+          "consultas",
+          "estancias",
+          "pagos",
+          "tarifas:ver",
+          "vehiculos:ver"
+        ]
+      }
+    },
+    "nota": "iniciar sesión como operador_prueba"
+  },
+  {
+    "sesion": "pantalla",
+    "metodo": "GET",
+    "ruta": "/pagos/estado/PPR307",
+    "codigo": 200,
+    "respuesta": {
+      "vehiculo_id": 16,
+      "placa": "PPR307",
+      "tipo_vehiculo": "AUTOMOVIL",
+      "marca": "Plan PP-03",
+      "color": "Gris",
+      "cliente": {
+        "id": 7,
+        "tipo_documento": "CC",
+        "documento": "7003000001",
+        "nombre": "Cliente del Plan de Pruebas",
+        "telefono": "3007003001"
+      },
+      "estado": "SIN_MENSUALIDAD",
+      "periodo_actual": null,
+      "periodos_futuros": [],
+      "periodos_anulados": [],
+      "vence": null,
+      "dias_restantes": null,
+      "inicio_nuevo_periodo": "2026-11-20",
+      "fin_maximo": "2027-11-20",
+      "tarifa": {
+        "id": 5,
+        "tipo_vehiculo": "AUTOMOVIL",
+        "valor": 120000
+      }
+    },
+    "nota": "pantalla Pagos: consultar PPR307"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "POST",
+    "ruta": "/pagos",
+    "codigo": 422,
+    "solicitud": {
+      "placa": "PPR307",
+      "meses": 1,
+      "metodo": "TRANSFERENCIA",
+      "referencia": null,
+      "monto_confirmado": 120000
+    },
+    "respuesta": {
+      "detail": [
+        {
+          "type": "value_error",
+          "loc": [
+            "body"
+          ],
+          "msg": "Value error, La referencia es obligatoria para transferencia y tarjeta.",
+          "input": {
+            "placa": "PPR307",
+            "meses": 1,
+            "metodo": "TRANSFERENCIA",
+            "referencia": null,
+            "monto_confirmado": 120000
+          },
+          "ctx": {
+            "error": {}
+          }
+        }
+      ]
+    },
+    "nota": "por la API: transferencia sin referencia"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "POST",
+    "ruta": "/pagos",
+    "codigo": 422,
+    "solicitud": {
+      "placa": "PPR307",
+      "meses": 1,
+      "metodo": "TRANSFERENCIA",
+      "referencia": "AB1",
+      "monto_confirmado": 120000
+    },
+    "respuesta": {
+      "detail": [
+        {
+          "type": "value_error",
+          "loc": [
+            "body"
+          ],
+          "msg": "Value error, La referencia debe tener de 4 a 30 caracteres: letras, números o guion.",
+          "input": {
+            "placa": "PPR307",
+            "meses": 1,
+            "metodo": "TRANSFERENCIA",
+            "referencia": "AB1",
+            "monto_confirmado": 120000
+          },
+          "ctx": {
+            "error": {}
+          }
+        }
+      ]
+    },
+    "nota": "por la API: referencia de 3"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "POST",
+    "ruta": "/pagos",
+    "codigo": 422,
+    "solicitud": {
+      "placa": "PPR307",
+      "meses": 1,
+      "metodo": "TRANSFERENCIA",
+      "referencia": "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR",
+      "monto_confirmado": 120000
+    },
+    "respuesta": {
+      "detail": [
+        {
+          "type": "value_error",
+          "loc": [
+            "body"
+          ],
+          "msg": "Value error, La referencia debe tener de 4 a 30 caracteres: letras, números o guion.",
+          "input": {
+            "placa": "PPR307",
+            "meses": 1,
+            "metodo": "TRANSFERENCIA",
+            "referencia": "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR",
+            "monto_confirmado": 120000
+          },
+          "ctx": {
+            "error": {}
+          }
+        }
+      ]
+    },
+    "nota": "por la API: referencia de 31"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "POST",
+    "ruta": "/pagos",
+    "codigo": 422,
+    "solicitud": {
+      "placa": "PPR307",
+      "meses": 1,
+      "metodo": "EFECTIVO",
+      "referencia": "ABCD",
+      "monto_confirmado": 120000
+    },
+    "respuesta": {
+      "detail": [
+        {
+          "type": "value_error",
+          "loc": [
+            "body"
+          ],
+          "msg": "Value error, Un pago en efectivo no lleva referencia: deja el campo vacío.",
+          "input": {
+            "placa": "PPR307",
+            "meses": 1,
+            "metodo": "EFECTIVO",
+            "referencia": "ABCD",
+            "monto_confirmado": 120000
+          },
+          "ctx": {
+            "error": {}
+          }
+        }
+      ]
+    },
+    "nota": "por la API: efectivo con referencia"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "POST",
+    "ruta": "/pagos",
+    "codigo": 422,
+    "solicitud": {
+      "placa": "PPR307",
+      "meses": 1,
+      "metodo": "CHEQUE",
+      "referencia": "ABCD",
+      "monto_confirmado": 120000
+    },
+    "respuesta": {
+      "detail": [
+        {
+          "type": "literal_error",
+          "loc": [
+            "body",
+            "metodo"
+          ],
+          "msg": "Input should be 'EFECTIVO', 'TRANSFERENCIA' or 'TARJETA'",
+          "input": "CHEQUE",
+          "ctx": {
+            "expected": "'EFECTIVO', 'TRANSFERENCIA' or 'TARJETA'"
+          }
+        }
+      ]
+    },
+    "nota": "por la API: método fuera de la lista (CHEQUE)"
+  },
+  {
+    "sesion": "pantalla",
+    "metodo": "GET",
+    "ruta": "/pagos/cotizacion?placa=PPR307&meses=1",
+    "codigo": 200,
+    "respuesta": {
+      "placa": "PPR307",
+      "cliente_nombre": "Cliente del Plan de Pruebas",
+      "tipo_vehiculo": "AUTOMOVIL",
+      "meses": 1,
+      "fecha_inicio": "2026-11-20",
+      "fecha_fin": "2026-12-19",
+      "tarifa_id": 5,
+      "valor_mensual": 120000,
+      "monto": 120000
+    },
+    "nota": "pantalla Pagos: revisar el pago (1 mes(es), TARJETA)"
+  },
+  {
+    "sesion": "pantalla",
+    "metodo": "POST",
+    "ruta": "/pagos",
+    "codigo": 201,
+    "solicitud": {
+      "placa": "PPR307",
+      "meses": 1,
+      "metodo": "TARJETA",
+      "referencia": "TJ01",
+      "monto_confirmado": 120000
+    },
+    "respuesta": {
+      "id": 9,
+      "comprobante": "RC-000009",
+      "fecha": "2026-11-21T02:10:26.497674Z",
+      "placa": "PPR307",
+      "cliente_nombre": "Cliente del Plan de Pruebas",
+      "fecha_inicio": "2026-11-20",
+      "fecha_fin": "2026-12-19",
+      "meses": 1,
+      "monto": 120000,
+      "metodo": "TARJETA",
+      "estado": "VALIDO",
+      "registrado_por": "Operador de Prueba (operador_prueba)",
+      "vehiculo_id": 16,
+      "tipo_vehiculo": "AUTOMOVIL",
+      "cliente_tipo_documento": "CC",
+      "cliente_documento": "7003000001",
+      "valor_mensual": 120000,
+      "referencia": "TJ01",
+      "anulado_en": null,
+      "anulado_por": null,
+      "motivo_anulacion": null,
+      "anulable": true
+    },
+    "nota": "pantalla Pagos: confirmar el pago"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "GET",
+    "ruta": "/pagos/cotizacion?placa=PPR307&meses=1",
+    "codigo": 200,
+    "respuesta": {
+      "placa": "PPR307",
+      "cliente_nombre": "Cliente del Plan de Pruebas",
+      "tipo_vehiculo": "AUTOMOVIL",
+      "meses": 1,
+      "fecha_inicio": "2026-12-20",
+      "fecha_fin": "2027-01-19",
+      "tarifa_id": 5,
+      "valor_mensual": 120000,
+      "monto": 120000
+    },
+    "nota": "resumen de PPR307, 1 mes(es)"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "POST",
+    "ruta": "/pagos",
+    "codigo": 201,
+    "solicitud": {
+      "placa": "PPR307",
+      "meses": 1,
+      "metodo": "TARJETA",
+      "referencia": "TTTTTTTTTTTTTTTTTTTTTTTTTT-030",
+      "monto_confirmado": 120000
+    },
+    "respuesta": {
+      "id": 10,
+      "comprobante": "RC-000010",
+      "fecha": "2026-11-21T02:10:27.174119Z",
+      "placa": "PPR307",
+      "cliente_nombre": "Cliente del Plan de Pruebas",
+      "fecha_inicio": "2026-12-20",
+      "fecha_fin": "2027-01-19",
+      "meses": 1,
+      "monto": 120000,
+      "metodo": "TARJETA",
+      "estado": "VALIDO",
+      "registrado_por": "Operador de Prueba (operador_prueba)",
+      "vehiculo_id": 16,
+      "tipo_vehiculo": "AUTOMOVIL",
+      "cliente_tipo_documento": "CC",
+      "cliente_documento": "7003000001",
+      "valor_mensual": 120000,
+      "referencia": "TTTTTTTTTTTTTTTTTTTTTTTTTT-030",
+      "anulado_en": null,
+      "anulado_por": null,
+      "motivo_anulacion": null,
+      "anulable": true
+    },
+    "nota": "tarjeta con referencia de 30 caracteres por la API"
+  }
+]

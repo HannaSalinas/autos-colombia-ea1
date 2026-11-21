@@ -1,0 +1,26 @@
+-- tipo de las columnas de dinero
+SELECT column_name, data_type, numeric_precision, numeric_scale FROM information_schema.columns
+      WHERE table_name IN ('pago', 'tarifa') AND column_name IN ('monto', 'valor_mensual', 'valor') ORDER BY table_name, column_name;
+-- parámetros: []
+-- resultado:
+column_name   | data_type | numeric_precision | numeric_scale
+--------------+-----------+-------------------+--------------
+monto         | integer   | 32                | 0
+valor_mensual | integer   | 32                | 0
+valor         | integer   | 32                | 0
+
+-- monto guardado de RC-000014
+SELECT comprobante, monto FROM pago WHERE id = $1;
+-- parámetros: [14]
+-- resultado:
+comprobante | monto
+------------+-------
+RC-000014   | 120000
+
+-- monto guardado de RC-000016
+SELECT comprobante, monto FROM pago WHERE id = $1;
+-- parámetros: [16]
+-- resultado:
+comprobante | monto
+------------+-------
+RC-000016   | 280000

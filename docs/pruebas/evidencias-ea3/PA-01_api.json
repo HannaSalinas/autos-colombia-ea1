@@ -1,0 +1,92 @@
+[
+  {
+    "sesion": "pantalla",
+    "metodo": "GET",
+    "ruta": "/pagos/estado/PPV302",
+    "codigo": 200,
+    "respuesta": {
+      "vehiculo_id": 11,
+      "placa": "PPV302",
+      "tipo_vehiculo": "AUTOMOVIL",
+      "marca": "Plan PP-03",
+      "color": "Gris",
+      "cliente": {
+        "id": 7,
+        "tipo_documento": "CC",
+        "documento": "7003000001",
+        "nombre": "Cliente del Plan de Pruebas",
+        "telefono": "3007003001"
+      },
+      "estado": "VENCIDA",
+      "periodo_actual": null,
+      "periodos_futuros": [],
+      "periodos_anulados": [],
+      "vence": "2026-11-15",
+      "dias_restantes": null,
+      "inicio_nuevo_periodo": "2026-11-20",
+      "fin_maximo": "2027-11-20",
+      "tarifa": {
+        "id": 5,
+        "tipo_vehiculo": "AUTOMOVIL",
+        "valor": 120000
+      }
+    },
+    "nota": "pantalla Pagos: consultar PPV302"
+  },
+  {
+    "sesion": "pantalla",
+    "metodo": "GET",
+    "ruta": "/pagos/cotizacion?placa=PPV302&meses=1",
+    "codigo": 200,
+    "respuesta": {
+      "placa": "PPV302",
+      "cliente_nombre": "Cliente del Plan de Pruebas",
+      "tipo_vehiculo": "AUTOMOVIL",
+      "meses": 1,
+      "fecha_inicio": "2026-11-20",
+      "fecha_fin": "2026-12-19",
+      "tarifa_id": 5,
+      "valor_mensual": 120000,
+      "monto": 120000
+    },
+    "nota": "pantalla Pagos: revisar el pago (1 mes(es), EFECTIVO)"
+  },
+  {
+    "sesion": "pantalla",
+    "metodo": "POST",
+    "ruta": "/pagos",
+    "codigo": 201,
+    "solicitud": {
+      "placa": "PPV302",
+      "meses": 1,
+      "metodo": "EFECTIVO",
+      "referencia": null,
+      "monto_confirmado": 120000
+    },
+    "respuesta": {
+      "id": 14,
+      "comprobante": "RC-000014",
+      "fecha": "2026-11-21T02:10:31.369011Z",
+      "placa": "PPV302",
+      "cliente_nombre": "Cliente del Plan de Pruebas",
+      "fecha_inicio": "2026-11-20",
+      "fecha_fin": "2026-12-19",
+      "meses": 1,
+      "monto": 120000,
+      "metodo": "EFECTIVO",
+      "estado": "VALIDO",
+      "registrado_por": "Operador de Prueba (operador_prueba)",
+      "vehiculo_id": 11,
+      "tipo_vehiculo": "AUTOMOVIL",
+      "cliente_tipo_documento": "CC",
+      "cliente_documento": "7003000001",
+      "valor_mensual": 120000,
+      "referencia": null,
+      "anulado_en": null,
+      "anulado_por": null,
+      "motivo_anulacion": null,
+      "anulable": true
+    },
+    "nota": "pantalla Pagos: confirmar el pago"
+  }
+]

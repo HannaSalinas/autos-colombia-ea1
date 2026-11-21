@@ -1,0 +1,87 @@
+[
+  {
+    "sesion": "pantalla",
+    "metodo": "GET",
+    "ruta": "/clientes?offset=0&limit=10&buscar=Laura",
+    "codigo": 200,
+    "respuesta": {
+      "items": [
+        {
+          "id": 1,
+          "tipo_documento": "CC",
+          "documento": "1001234567",
+          "nombre": "Laura Gómez",
+          "telefono": "3001112233",
+          "correo": "laura.gomez@example.com",
+          "registrado_en": null,
+          "registrado_por": null,
+          "vehiculos": [
+            {
+              "id": 1,
+              "placa": "ABC123",
+              "tipo": "AUTOMOVIL"
+            },
+            {
+              "id": 2,
+              "placa": "KLM45D",
+              "tipo": "MOTO"
+            }
+          ]
+        }
+      ],
+      "total": 1,
+      "offset": 0,
+      "limit": 10
+    },
+    "nota": "pantalla Clientes: buscar «Laura»"
+  },
+  {
+    "sesion": "pantalla",
+    "metodo": "GET",
+    "ruta": "/clientes?offset=0&limit=10&buscar=1001234567",
+    "codigo": 200,
+    "respuesta": {
+      "items": [
+        {
+          "id": 1,
+          "tipo_documento": "CC",
+          "documento": "1001234567",
+          "nombre": "Laura Gómez",
+          "telefono": "3001112233",
+          "correo": "laura.gomez@example.com",
+          "registrado_en": null,
+          "registrado_por": null,
+          "vehiculos": [
+            {
+              "id": 1,
+              "placa": "ABC123",
+              "tipo": "AUTOMOVIL"
+            },
+            {
+              "id": 2,
+              "placa": "KLM45D",
+              "tipo": "MOTO"
+            }
+          ]
+        }
+      ],
+      "total": 1,
+      "offset": 0,
+      "limit": 10
+    },
+    "nota": "pantalla Clientes: buscar «1001234567»"
+  },
+  {
+    "sesion": "pantalla",
+    "metodo": "GET",
+    "ruta": "/clientes?offset=0&limit=10&buscar=Sin%20Coincidencias%20Xyz",
+    "codigo": 200,
+    "respuesta": {
+      "items": [],
+      "total": 0,
+      "offset": 0,
+      "limit": 10
+    },
+    "nota": "pantalla Clientes: buscar «Sin Coincidencias Xyz»"
+  }
+]

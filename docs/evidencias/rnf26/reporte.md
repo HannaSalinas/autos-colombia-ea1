@@ -1,7 +1,7 @@
 # Evidencia de RNF-26: compatibilidad de navegadores de la Iteración 3 (caso NF-02 del plan PP-03)
 
-Pruebas de extremo a extremo con Playwright 1.64.1 dentro de Docker, el 2026-11-20 14:38 (hora de
-Bogotá), sobre el commit `2638a46`. Comando: `docker compose --profile e2e run --rm --build e2e-rnf26`.
+Pruebas de extremo a extremo con Playwright 1.64.1 dentro de Docker, el 2026-11-20 21:25 (hora de
+Bogotá), sobre el commit `c07f1bd`. Comando: `docker compose --profile e2e run --rm --build e2e-rnf26`.
 Cada pantalla se verifica (textos, menús y botones esperados) antes de capturarla, y el recorrido
 no modifica datos: el pago llega hasta el resumen, la tarifa y la anulación hasta su confirmación, y las tres se cancelan; el comprobante es el del pago de ejemplo de las semillas.
 Los navegadores corren sin ventana (modo headless), con una ventana de 1280 × 900 px; por eso su

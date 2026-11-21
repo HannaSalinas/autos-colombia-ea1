@@ -1,0 +1,11 @@
+Calentando (primeras solicitudes, no se cuentan)...
+Pagos con 4 solicitudes simultáneas (40 por operación)...
+  Preparando 40 clientes y vehículos (no se mide)...
+| Operación | Simultáneas | Muestras | Mediana (ms) | p95 (ms) | Máximo (ms) | Límite p95 (ms) | ¿Cumple? |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| Registrar pago | 4 | 40 | 124 | 189 | 233 | 1000 | Sí |
+| Consultar estado de la mensualidad | 4 | 40 | 68 | 94 | 108 | 1000 | Sí |
+| Consultar pagos | 4 | 40 | 97 | 190 | 206 | 1000 | Sí |
+| Resumen de recaudo | 4 | 40 | 69 | 92 | 93 | 1000 | Sí |
+
+Reporte: /home/hanna/Proyectos/AutosColombia/docs/evidencias/rnf25.md

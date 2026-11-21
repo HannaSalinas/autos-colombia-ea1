@@ -1,0 +1,143 @@
+[
+  {
+    "sesion": "admin_dos",
+    "metodo": "POST",
+    "ruta": "/auth/login",
+    "codigo": 200,
+    "solicitud": {
+      "usuario": "admin_dos",
+      "contrasena": "«omitido»"
+    },
+    "respuesta": {
+      "token": "«omitido»",
+      "tipo": "bearer",
+      "expira_en": "2026-11-21T10:10:37.647719Z",
+      "cuenta": {
+        "id": 5,
+        "nombre_usuario": "admin_dos",
+        "nombre": "Administrador Dos de Prueba",
+        "rol": "ADMINISTRADOR",
+        "permisos": [
+          "celdas:gestionar",
+          "celdas:ver",
+          "clientes:gestionar",
+          "consultas",
+          "cuentas:gestionar",
+          "estancias",
+          "pagos",
+          "pagos:anular",
+          "recaudo:ver",
+          "tarifas:gestionar",
+          "tarifas:ver",
+          "vehiculos:gestionar",
+          "vehiculos:ver"
+        ]
+      }
+    },
+    "nota": "iniciar sesión como admin_dos"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "POST",
+    "ruta": "/auth/login",
+    "codigo": 200,
+    "solicitud": {
+      "usuario": "operador_prueba",
+      "contrasena": "«omitido»"
+    },
+    "respuesta": {
+      "token": "«omitido»",
+      "tipo": "bearer",
+      "expira_en": "2026-11-21T10:10:37.697445Z",
+      "cuenta": {
+        "id": 6,
+        "nombre_usuario": "operador_prueba",
+        "nombre": "Operador de Prueba",
+        "rol": "OPERADOR",
+        "permisos": [
+          "celdas:ver",
+          "consultas",
+          "estancias",
+          "pagos",
+          "tarifas:ver",
+          "vehiculos:ver"
+        ]
+      }
+    },
+    "nota": "iniciar sesión como operador_prueba"
+  },
+  {
+    "sesion": "admin_dos",
+    "metodo": "POST",
+    "ruta": "/pagos",
+    "codigo": 201,
+    "solicitud": {
+      "placa": "PPD310",
+      "meses": 1,
+      "metodo": "EFECTIVO",
+      "monto_confirmado": 120000
+    },
+    "respuesta": {
+      "id": 17,
+      "comprobante": "RC-000017",
+      "fecha": "2026-11-21T02:10:37.727517Z",
+      "placa": "PPD310",
+      "cliente_nombre": "Cliente del Plan de Pruebas",
+      "fecha_inicio": "2026-11-20",
+      "fecha_fin": "2026-12-19",
+      "meses": 1,
+      "monto": 120000,
+      "metodo": "EFECTIVO",
+      "estado": "VALIDO",
+      "registrado_por": "Administrador Dos de Prueba (admin_dos)",
+      "vehiculo_id": 19,
+      "tipo_vehiculo": "AUTOMOVIL",
+      "cliente_tipo_documento": "CC",
+      "cliente_documento": "7003000001",
+      "valor_mensual": 120000,
+      "referencia": null,
+      "anulado_en": null,
+      "anulado_por": null,
+      "motivo_anulacion": null,
+      "anulable": true
+    },
+    "nota": "pago simultáneo (sesión de admin_dos)"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "POST",
+    "ruta": "/pagos",
+    "codigo": 201,
+    "solicitud": {
+      "placa": "PPD310",
+      "meses": 1,
+      "metodo": "EFECTIVO",
+      "monto_confirmado": 120000
+    },
+    "respuesta": {
+      "id": 18,
+      "comprobante": "RC-000018",
+      "fecha": "2026-11-21T02:10:37.774863Z",
+      "placa": "PPD310",
+      "cliente_nombre": "Cliente del Plan de Pruebas",
+      "fecha_inicio": "2026-12-20",
+      "fecha_fin": "2027-01-19",
+      "meses": 1,
+      "monto": 120000,
+      "metodo": "EFECTIVO",
+      "estado": "VALIDO",
+      "registrado_por": "Operador de Prueba (operador_prueba)",
+      "vehiculo_id": 19,
+      "tipo_vehiculo": "AUTOMOVIL",
+      "cliente_tipo_documento": "CC",
+      "cliente_documento": "7003000001",
+      "valor_mensual": 120000,
+      "referencia": null,
+      "anulado_en": null,
+      "anulado_por": null,
+      "motivo_anulacion": null,
+      "anulable": true
+    },
+    "nota": "pago simultáneo (sesión de operador_prueba)"
+  }
+]

@@ -1,0 +1,96 @@
+[
+  {
+    "sesion": "pantalla",
+    "metodo": "GET",
+    "ruta": "/pagos/estado/PPG303",
+    "codigo": 200,
+    "respuesta": {
+      "vehiculo_id": 12,
+      "placa": "PPG303",
+      "tipo_vehiculo": "CAMIONETA",
+      "marca": "Plan PP-03",
+      "color": "Gris",
+      "cliente": {
+        "id": 7,
+        "tipo_documento": "CC",
+        "documento": "7003000001",
+        "nombre": "Cliente del Plan de Pruebas",
+        "telefono": "3007003001"
+      },
+      "estado": "VIGENTE",
+      "periodo_actual": {
+        "fecha_inicio": "2026-10-31",
+        "fecha_fin": "2026-11-30",
+        "comprobante": null
+      },
+      "periodos_futuros": [],
+      "periodos_anulados": [],
+      "vence": "2026-11-30",
+      "dias_restantes": 10,
+      "inicio_nuevo_periodo": "2026-12-01",
+      "fin_maximo": "2027-11-20",
+      "tarifa": {
+        "id": 3,
+        "tipo_vehiculo": "CAMIONETA",
+        "valor": 140000
+      }
+    },
+    "nota": "pantalla Pagos: consultar PPG303"
+  },
+  {
+    "sesion": "pantalla",
+    "metodo": "GET",
+    "ruta": "/pagos/cotizacion?placa=PPG303&meses=2",
+    "codigo": 200,
+    "respuesta": {
+      "placa": "PPG303",
+      "cliente_nombre": "Cliente del Plan de Pruebas",
+      "tipo_vehiculo": "CAMIONETA",
+      "meses": 2,
+      "fecha_inicio": "2026-12-01",
+      "fecha_fin": "2027-01-31",
+      "tarifa_id": 3,
+      "valor_mensual": 140000,
+      "monto": 280000
+    },
+    "nota": "pantalla Pagos: revisar el pago (2 mes(es), TRANSFERENCIA)"
+  },
+  {
+    "sesion": "pantalla",
+    "metodo": "POST",
+    "ruta": "/pagos",
+    "codigo": 201,
+    "solicitud": {
+      "placa": "PPG303",
+      "meses": 2,
+      "metodo": "TRANSFERENCIA",
+      "referencia": "TRX-PP03-0001",
+      "monto_confirmado": 280000
+    },
+    "respuesta": {
+      "id": 16,
+      "comprobante": "RC-000016",
+      "fecha": "2026-11-21T02:10:36.605357Z",
+      "placa": "PPG303",
+      "cliente_nombre": "Cliente del Plan de Pruebas",
+      "fecha_inicio": "2026-12-01",
+      "fecha_fin": "2027-01-31",
+      "meses": 2,
+      "monto": 280000,
+      "metodo": "TRANSFERENCIA",
+      "estado": "VALIDO",
+      "registrado_por": "Operador de Prueba (operador_prueba)",
+      "vehiculo_id": 12,
+      "tipo_vehiculo": "CAMIONETA",
+      "cliente_tipo_documento": "CC",
+      "cliente_documento": "7003000001",
+      "valor_mensual": 140000,
+      "referencia": "TRX-PP03-0001",
+      "anulado_en": null,
+      "anulado_por": null,
+      "motivo_anulacion": null,
+      "anulable": true
+    },
+    "nota": "pantalla Pagos: confirmar el pago"
+  }
+]

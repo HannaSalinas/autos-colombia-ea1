@@ -1,0 +1,8 @@
+-- comprobación en la base
+SELECT count(*) FILTER (WHERE estado = 'ANULADO') AS anulados,
+      count(*) FILTER (WHERE metodo = 'TRANSFERENCIA' AND (fecha AT TIME ZONE 'America/Bogota')::date = $1::date) AS transferencias_hoy FROM pago;
+-- parámetros: ["2026-11-20"]
+-- resultado:
+anulados | transferencias_hoy
+---------+-------------------
+4        | 2

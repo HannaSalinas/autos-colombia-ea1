@@ -1,0 +1,55 @@
+[
+  {
+    "sesion": "pantalla",
+    "metodo": "GET",
+    "ruta": "/reportes/recaudo?desde=2020-01-01&hasta=2020-01-31",
+    "codigo": 200,
+    "respuesta": {
+      "desde": "2020-01-01",
+      "hasta": "2020-01-31",
+      "validos": {
+        "cantidad": 0,
+        "total": 0
+      },
+      "por_metodo": [
+        {
+          "cantidad": 0,
+          "total": 0,
+          "metodo": "EFECTIVO"
+        },
+        {
+          "cantidad": 0,
+          "total": 0,
+          "metodo": "TRANSFERENCIA"
+        },
+        {
+          "cantidad": 0,
+          "total": 0,
+          "metodo": "TARJETA"
+        }
+      ],
+      "por_tipo_vehiculo": [
+        {
+          "cantidad": 0,
+          "total": 0,
+          "tipo_vehiculo": "MOTO"
+        },
+        {
+          "cantidad": 0,
+          "total": 0,
+          "tipo_vehiculo": "AUTOMOVIL"
+        },
+        {
+          "cantidad": 0,
+          "total": 0,
+          "tipo_vehiculo": "CAMIONETA"
+        }
+      ],
+      "anulados": {
+        "cantidad": 0,
+        "total": 0
+      }
+    },
+    "nota": "pantalla Recaudo: del 2020-01-01 al 2020-01-31"
+  }
+]

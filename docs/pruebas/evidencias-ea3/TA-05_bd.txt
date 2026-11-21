@@ -1,0 +1,8 @@
+-- montos guardados
+SELECT comprobante, tipo_vehiculo, valor_mensual, meses, monto, tarifa_id FROM pago WHERE id IN ($1, $2) ORDER BY id;
+-- parámetros: [14,15]
+-- resultado:
+comprobante | tipo_vehiculo | valor_mensual | meses | monto  | tarifa_id
+------------+---------------+---------------+-------+--------+----------
+RC-000014   | AUTOMOVIL     | 120000        | 1     | 120000 | 5
+RC-000015   | AUTOMOVIL     | 130000        | 1     | 130000 | 9

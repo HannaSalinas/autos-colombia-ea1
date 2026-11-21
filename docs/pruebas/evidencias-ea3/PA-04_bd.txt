@@ -1,0 +1,25 @@
+-- pagos de PA04-1 después de los rechazos
+SELECT count(*) FROM pago p JOIN mensualidad m ON m.pago_id = p.id WHERE m.vehiculo_id = $1;
+-- parámetros: [14]
+-- resultado:
+count
+-----
+0
+
+-- periodos de PA04-1
+SELECT m.id, m.fecha_inicio::text AS inicio, m.fecha_fin::text AS fin, p.comprobante, p.estado, p.meses, p.monto, p.metodo
+    FROM mensualidad m LEFT JOIN pago p ON p.id = m.pago_id WHERE m.vehiculo_id = $1 ORDER BY m.fecha_inicio;
+-- parámetros: [14]
+-- resultado:
+id | inicio     | fin        | comprobante | estado | meses | monto  | metodo
+---+------------+------------+-------------+--------+-------+--------+---------
+19 | 2026-11-20 | 2026-12-19 | RC-000007   | VALIDO | 1     | 120000 | EFECTIVO
+
+-- periodos de PA04-6
+SELECT m.id, m.fecha_inicio::text AS inicio, m.fecha_fin::text AS fin, p.comprobante, p.estado, p.meses, p.monto, p.metodo
+    FROM mensualidad m LEFT JOIN pago p ON p.id = m.pago_id WHERE m.vehiculo_id = $1 ORDER BY m.fecha_inicio;
+-- parámetros: [15]
+-- resultado:
+id | inicio     | fin        | comprobante | estado | meses | monto  | metodo
+---+------------+------------+-------------+--------+-------+--------+---------
+20 | 2026-11-20 | 2027-05-19 | RC-000008   | VALIDO | 6     | 360000 | EFECTIVO

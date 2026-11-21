@@ -1,0 +1,362 @@
+[
+  {
+    "sesion": "operador_prueba",
+    "metodo": "POST",
+    "ruta": "/auth/login",
+    "codigo": 200,
+    "solicitud": {
+      "usuario": "operador_prueba",
+      "contrasena": "«omitido»"
+    },
+    "respuesta": {
+      "token": "«omitido»",
+      "tipo": "bearer",
+      "expira_en": "2026-11-21T10:10:14.224344Z",
+      "cuenta": {
+        "id": 6,
+        "nombre_usuario": "operador_prueba",
+        "nombre": "Operador de Prueba",
+        "rol": "OPERADOR",
+        "permisos": [
+          "celdas:ver",
+          "consultas",
+          "estancias",
+          "pagos",
+          "tarifas:ver",
+          "vehiculos:ver"
+        ]
+      }
+    },
+    "nota": "iniciar sesión como operador_prueba"
+  },
+  {
+    "sesion": "pantalla",
+    "metodo": "GET",
+    "ruta": "/pagos/estado/PPM305",
+    "codigo": 200,
+    "respuesta": {
+      "vehiculo_id": 14,
+      "placa": "PPM305",
+      "tipo_vehiculo": "AUTOMOVIL",
+      "marca": "Plan PP-03",
+      "color": "Gris",
+      "cliente": {
+        "id": 7,
+        "tipo_documento": "CC",
+        "documento": "7003000001",
+        "nombre": "Cliente del Plan de Pruebas",
+        "telefono": "3007003001"
+      },
+      "estado": "SIN_MENSUALIDAD",
+      "periodo_actual": null,
+      "periodos_futuros": [],
+      "periodos_anulados": [],
+      "vence": null,
+      "dias_restantes": null,
+      "inicio_nuevo_periodo": "2026-11-20",
+      "fin_maximo": "2027-11-20",
+      "tarifa": {
+        "id": 5,
+        "tipo_vehiculo": "AUTOMOVIL",
+        "valor": 120000
+      }
+    },
+    "nota": "pantalla Pagos: consultar PPM305"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "POST",
+    "ruta": "/pagos",
+    "codigo": 422,
+    "solicitud": {
+      "placa": "PPM305",
+      "meses": 0,
+      "metodo": "EFECTIVO",
+      "monto_confirmado": 120000
+    },
+    "respuesta": {
+      "detail": [
+        {
+          "type": "value_error",
+          "loc": [
+            "body",
+            "meses"
+          ],
+          "msg": "Value error, Los meses deben ser un número entero de 1 a 6.",
+          "input": 0,
+          "ctx": {
+            "error": {}
+          }
+        }
+      ]
+    },
+    "nota": "registrar 0 meses por la API"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "GET",
+    "ruta": "/pagos/cotizacion?placa=PPM305&meses=0",
+    "codigo": 422,
+    "respuesta": {
+      "detail": [
+        {
+          "type": "greater_than_equal",
+          "loc": [
+            "query",
+            "meses"
+          ],
+          "msg": "Input should be greater than or equal to 1",
+          "input": "0",
+          "ctx": {
+            "ge": 1
+          }
+        }
+      ]
+    },
+    "nota": "resumen de 0 meses por la API"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "POST",
+    "ruta": "/pagos",
+    "codigo": 422,
+    "solicitud": {
+      "placa": "PPM305",
+      "meses": 7,
+      "metodo": "EFECTIVO",
+      "monto_confirmado": 120000
+    },
+    "respuesta": {
+      "detail": [
+        {
+          "type": "value_error",
+          "loc": [
+            "body",
+            "meses"
+          ],
+          "msg": "Value error, Los meses deben ser un número entero de 1 a 6.",
+          "input": 7,
+          "ctx": {
+            "error": {}
+          }
+        }
+      ]
+    },
+    "nota": "registrar 7 meses por la API"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "GET",
+    "ruta": "/pagos/cotizacion?placa=PPM305&meses=7",
+    "codigo": 422,
+    "respuesta": {
+      "detail": [
+        {
+          "type": "less_than_equal",
+          "loc": [
+            "query",
+            "meses"
+          ],
+          "msg": "Input should be less than or equal to 6",
+          "input": "7",
+          "ctx": {
+            "le": 6
+          }
+        }
+      ]
+    },
+    "nota": "resumen de 7 meses por la API"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "POST",
+    "ruta": "/pagos",
+    "codigo": 422,
+    "solicitud": {
+      "placa": "PPM305",
+      "meses": 1.5,
+      "metodo": "EFECTIVO",
+      "monto_confirmado": 120000
+    },
+    "respuesta": {
+      "detail": [
+        {
+          "type": "int_type",
+          "loc": [
+            "body",
+            "meses"
+          ],
+          "msg": "Input should be a valid integer",
+          "input": 1.5
+        }
+      ]
+    },
+    "nota": "registrar 1.5 meses por la API"
+  },
+  {
+    "sesion": "operador_prueba",
+    "metodo": "GET",
+    "ruta": "/pagos/cotizacion?placa=PPM305&meses=1.5",
+    "codigo": 422,
+    "respuesta": {
+      "detail": [
+        {
+          "type": "int_parsing",
+          "loc": [
+            "query",
+            "meses"
+          ],
+          "msg": "Input should be a valid integer, unable to parse string as an integer",
+          "input": "1.5"
+        }
+      ]
+    },
+    "nota": "resumen de 1.5 meses por la API"
+  },
+  {
+    "sesion": "pantalla",
+    "metodo": "GET",
+    "ruta": "/pagos/cotizacion?placa=PPM305&meses=1",
+    "codigo": 200,
+    "respuesta": {
+      "placa": "PPM305",
+      "cliente_nombre": "Cliente del Plan de Pruebas",
+      "tipo_vehiculo": "AUTOMOVIL",
+      "meses": 1,
+      "fecha_inicio": "2026-11-20",
+      "fecha_fin": "2026-12-19",
+      "tarifa_id": 5,
+      "valor_mensual": 120000,
+      "monto": 120000
+    },
+    "nota": "pantalla Pagos: revisar el pago (1 mes(es), EFECTIVO)"
+  },
+  {
+    "sesion": "pantalla",
+    "metodo": "POST",
+    "ruta": "/pagos",
+    "codigo": 201,
+    "solicitud": {
+      "placa": "PPM305",
+      "meses": 1,
+      "metodo": "EFECTIVO",
+      "referencia": null,
+      "monto_confirmado": 120000
+    },
+    "respuesta": {
+      "id": 7,
+      "comprobante": "RC-000007",
+      "fecha": "2026-11-21T02:10:16.073597Z",
+      "placa": "PPM305",
+      "cliente_nombre": "Cliente del Plan de Pruebas",
+      "fecha_inicio": "2026-11-20",
+      "fecha_fin": "2026-12-19",
+      "meses": 1,
+      "monto": 120000,
+      "metodo": "EFECTIVO",
+      "estado": "VALIDO",
+      "registrado_por": "Operador de Prueba (operador_prueba)",
+      "vehiculo_id": 14,
+      "tipo_vehiculo": "AUTOMOVIL",
+      "cliente_tipo_documento": "CC",
+      "cliente_documento": "7003000001",
+      "valor_mensual": 120000,
+      "referencia": null,
+      "anulado_en": null,
+      "anulado_por": null,
+      "motivo_anulacion": null,
+      "anulable": true
+    },
+    "nota": "pantalla Pagos: confirmar el pago"
+  },
+  {
+    "sesion": "pantalla",
+    "metodo": "GET",
+    "ruta": "/pagos/estado/PPN31A",
+    "codigo": 200,
+    "respuesta": {
+      "vehiculo_id": 15,
+      "placa": "PPN31A",
+      "tipo_vehiculo": "MOTO",
+      "marca": "Plan PP-03",
+      "color": "Gris",
+      "cliente": {
+        "id": 7,
+        "tipo_documento": "CC",
+        "documento": "7003000001",
+        "nombre": "Cliente del Plan de Pruebas",
+        "telefono": "3007003001"
+      },
+      "estado": "SIN_MENSUALIDAD",
+      "periodo_actual": null,
+      "periodos_futuros": [],
+      "periodos_anulados": [],
+      "vence": null,
+      "dias_restantes": null,
+      "inicio_nuevo_periodo": "2026-11-20",
+      "fin_maximo": "2027-11-20",
+      "tarifa": {
+        "id": 8,
+        "tipo_vehiculo": "MOTO",
+        "valor": 60000
+      }
+    },
+    "nota": "pantalla Pagos: consultar PPN31A"
+  },
+  {
+    "sesion": "pantalla",
+    "metodo": "GET",
+    "ruta": "/pagos/cotizacion?placa=PPN31A&meses=6",
+    "codigo": 200,
+    "respuesta": {
+      "placa": "PPN31A",
+      "cliente_nombre": "Cliente del Plan de Pruebas",
+      "tipo_vehiculo": "MOTO",
+      "meses": 6,
+      "fecha_inicio": "2026-11-20",
+      "fecha_fin": "2027-05-19",
+      "tarifa_id": 8,
+      "valor_mensual": 60000,
+      "monto": 360000
+    },
+    "nota": "pantalla Pagos: revisar el pago (6 mes(es), EFECTIVO)"
+  },
+  {
+    "sesion": "pantalla",
+    "metodo": "POST",
+    "ruta": "/pagos",
+    "codigo": 201,
+    "solicitud": {
+      "placa": "PPN31A",
+      "meses": 6,
+      "metodo": "EFECTIVO",
+      "referencia": null,
+      "monto_confirmado": 360000
+    },
+    "respuesta": {
+      "id": 8,
+      "comprobante": "RC-000008",
+      "fecha": "2026-11-21T02:10:17.699586Z",
+      "placa": "PPN31A",
+      "cliente_nombre": "Cliente del Plan de Pruebas",
+      "fecha_inicio": "2026-11-20",
+      "fecha_fin": "2027-05-19",
+      "meses": 6,
+      "monto": 360000,
+      "metodo": "EFECTIVO",
+      "estado": "VALIDO",
+      "registrado_por": "Operador de Prueba (operador_prueba)",
+      "vehiculo_id": 15,
+      "tipo_vehiculo": "MOTO",
+      "cliente_tipo_documento": "CC",
+      "cliente_documento": "7003000001",
+      "valor_mensual": 60000,
+      "referencia": null,
+      "anulado_en": null,
+      "anulado_por": null,
+      "motivo_anulacion": null,
+      "anulable": true
+    },
+    "nota": "pantalla Pagos: confirmar el pago"
+  }
+]

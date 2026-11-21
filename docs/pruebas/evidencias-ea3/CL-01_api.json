@@ -1,0 +1,52 @@
+[
+  {
+    "sesion": "pantalla",
+    "metodo": "POST",
+    "ruta": "/clientes",
+    "codigo": 201,
+    "solicitud": {
+      "tipo_documento": "CC",
+      "documento": "1020304050",
+      "nombre": "Ana María Restrepo",
+      "telefono": "3001234567",
+      "correo": "ana.restrepo@correo.com"
+    },
+    "respuesta": {
+      "id": 8,
+      "tipo_documento": "CC",
+      "documento": "1020304050",
+      "nombre": "Ana María Restrepo",
+      "telefono": "3001234567",
+      "correo": "ana.restrepo@correo.com",
+      "registrado_en": "2026-11-21T02:09:28.553912Z",
+      "registrado_por": "Administradora de Prueba (admin_prueba)",
+      "vehiculos": []
+    },
+    "nota": "pantalla Clientes: guardar el cliente"
+  },
+  {
+    "sesion": "pantalla",
+    "metodo": "GET",
+    "ruta": "/clientes?offset=0&limit=10&buscar=1020304050",
+    "codigo": 200,
+    "respuesta": {
+      "items": [
+        {
+          "id": 8,
+          "tipo_documento": "CC",
+          "documento": "1020304050",
+          "nombre": "Ana María Restrepo",
+          "telefono": "3001234567",
+          "correo": "ana.restrepo@correo.com",
+          "registrado_en": "2026-11-21T02:09:28.553912Z",
+          "registrado_por": "Administradora de Prueba (admin_prueba)",
+          "vehiculos": []
+        }
+      ],
+      "total": 1,
+      "offset": 0,
+      "limit": 10
+    },
+    "nota": "pantalla Clientes: buscar «1020304050»"
+  }
+]

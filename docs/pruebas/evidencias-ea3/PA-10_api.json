@@ -1,0 +1,135 @@
+[
+  {
+    "sesion": "pantalla",
+    "metodo": "POST",
+    "ruta": "/estancias/entrada",
+    "codigo": 409,
+    "solicitud": {
+      "placa": "PPS301"
+    },
+    "respuesta": {
+      "detail": "El vehículo no tiene mensualidad vigente. No puede ingresar."
+    },
+    "nota": "pantalla Control de acceso: registrar la entrada de PPS301"
+  },
+  {
+    "sesion": "pantalla",
+    "metodo": "GET",
+    "ruta": "/pagos/estado/PPS301",
+    "codigo": 200,
+    "respuesta": {
+      "vehiculo_id": 10,
+      "placa": "PPS301",
+      "tipo_vehiculo": "AUTOMOVIL",
+      "marca": "Plan PP-03",
+      "color": "Gris",
+      "cliente": {
+        "id": 7,
+        "tipo_documento": "CC",
+        "documento": "7003000001",
+        "nombre": "Cliente del Plan de Pruebas",
+        "telefono": "3007003001"
+      },
+      "estado": "SIN_MENSUALIDAD",
+      "periodo_actual": null,
+      "periodos_futuros": [],
+      "periodos_anulados": [],
+      "vence": null,
+      "dias_restantes": null,
+      "inicio_nuevo_periodo": "2026-11-20",
+      "fin_maximo": "2027-11-20",
+      "tarifa": {
+        "id": 10,
+        "tipo_vehiculo": "AUTOMOVIL",
+        "valor": 120000
+      }
+    },
+    "nota": "pantalla Pagos: consultar PPS301"
+  },
+  {
+    "sesion": "pantalla",
+    "metodo": "GET",
+    "ruta": "/pagos/cotizacion?placa=PPS301&meses=1",
+    "codigo": 200,
+    "respuesta": {
+      "placa": "PPS301",
+      "cliente_nombre": "Cliente del Plan de Pruebas",
+      "tipo_vehiculo": "AUTOMOVIL",
+      "meses": 1,
+      "fecha_inicio": "2026-11-20",
+      "fecha_fin": "2026-12-19",
+      "tarifa_id": 10,
+      "valor_mensual": 120000,
+      "monto": 120000
+    },
+    "nota": "pantalla Pagos: revisar el pago (1 mes(es), EFECTIVO)"
+  },
+  {
+    "sesion": "pantalla",
+    "metodo": "POST",
+    "ruta": "/pagos",
+    "codigo": 201,
+    "solicitud": {
+      "placa": "PPS301",
+      "meses": 1,
+      "metodo": "EFECTIVO",
+      "referencia": null,
+      "monto_confirmado": 120000
+    },
+    "respuesta": {
+      "id": 20,
+      "comprobante": "RC-000020",
+      "fecha": "2026-11-21T02:10:43.640475Z",
+      "placa": "PPS301",
+      "cliente_nombre": "Cliente del Plan de Pruebas",
+      "fecha_inicio": "2026-11-20",
+      "fecha_fin": "2026-12-19",
+      "meses": 1,
+      "monto": 120000,
+      "metodo": "EFECTIVO",
+      "estado": "VALIDO",
+      "registrado_por": "Operador de Prueba (operador_prueba)",
+      "vehiculo_id": 10,
+      "tipo_vehiculo": "AUTOMOVIL",
+      "cliente_tipo_documento": "CC",
+      "cliente_documento": "7003000001",
+      "valor_mensual": 120000,
+      "referencia": null,
+      "anulado_en": null,
+      "anulado_por": null,
+      "motivo_anulacion": null,
+      "anulable": true
+    },
+    "nota": "pantalla Pagos: confirmar el pago"
+  },
+  {
+    "sesion": "pantalla",
+    "metodo": "POST",
+    "ruta": "/estancias/entrada",
+    "codigo": 201,
+    "solicitud": {
+      "placa": "PPS301"
+    },
+    "respuesta": {
+      "id": 1,
+      "vehiculo_id": 10,
+      "celda_id": 1,
+      "entrada": "2026-11-21T02:10:44.891862Z",
+      "salida": null,
+      "operador_entrada_id": 6,
+      "operador_salida_id": null,
+      "placa": "PPS301",
+      "celda": {
+        "id": 1,
+        "codigo": "C01",
+        "tipo": "CARRO",
+        "disponible_desde": null,
+        "ubicacion": null,
+        "habilitada": true
+      },
+      "duracion_segundos": null,
+      "permanencia": null
+    },
+    "nota": "pantalla Control de acceso: registrar la entrada de PPS301"
+  }
+]

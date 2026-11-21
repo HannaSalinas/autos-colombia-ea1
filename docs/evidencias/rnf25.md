@@ -1,6 +1,6 @@
 # Evidencia de RNF-25: tiempo de respuesta medido de las operaciones de pagos
 
-Medición automatizada con `scripts/medir_rnf25.py` el 2026-11-20 14:41 (hora de Bogotá), contra el
+Medición automatizada con `scripts/medir_rnf25.py` el 2026-11-20 21:26 (hora de Bogotá), contra el
 sistema levantado con Docker Compose sobre una base limpia, a través de `http://localhost:4200`.
 Percentil 95 por rango más cercano, con el mismo método de RNF-19 (el script reutiliza sus
 funciones). Los tiempos incluyen la red local, nginx, la API y PostgreSQL.
@@ -15,16 +15,16 @@ funciones). Los tiempos incluyen la red local, nginx, la API y PostgreSQL.
 | Sistema operativo | Linux 7.0.0-42-generic |
 | Docker | Docker version 29.9.2, build a82e528 |
 | Docker Compose | 5.6.1 |
-| Commit medido | 717246b |
+| Commit medido | c07f1bd |
 
 ## Resultados
 
 | Operación | Simultáneas | Muestras | Mediana (ms) | p95 (ms) | Máximo (ms) | Límite p95 (ms) | ¿Cumple? |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| Registrar pago | 4 | 40 | 468 | 934 | 993 | 1000 | Sí |
-| Consultar estado de la mensualidad | 4 | 40 | 234 | 340 | 377 | 1000 | Sí |
-| Consultar pagos | 4 | 40 | 339 | 579 | 634 | 1000 | Sí |
-| Resumen de recaudo | 4 | 40 | 206 | 336 | 360 | 1000 | Sí |
+| Registrar pago | 4 | 40 | 124 | 189 | 233 | 1000 | Sí |
+| Consultar estado de la mensualidad | 4 | 40 | 68 | 94 | 108 | 1000 | Sí |
+| Consultar pagos | 4 | 40 | 97 | 190 | 206 | 1000 | Sí |
+| Resumen de recaudo | 4 | 40 | 69 | 92 | 93 | 1000 | Sí |
 
 **Resultado global: cumple RNF-25.**
 

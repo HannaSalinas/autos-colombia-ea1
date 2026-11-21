@@ -1,0 +1,8 @@
+-- estancia abierta de V-SIN
+SELECT e.id, v.placa, c.codigo AS celda, e.entrada, e.salida FROM estancia e JOIN vehiculo v ON v.id = e.vehiculo_id
+      JOIN celda c ON c.id = e.celda_id WHERE v.placa = $1;
+-- parámetros: ["PPS301"]
+-- resultado:
+id | placa  | celda | entrada         | salida
+---+--------+-------+-----------------+-------
+1  | PPS301 | C01   | [object Object] | NULL

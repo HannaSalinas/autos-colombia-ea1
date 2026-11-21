@@ -1,0 +1,14 @@
+-- pagos del rango agrupados en la base (por la fecha del pago, en Bogotá)
+SELECT estado, metodo, tipo_vehiculo, count(*) AS cantidad, sum(monto) AS total
+      FROM pago WHERE (fecha AT TIME ZONE 'America/Bogota')::date BETWEEN $1::date AND $1::date GROUP BY estado, metodo, tipo_vehiculo ORDER BY estado, metodo, tipo_vehiculo;
+-- parámetros: ["2026-11-20"]
+-- resultado:
+estado  | metodo        | tipo_vehiculo | cantidad | total
+--------+---------------+---------------+----------+--------
+ANULADO | EFECTIVO      | AUTOMOVIL     | 3        | 360000
+ANULADO | TRANSFERENCIA | AUTOMOVIL     | 1        | 120000
+VALIDO  | EFECTIVO      | AUTOMOVIL     | 11       | 2410000
+VALIDO  | EFECTIVO      | CAMIONETA     | 1        | 150000
+VALIDO  | EFECTIVO      | MOTO          | 1        | 360000
+VALIDO  | TARJETA       | AUTOMOVIL     | 2        | 240000
+VALIDO  | TRANSFERENCIA | CAMIONETA     | 1        | 280000

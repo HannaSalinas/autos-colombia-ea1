@@ -1,0 +1,46 @@
+[
+  {
+    "sesion": "pantalla",
+    "metodo": "GET",
+    "ruta": "/pagos/estado/PPF304",
+    "codigo": 200,
+    "respuesta": {
+      "vehiculo_id": 13,
+      "placa": "PPF304",
+      "tipo_vehiculo": "AUTOMOVIL",
+      "marca": "Plan PP-03",
+      "color": "Gris",
+      "cliente": {
+        "id": 7,
+        "tipo_documento": "CC",
+        "documento": "7003000001",
+        "nombre": "Cliente del Plan de Pruebas",
+        "telefono": "3007003001"
+      },
+      "estado": "VIGENTE",
+      "periodo_actual": {
+        "fecha_inicio": "2026-11-10",
+        "fecha_fin": "2026-12-10",
+        "comprobante": null
+      },
+      "periodos_futuros": [
+        {
+          "fecha_inicio": "2026-12-11",
+          "fecha_fin": "2027-01-10",
+          "comprobante": "RC-000003"
+        }
+      ],
+      "periodos_anulados": [],
+      "vence": "2027-01-10",
+      "dias_restantes": 51,
+      "inicio_nuevo_periodo": "2027-01-11",
+      "fin_maximo": "2027-11-20",
+      "tarifa": {
+        "id": 5,
+        "tipo_vehiculo": "AUTOMOVIL",
+        "valor": 120000
+      }
+    },
+    "nota": "pantalla Pagos: consultar PPF304"
+  }
+]

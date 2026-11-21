@@ -1,0 +1,204 @@
+[
+  {
+    "sesion": "admin_prueba",
+    "metodo": "POST",
+    "ruta": "/auth/login",
+    "codigo": 200,
+    "solicitud": {
+      "usuario": "admin_prueba",
+      "contrasena": "«omitido»"
+    },
+    "respuesta": {
+      "token": "«omitido»",
+      "tipo": "bearer",
+      "expira_en": "2026-11-21T10:09:21.482264Z",
+      "cuenta": {
+        "id": 4,
+        "nombre_usuario": "admin_prueba",
+        "nombre": "Administradora de Prueba",
+        "rol": "ADMINISTRADOR",
+        "permisos": [
+          "celdas:gestionar",
+          "celdas:ver",
+          "clientes:gestionar",
+          "consultas",
+          "cuentas:gestionar",
+          "estancias",
+          "pagos",
+          "pagos:anular",
+          "recaudo:ver",
+          "tarifas:gestionar",
+          "tarifas:ver",
+          "vehiculos:gestionar",
+          "vehiculos:ver"
+        ]
+      }
+    },
+    "nota": "iniciar sesión como admin_prueba"
+  },
+  {
+    "sesion": "admin_prueba",
+    "metodo": "POST",
+    "ruta": "/tarifas",
+    "codigo": 422,
+    "solicitud": {
+      "tipo_vehiculo": "MOTO",
+      "valor": 999
+    },
+    "respuesta": {
+      "detail": [
+        {
+          "type": "value_error",
+          "loc": [
+            "body",
+            "valor"
+          ],
+          "msg": "Value error, La tarifa debe ser un valor entero en pesos, sin decimales, entre $ 1.000 y $ 2.000.000.",
+          "input": 999,
+          "ctx": {
+            "error": {}
+          }
+        }
+      ]
+    },
+    "nota": "tarifa inválida por la API: 999"
+  },
+  {
+    "sesion": "admin_prueba",
+    "metodo": "POST",
+    "ruta": "/tarifas",
+    "codigo": 422,
+    "solicitud": {
+      "tipo_vehiculo": "MOTO",
+      "valor": 2000001
+    },
+    "respuesta": {
+      "detail": [
+        {
+          "type": "value_error",
+          "loc": [
+            "body",
+            "valor"
+          ],
+          "msg": "Value error, La tarifa debe ser un valor entero en pesos, sin decimales, entre $ 1.000 y $ 2.000.000.",
+          "input": 2000001,
+          "ctx": {
+            "error": {}
+          }
+        }
+      ]
+    },
+    "nota": "tarifa inválida por la API: 2000001"
+  },
+  {
+    "sesion": "admin_prueba",
+    "metodo": "POST",
+    "ruta": "/tarifas",
+    "codigo": 422,
+    "solicitud": {
+      "tipo_vehiculo": "MOTO",
+      "valor": 1500.5
+    },
+    "respuesta": {
+      "detail": [
+        {
+          "type": "int_type",
+          "loc": [
+            "body",
+            "valor"
+          ],
+          "msg": "Input should be a valid integer",
+          "input": 1500.5
+        }
+      ]
+    },
+    "nota": "tarifa inválida por la API: 1500.5"
+  },
+  {
+    "sesion": "admin_prueba",
+    "metodo": "POST",
+    "ruta": "/tarifas",
+    "codigo": 422,
+    "solicitud": {
+      "tipo_vehiculo": "MOTO",
+      "valor": null
+    },
+    "respuesta": {
+      "detail": [
+        {
+          "type": "int_type",
+          "loc": [
+            "body",
+            "valor"
+          ],
+          "msg": "Input should be a valid integer",
+          "input": null
+        }
+      ]
+    },
+    "nota": "tarifa inválida por la API: null"
+  },
+  {
+    "sesion": "admin_prueba",
+    "metodo": "POST",
+    "ruta": "/tarifas",
+    "codigo": 422,
+    "solicitud": {
+      "tipo_vehiculo": "MOTO",
+      "valor": ""
+    },
+    "respuesta": {
+      "detail": [
+        {
+          "type": "int_type",
+          "loc": [
+            "body",
+            "valor"
+          ],
+          "msg": "Input should be a valid integer",
+          "input": ""
+        }
+      ]
+    },
+    "nota": "tarifa inválida por la API: \"\""
+  },
+  {
+    "sesion": "admin_prueba",
+    "metodo": "GET",
+    "ruta": "/tarifas",
+    "codigo": 200,
+    "respuesta": [
+      {
+        "tipo_vehiculo": "MOTO",
+        "tarifa": {
+          "id": 8,
+          "tipo_vehiculo": "MOTO",
+          "valor": 60000,
+          "vigente_desde": "2026-11-21T02:09:15.442704Z",
+          "definida_por": "Administradora de Prueba (admin_prueba)"
+        }
+      },
+      {
+        "tipo_vehiculo": "AUTOMOVIL",
+        "tarifa": {
+          "id": 5,
+          "tipo_vehiculo": "AUTOMOVIL",
+          "valor": 120000,
+          "vigente_desde": "2026-11-21T02:08:42.662608Z",
+          "definida_por": "Administradora de Prueba (admin_prueba)"
+        }
+      },
+      {
+        "tipo_vehiculo": "CAMIONETA",
+        "tarifa": {
+          "id": 3,
+          "tipo_vehiculo": "CAMIONETA",
+          "valor": 140000,
+          "vigente_desde": "2026-11-21T02:06:10.490118Z",
+          "definida_por": null
+        }
+      }
+    ],
+    "nota": "tarifa vigente de MOTO"
+  }
+]

@@ -1,0 +1,16 @@
+-- clientes creados con los datos inválidos (documento base 7003000090 o documentos de 4 y 16)
+SELECT count(*) FROM cliente WHERE documento IN ('7003000090', '1234', '1234567890123456');
+-- parámetros: []
+-- resultado:
+count
+-----
+0
+
+-- clientes con los límites válidos
+SELECT documento, length(documento) AS largo_documento, nombre, length(nombre) AS largo_nombre, telefono, correo FROM cliente WHERE documento IN ('70030', '700300000000015') ORDER BY documento;
+-- parámetros: []
+-- resultado:
+documento       | largo_documento | nombre                                                                           | largo_nombre | telefono   | correo
+----------------+-----------------+----------------------------------------------------------------------------------+--------------+------------+--------------------------
+70030           | 5               | Ana                                                                              | 3            | 3000000005 | NULL
+700300000000015 | 15              | Nombre de Ochenta Caracteres para Probar el Límite del Campo Nombre del Cliente. | 80           | 3000000015 | cliente.limite@correo.com
