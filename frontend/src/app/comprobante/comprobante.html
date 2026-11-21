@@ -69,7 +69,7 @@
   </dl>
   @if (pago().estado === 'ANULADO') {
     <section class="anulacion" aria-label="Datos de la anulación">
-      <p>Anulado por {{ pago().anulado_por }} el {{ fechaHora(pago().anulado_en) }}.</p>
+      <p>Anulado por {{ pago().anulado_por }} el {{ fechaHora(pago().anulado_en) }}</p>
       <p>Motivo: {{ pago().motivo_anulacion }}</p>
     </section>
   }
