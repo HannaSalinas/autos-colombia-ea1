@@ -455,8 +455,8 @@ Con Marta, **Pagos**, busca cada placa:
    $ 120.000", $ 240.000 → **RC-000004**.
 5. Cambio de tarifa entre el resumen y la confirmación: Marta revisa un pago de `DEF456`, 1 mes,
    Efectivo ($ 140.000). En otra ventana, el Administrador cambia CAMIONETA a `150000`. Marta
-   confirma → "La tarifa cambió después del resumen: el monto ahora es $ 150.000. Revisa el
-   nuevo resumen y confirma otra vez.", con el resumen ya actualizado y sin registrar nada.
+   confirma → "El monto no coincide con el calculado: el monto vigente es $ 150.000. Revisa
+   el nuevo resumen y confirma otra vez.", con el resumen ya actualizado y sin registrar nada.
    **Confirmar pago** otra vez → **RC-000005** por $ 150.000. Devuelve CAMIONETA a `140000`:
    RC-000005 conserva su monto.
 6. Tope de 12 meses: QWE456, 6 meses → resumen del 20/02/2027 al 19/08/2027 por $ 720.000 →

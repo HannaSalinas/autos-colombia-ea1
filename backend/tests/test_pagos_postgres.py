@@ -227,6 +227,18 @@ def test_si_la_tarifa_cambio_despues_del_resumen_no_registra(api_y_sesion):
     assert pagar(api, v.placa).json()["valor_mensual"] == 130000
 
 
+def test_monto_confirmado_distinto_sin_cambio_de_tarifa_no_registra(api_y_sesion):
+    # PA-09, paso 1: el monto lo calcula el servidor; uno distinto se rechaza aunque la tarifa no cambie.
+    api, session = api_y_sesion
+    v = vehiculo(session)
+    crear_tarifa(session, "AUTOMOVIL", 120000)
+    respuesta = api.post("/pagos", json={"placa": v.placa, "meses": 1, "metodo": "EFECTIVO", "monto_confirmado": 1000})
+    assert respuesta.status_code == 409
+    assert respuesta.json() == {"detail": "El monto no coincide con el calculado: el monto vigente es $ 120.000. "
+                                          "Revisa el nuevo resumen y confirma otra vez."}
+    assert session.query(Mensualidad).filter_by(vehiculo_id=v.id).count() == 0
+
+
 def test_sin_tarifa_definida_no_registra(api_y_sesion):
     api, session = api_y_sesion
     v = vehiculo(session, "CAMIONETA")

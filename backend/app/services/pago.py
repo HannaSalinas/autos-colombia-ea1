@@ -177,7 +177,8 @@ def registrar(session: Session, data: PagoCrear, actor: SesionActual) -> PagoDet
     vehiculo = _vehiculo(session, data.placa, bloquear=True)
     calculo = _calcular(session, vehiculo, data.meses, hoy_bogota())
     if calculo.monto != data.monto_confirmado:
-        raise PagoError(409, f"La tarifa cambió después del resumen: el monto ahora es {formatear_pesos(calculo.monto)}. "
+        # Vale para los dos casos: la tarifa cambió después del resumen, o el monto enviado no es el calculado.
+        raise PagoError(409, f"El monto no coincide con el calculado: el monto vigente es {formatear_pesos(calculo.monto)}. "
                              "Revisa el nuevo resumen y confirma otra vez.")
     pago = Pago(meses=data.meses, tarifa_id=calculo.tarifa.id, tipo_vehiculo=calculo.tarifa.tipo_vehiculo,
                 valor_mensual=calculo.tarifa.valor, monto=calculo.monto, metodo=data.metodo,

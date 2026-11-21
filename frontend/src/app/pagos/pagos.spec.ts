@@ -268,7 +268,7 @@ describe('Pagos: estado y registro (HU-29, HU-30)', () => {
     cotizar('1', { ...cotizacion, meses: 1, monto: 120000 });
     boton('Confirmar pago').click();
     const aviso =
-      'La tarifa cambió después del resumen: el monto ahora es $ 130.000. Revisa el nuevo resumen y confirma otra vez.';
+      'El monto no coincide con el calculado: el monto vigente es $ 130.000. Revisa el nuevo resumen y confirma otra vez.';
     http
       .expectOne({ method: 'POST', url: '/pagos' })
       .flush({ detail: aviso }, { status: 409, statusText: 'Conflict' });

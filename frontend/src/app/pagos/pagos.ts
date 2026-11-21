@@ -41,8 +41,9 @@ function reglaReferencia(grupo: AbstractControl): ValidationErrors | null {
   return mensaje ? { referencia: mensaje } : null;
 }
 
-/** Inicio del mensaje 409 del backend cuando la tarifa cambió entre el resumen y la confirmación. */
-const TARIFA_CAMBIO = 'La tarifa cambió';
+/** Inicio del mensaje 409 del backend cuando el monto confirmado no es el calculado (por ejemplo, porque
+ *  la tarifa cambió entre el resumen y la confirmación). */
+const MONTO_DISTINTO = 'El monto no coincide con el calculado';
 
 /**
  * Registrar pago (HU-29 y HU-30). Ambos roles. Pasos: buscar la placa y ver el estado de su
@@ -224,7 +225,7 @@ export class Pagos {
         error: (error: HttpErrorResponse) => {
           this.registrando.set(false);
           const detalle = typeof error.error?.detail === 'string' ? error.error.detail : '';
-          if (error.status === 409 && detalle.startsWith(TARIFA_CAMBIO)) {
+          if (error.status === 409 && detalle.startsWith(MONTO_DISTINTO)) {
             // HU-30.2: no se registró nada. Se muestra el resumen con el monto nuevo para confirmar otra vez.
             this.pedirResumen(resumen.placa, detalle);
             return;
