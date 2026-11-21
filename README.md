@@ -1033,6 +1033,14 @@ el resultado real de cada caso (los resultados esperados no se cambiaron):
   cambiado; antes de ejecutar se cambió a una redacción que vale para los dos pasos («El monto no
   coincide con el calculado: el monto vigente es $ …»).
 
+**Resultado de la ejecución entregada** (commit probado `c07f1bd`, 20-nov-2026 de 21:03 a 21:26, hora
+de Bogotá): **43 de 43 casos aprobados**, sin fallidos ni bloqueados. Detalle por caso en
+[docs/pruebas/reporte-ea3.md](docs/pruebas/reporte-ea3.md); el Excel diligenciado, con enlaces a las
+evidencias del commit `5b9538c`, está en
+[docs/pruebas/Salinas_Hanna_EA3_Plan_Pruebas.xlsx](docs/pruebas/Salinas_Hanna_EA3_Plan_Pruebas.xlsx).
+Placas reales de los vehículos de prueba: V-SIN = `PPS301`, V-VENC = `PPV302`, V-VIG = `PPG303`
+(CAMIONETA) y V-FUT = `PPF304`.
+
 ## Arquitectura y estructura
 
 Arquitectura por capas, igual que el proyecto base:
