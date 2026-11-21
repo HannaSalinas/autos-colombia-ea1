@@ -911,7 +911,7 @@ cd frontend && npm ci && npm test -- --watch=false   # frontend (Vitest); requie
 `backend-tests` usa un PostgreSQL **aparte** (`db-test`, en memoria): las pruebas nunca
 tocan los datos de la demostración. Resultado al cerrar la Iteración 1: 244 pruebas de
 backend y 58 de frontend. Al cerrar la Iteración 2: 474 de backend y 113 de frontend.
-**Al cerrar la Iteración 3: 757 de backend y 159 de frontend**, todas aprobadas.
+**Al cerrar la Iteración 3: 758 de backend y 159 de frontend**, todas aprobadas.
 
 | Tipo | Archivos | Qué comprueban |
 | --- | --- | --- |
