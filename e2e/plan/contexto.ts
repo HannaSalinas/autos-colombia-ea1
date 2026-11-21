@@ -181,6 +181,25 @@ export async function consulta(nota: string, sql: string, parametros: unknown[] 
   return r.rows;
 }
 
+/**
+ * Intenta una sentencia que la base debe rechazar (PP-03: TA-06 y AN-06). Nunca lanza: registra en la
+ * evidencia el código y el mensaje del error, o «sin error» si la base la aceptó, y lo devuelve.
+ */
+export async function intentoBd(nota: string, sql: string, parametros: unknown[] = []): Promise<{ rechazada: boolean; codigo: string; mensaje: string }> {
+  try {
+    await pg!.query('BEGIN');
+    await pg!.query(sql, parametros);
+    await pg!.query('ROLLBACK'); // aunque la aceptara, no se deja ningún cambio
+    actual?.bd.push({ nota, consulta: sql.trim(), parametros, filas: [{ resultado: 'sin error: la base aceptó la sentencia (se revirtió)' }] });
+    return { rechazada: false, codigo: '', mensaje: '' };
+  } catch (error: any) {
+    await pg!.query('ROLLBACK').catch(() => undefined);
+    const fila = { resultado: 'rechazada', codigo: String(error?.code ?? ''), mensaje: String(error?.message ?? error) };
+    actual?.bd.push({ nota, consulta: sql.trim(), parametros, filas: [fila] });
+    return { rechazada: true, codigo: fila.codigo, mensaje: fila.mensaje };
+  }
+}
+
 function tabla(filas: Record<string, unknown>[]): string {
   if (!filas.length) return '(sin filas)';
   const columnas = Object.keys(filas[0]);

@@ -165,5 +165,29 @@ services:
     volumes:
       - ./docs/pruebas/evidencias:/e2e/salida
 
+  # Plan de pruebas de la EA3 (PP-03, casos TA, CL, ME, PA, AN, RE y PE). Lo lanza
+  # scripts/ejecutar_plan_pruebas_ea3.sh, que antes recrea la base. Mismas reglas que plan-pruebas.
+  plan-pruebas-ea3:
+    profiles: ["plan"]
+    build: ./e2e
+    depends_on:
+      - frontend
+    command: ["npx", "playwright", "test", "--config", "plan3.config.ts"]
+    environment:
+      BASE_URL: http://frontend
+      SALIDA: /e2e/salida
+      TZ: America/Bogota
+      PGHOST: db
+      PGDATABASE: autos_colombia
+      PGUSER: "${POSTGRES_USER:?Falta POSTGRES_USER en .env (ver .env.example)}"
+      PGPASSWORD: "${POSTGRES_PASSWORD:?Falta POSTGRES_PASSWORD en .env (ver .env.example)}"
+      ADMIN_USUARIO: "${ADMIN_USUARIO:?Falta ADMIN_USUARIO en .env (ver .env.example)}"
+      ADMIN_CONTRASENA: "${ADMIN_CONTRASENA:?Falta ADMIN_CONTRASENA en .env (ver .env.example)}"
+      MARTA_CONTRASENA: "${MARTA_CONTRASENA:?Falta MARTA_CONTRASENA en .env (ver .env.example)}"
+    user: "${E2E_UID:-1000}:${E2E_GID:-1000}"
+    shm_size: "1gb"
+    volumes:
+      - ./docs/pruebas/evidencias-ea3:/e2e/salida
+
 volumes:
   datos_postgres:
