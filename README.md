@@ -929,6 +929,7 @@ backend y 58 de frontend. Al cerrar la Iteración 2: 474 de backend y 113 de fro
 | Iteración 3 · pagos | `tests/test_pagos_postgres.py`, `test_vigencia_anulados_postgres.py`, `test_pagos_concurrencia_postgres.py`, `pagos/*.spec.ts`, `consulta-pagos/*.spec.ts`, `pago-detalle/*.spec.ts` | HU-29 a HU-32 con sus límites; el periodo anulado no deja entrar; cambio de tarifa entre resumen y confirmación; concurrencia: dos pagos del mismo vehículo a la vez y pago frente a anulación |
 | Iteración 3 · tarifas, clientes y recaudo | `tests/test_tarifas_postgres.py`, `test_clientes_postgres.py`, `test_recaudo_postgres.py`, `test_seed_postgres.py`, `tarifas/*.spec.ts`, `clientes/*.spec.ts`, `recaudo/*.spec.ts` | HU-26 a HU-28 y HU-33 con sus límites, permisos (403) y dos registros simultáneos del mismo documento; semillas de tarifas y pagos |
 | Iteración 3 · extremo a extremo | `e2e/rnf26.spec.ts` (`docker compose --profile e2e run --rm --build e2e-rnf26`) | RNF-26: las 10 pantallas de la Iteración 3 en Chrome, Edge y Firefox; no cuenta en los totales de arriba |
+| Iteración 3 · plan de pruebas PP-03 | `e2e/plan3/` y `scripts/ejecutar_plan_pruebas_ea3.sh` | Los 43 casos del plan (TA, CL, ME, PA, AN, RE, PE y NF) contra el sistema real, con evidencia por caso; no cuenta en los totales de arriba (ver «Ejecución automatizada del plan de pruebas de la EA3») |
 
 ### Ejecución automatizada del plan de pruebas de la EA2 (PP-02)
 
@@ -974,6 +975,61 @@ copia `_antes_de_ejecutar.xlsx`. La tabla, los estilos, la validación, el forma
 fórmulas no se tocan. El Excel diligenciado de la ejecución entregada está en
 [docs/pruebas/Salinas_Hanna_EA2_Plan_Pruebas.xlsx](docs/pruebas/Salinas_Hanna_EA2_Plan_Pruebas.xlsx).
 
+### Ejecución automatizada del plan de pruebas de la EA3 (PP-03)
+
+El plan `Salinas_Hanna_EA3_Plan_Pruebas.xlsx` (43 casos: TA-01 a TA-06, CL-01 a CL-06, ME-01 a ME-05,
+PA-01 a PA-13, AN-01 a AN-06, RE-01 a RE-04, PE-01, NF-01 y NF-02) se ejecuta igual que el PP-02, con
+un solo comando desde un commit sin cambios pendientes:
+
+```bash
+scripts/ejecutar_plan_pruebas_ea3.sh
+```
+
+1. Recrea la base (`docker compose down -v` y `up --build`): solo las semillas.
+2. Prepara los datos de la hoja Plan (`e2e/plan3/escenario.ts`) **por la API**: `admin_prueba`,
+   `admin_dos` y `operador_prueba` (contraseñas al azar, solo en memoria), un cambio previo de la
+   tarifa de AUTOMOVIL (de $ 120.000 a $ 125.000 y de vuelta, para TA-01), el cliente dueño de los
+   vehículos de prueba, los vehículos (placas `PP…`, una por caso que la necesita) y los pagos de
+   V-FUT, AN-01 y AN-02. Los periodos sin pago de **V-VIG** (vence en 10 días), **V-VENC** (venció
+   hace 5 días) y del periodo vigente de **V-FUT** se insertan por SQL, como los de las semillas,
+   porque la API no permite crear un periodo que ya venció o que empezó antes de hoy. La placa real
+   de cada vehículo queda en `vehiculos.json`, en el reporte y en el resultado de ME-01 a ME-03 y PA-10.
+3. Ejecuta los casos con Playwright en Google Chrome (servicio `plan-pruebas-ea3`), en orden de
+   dependencias: cada caso verifica la pantalla, la API y la base, y restaura lo que cambia (por
+   ejemplo, las tarifas de TA-05 y PA-09). Si algo no coincide con el resultado esperado del Excel, el
+   caso queda **Fallido** con su incidencia; si no se cumple su precondición, **Bloqueado**. Nunca se
+   ajusta un resultado esperado. TA-06 y AN-06 intentan en la base las operaciones prohibidas dentro de
+   una transacción que se revierte, y guardan el código y el mensaje del error.
+4. Ejecuta las pruebas automatizadas de la regla de fechas (PA-03) y de concurrencia de CL-04 y PA-08
+   (estos dos también se reproducen contra la API con dos sesiones a la vez).
+5. Sobre otra base recién creada, NF-02 con el recorrido de RNF-26 en los tres navegadores (no
+   modifica datos) y NF-01 con `scripts/medir_rnf25.py`: sus reportes se regeneran sobre el mismo
+   commit en [docs/evidencias/rnf26/reporte.md](docs/evidencias/rnf26/reporte.md) y
+   [docs/evidencias/rnf25.md](docs/evidencias/rnf25.md).
+6. Busca secretos en las evidencias (se detiene si encuentra alguno), escribe
+   [docs/pruebas/reporte-ea3.md](docs/pruebas/reporte-ea3.md) y deja la base limpia
+   (`docker compose down -v`).
+
+Evidencias en `docs/pruebas/evidencias-ea3/`, nombradas con el ID del caso (`TA-01.png`,
+`PA-09_api.json`, `AN-06_bd.txt`, `PA-03_pytest.txt`), sin tokens, contraseñas ni hashes. Después de
+hacer commit de las evidencias, el Excel se llena con enlaces permanentes a ese commit (antes guarda
+una copia `_anterior.xlsx`; tabla, estilos, validación, formato condicional y fórmulas no se tocan):
+
+```bash
+python3 scripts/plan_pruebas_ea3.py excel <commit-de-las-evidencias> ~/Documentos/EA3/Salinas_Hanna_EA3_Plan_Pruebas.xlsx
+```
+
+Diferencias de redacción entre el Excel y el sistema, consultadas antes de ejecutar y registradas en
+el resultado real de cada caso (los resultados esperados no se cambiaron):
+
+- **PA-04:** la pantalla ofrece una lista de 1 a 6 meses, así que 0, 7 y 1,5 no se pueden elegir; el
+  rechazo 422 se verifica por la API.
+- **PA-05:** la pantalla rechaza la referencia inválida sin enviar nada (el 422 se verifica por la
+  API), y en efectivo el campo de referencia no aparece.
+- **PA-09:** el 409 de monto confirmado distinto decía «La tarifa cambió…» aunque la tarifa no hubiera
+  cambiado; antes de ejecutar se cambió a una redacción que vale para los dos pasos («El monto no
+  coincide con el calculado: el monto vigente es $ …»).
+
 ## Arquitectura y estructura
 
 Arquitectura por capas, igual que el proyecto base:
@@ -1003,6 +1059,8 @@ AutosColombia/
 ├── scripts/medir_rnf25.py      # (nuestro) medición automática de RNF-25 · Iteración 3
 ├── docs/evidencias/rnf26/      # (nuestro) capturas de RNF-26 por navegador y reporte.md · Iteración 3
 ├── e2e/                        # (nuestro) recorridos de RNF-20 y RNF-26 con Playwright en Docker
+├── e2e/plan3/, scripts/ejecutar_plan_pruebas_ea3.sh  # (nuestro) ejecución del plan PP-03 · Iteración 3
+├── docs/pruebas/evidencias-ea3/, reporte-ea3.md     # (nuestro) evidencias y reporte del PP-03 · Iteración 3
 ├── backend/
 │   ├── Dockerfile              # (nuestro) migra, carga semillas e inicia la API
 │   ├── app/
